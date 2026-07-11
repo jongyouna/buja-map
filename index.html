@@ -47,6 +47,27 @@
   }
   h1 { font-size: 1.4rem; margin: 0; }
   .updated { color: var(--muted); font-size: 0.85rem; }
+  .summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .summary-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+  .summary-pill .name { color: var(--muted); }
+  .summary-pill .chg { font-weight: 700; }
+  .summary-pill .chg.up { color: var(--good); }
+  .summary-pill .chg.down { color: var(--bad); }
+  .summary-pill .period { color: var(--muted); font-size: 0.75rem; }
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -73,6 +94,18 @@
   }
   .panel h2 { font-size: 1rem; margin: 0 0 4px; }
   .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
+  .period-selector { display: flex; gap: 6px; margin-bottom: 14px; }
+  .period-btn {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .period-btn:hover { border-color: var(--accent-nasdaq); color: var(--text); }
+  .period-btn.active { background: var(--accent-nasdaq); color: #fff; border-color: var(--accent-nasdaq); }
   .chart-wrap { position: relative; height: 340px; }
   .chart-wrap.small { height: 220px; }
   footer { color: var(--muted); font-size: 0.78rem; margin-top: 8px; line-height: 1.6; }
@@ -82,6 +115,8 @@
 </style>
 </head>
 <body>
+  <div class="summary-bar" id="summaryBar"></div>
+
   <header>
     <h1>buja-map · 스페이스X × M2 유동성 × 나스닥 대시보드</h1>
     <div class="updated" id="updatedAt">로딩 중...</div>
@@ -91,7 +126,13 @@
 
   <div class="panel">
     <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">SPCX 상장일을 기준점으로 세 지표를 100으로 정규화하여 동일 축에서 비교합니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
+    <p class="desc">선택한 기간의 시작일(단, SPCX 상장일 이전으로는 확장되지 않음)을 기준점으로 세 지표를 100으로 정규화하여 동일 축에서 비교합니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
+    <div class="period-selector" id="periodSelector">
+      <button class="period-btn" data-period="1w">1주일</button>
+      <button class="period-btn" data-period="1m">한달</button>
+      <button class="period-btn" data-period="6m">6개월</button>
+      <button class="period-btn" data-period="1y">1년</button>
+    </div>
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
   </div>
 
@@ -205,63 +246,114 @@ async function main() {
     )
     .join("");
 
-  // ---- 정규화 지수 차트 ----
-  const startDate = spacex[0].date; // SPCX 상장일 기준
-  const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
-  const spacexIdx = indexTo100(spacex, "close", startDate);
-  const allDates = nasdaq.filter((d) => d.date >= startDate).map((d) => d.date);
-  const m2Daily = m2ToDaily(m2, allDates);
-  const m2Idx = indexTo100(m2Daily, "value", startDate);
+  // ---- 최상단 전일대비 변화 요약 ----
+  const summaryItems = [
+    { name: `나스닥(${data.series.nasdaq.symbol})`, chg: chgN, period: "전일 대비" },
+    { name: `스페이스X(${data.series.spacex.symbol})`, chg: chgS, period: "전일 대비" },
+    { name: "M2 유동성", chg: chgM, period: "전월 대비" },
+  ];
+  document.getElementById("summaryBar").innerHTML = summaryItems
+    .map((s) => {
+      const cls = s.chg >= 0 ? "up" : "down";
+      const arrow = s.chg >= 0 ? "▲" : "▼";
+      return `
+    <div class="summary-pill">
+      <span class="name">${s.name}</span>
+      <span class="chg ${cls}">${arrow} ${fmtPct(s.chg)}</span>
+      <span class="period">(${s.period})</span>
+    </div>`;
+    })
+    .join("");
 
-  new Chart(document.getElementById("mainChart"), {
-    type: "line",
-    data: {
-      datasets: [
-        {
-          label: "나스닥(QQQ)",
-          data: nasdaqIdx.map((d) => ({ x: d.date, y: d.value })),
-          borderColor: "#5b8def",
-          backgroundColor: "#5b8def",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.15,
-        },
-        {
-          label: "스페이스X(SPCX)",
-          data: spacexIdx.map((d) => ({ x: d.date, y: d.value })),
-          borderColor: "#ef5b6d",
-          backgroundColor: "#ef5b6d",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.15,
-        },
-        {
-          label: "미국 M2 유동성",
-          data: m2Idx.map((d) => ({ x: d.date, y: d.value })),
-          borderColor: "#4fd1a5",
-          backgroundColor: "#4fd1a5",
-          borderWidth: 2,
-          borderDash: [4, 3],
-          pointRadius: 0,
-          stepped: true,
-          tension: 0,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        x: { type: "time", time: { unit: "day" }, grid: { display: false } },
-        y: { title: { display: true, text: "지수 (시작일=100)" } },
+  // ---- 정규화 지수 차트 ----
+  const spacexStart = spacex[0].date; // SPCX 상장일 이전으로는 확장 불가
+  const lastDate = nasdaq[nasdaq.length - 1].date;
+  const PERIOD_DAYS = { "1w": 7, "1m": 30, "6m": 182, "1y": 365 };
+
+  function periodStartDate(periodKey) {
+    const days = PERIOD_DAYS[periodKey];
+    const cutoff = new Date(toDate(lastDate).getTime() - days * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    return cutoff > spacexStart ? cutoff : spacexStart;
+  }
+
+  let mainChart = null;
+  function renderMainChart(periodKey) {
+    const startDate = periodStartDate(periodKey);
+    const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
+    const spacexIdx = indexTo100(spacex, "close", startDate);
+    const allDates = nasdaq.filter((d) => d.date >= startDate).map((d) => d.date);
+    const m2Daily = m2ToDaily(m2, allDates);
+    const m2Idx = indexTo100(m2Daily, "value", startDate);
+
+    const datasets = [
+      {
+        label: "나스닥(QQQ)",
+        data: nasdaqIdx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: "#5b8def",
+        backgroundColor: "#5b8def",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.15,
       },
-      plugins: { legend: { position: "top" } },
-    },
+      {
+        label: "스페이스X(SPCX)",
+        data: spacexIdx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: "#ef5b6d",
+        backgroundColor: "#ef5b6d",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.15,
+      },
+      {
+        label: "미국 M2 유동성",
+        data: m2Idx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: "#4fd1a5",
+        backgroundColor: "#4fd1a5",
+        borderWidth: 2,
+        borderDash: [4, 3],
+        pointRadius: 0,
+        stepped: true,
+        tension: 0,
+      },
+    ];
+
+    if (mainChart) {
+      mainChart.data.datasets = datasets;
+      mainChart.update();
+      return;
+    }
+    mainChart = new Chart(document.getElementById("mainChart"), {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { type: "time", time: { unit: "day" }, grid: { display: false } },
+          y: { title: { display: true, text: "지수 (시작일=100)" } },
+        },
+        plugins: { legend: { position: "top" } },
+      },
+    });
+  }
+
+  const periodButtons = document.querySelectorAll("#periodSelector .period-btn");
+  periodButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      periodButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderMainChart(btn.dataset.period);
+    });
   });
+  const defaultBtn = document.querySelector('#periodSelector .period-btn[data-period="1y"]');
+  defaultBtn.classList.add("active");
+  renderMainChart("1y");
 
   // ---- 롤링 상관계수 차트 ----
-  const retNasdaq = dailyReturns(nasdaq.filter((d) => d.date >= startDate));
+  const retNasdaq = dailyReturns(nasdaq.filter((d) => d.date >= spacexStart));
   const retSpacex = dailyReturns(spacex);
   const window = Math.min(10, Math.max(3, retSpacex.length - 1));
   const corr = rollingCorrelation(retNasdaq, retSpacex, window);
