@@ -217,6 +217,7 @@ async function main() {
 
   const nasdaq = data.series.nasdaq.data; // [{date, close}]
   const spacex = data.series.spacex.data;
+  const k200 = data.series.k200 ? data.series.k200.data : []; // [{date, close}]
   const m2 = data.series.m2.data; // [{date, value}]
 
   document.getElementById("updatedAt").textContent =
@@ -225,16 +226,27 @@ async function main() {
   // ---- 요약 카드 ----
   const lastN = nasdaq[nasdaq.length - 1], prevN = nasdaq[nasdaq.length - 2];
   const lastS = spacex[spacex.length - 1], prevS = spacex[spacex.length - 2];
+  const lastK = k200[k200.length - 1], prevK = k200[k200.length - 2];
   const lastM = m2[m2.length - 1], prevM = m2[m2.length - 2];
   const chgN = prevN ? ((lastN.close - prevN.close) / prevN.close) * 100 : null;
   const chgS = prevS ? ((lastS.close - prevS.close) / prevS.close) * 100 : null;
+  const chgK = lastK && prevK ? ((lastK.close - prevK.close) / prevK.close) * 100 : null;
   const chgM = prevM ? ((lastM.value - prevM.value) / prevM.value) * 100 : null;
 
   const cards = [
     { label: `나스닥 (${data.series.nasdaq.symbol})`, value: "$" + fmtNum(lastN.close), sub: fmtPct(chgN) + " (전일 대비)", chg: chgN, asOf: lastN.date },
     { label: `스페이스X (${data.series.spacex.symbol})`, value: "$" + fmtNum(lastS.close), sub: fmtPct(chgS) + " (전일 대비)", chg: chgS, asOf: lastS.date },
-    { label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date },
   ];
+  if (lastK) {
+    cards.push({
+      label: "코스피200 선물",
+      value: fmtNum(lastK.close),
+      sub: fmtPct(chgK) + " (전일 대비)",
+      chg: chgK,
+      asOf: lastK.date,
+    });
+  }
+  cards.push({ label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date });
   document.getElementById("cards").innerHTML = cards
     .map(
       (c) => `
@@ -250,8 +262,9 @@ async function main() {
   const summaryItems = [
     { name: `나스닥(${data.series.nasdaq.symbol})`, chg: chgN, period: "전일 대비" },
     { name: `스페이스X(${data.series.spacex.symbol})`, chg: chgS, period: "전일 대비" },
-    { name: "M2 유동성", chg: chgM, period: "전월 대비" },
   ];
+  if (lastK) summaryItems.push({ name: "코스피200 선물", chg: chgK, period: "전일 대비" });
+  summaryItems.push({ name: "M2 유동성", chg: chgM, period: "전월 대비" });
   document.getElementById("summaryBar").innerHTML = summaryItems
     .map((s) => {
       const cls = s.chg >= 0 ? "up" : "down";
@@ -283,6 +296,7 @@ async function main() {
     const startDate = periodStartDate(periodKey);
     const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
     const spacexIdx = indexTo100(spacex, "close", startDate);
+    const k200Idx = indexTo100(k200, "close", startDate);
     const allDates = nasdaq.filter((d) => d.date >= startDate).map((d) => d.date);
     const m2Daily = m2ToDaily(m2, allDates);
     const m2Idx = indexTo100(m2Daily, "value", startDate);
@@ -318,6 +332,18 @@ async function main() {
         tension: 0,
       },
     ];
+
+    if (k200Idx.length > 0) {
+      datasets.push({
+        label: "코스피200 선물",
+        data: k200Idx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: "#c792ea",
+        backgroundColor: "#c792ea",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.15,
+      });
+    }
 
     if (mainChart) {
       mainChart.data.datasets = datasets;
@@ -385,8 +411,10 @@ async function main() {
   });
 
   document.getElementById("footerNote").innerHTML = `
-    데이터 소스: 나스닥·스페이스X = Yahoo Finance(QQQ, SPCX 일별 종가) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
-    SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
+    데이터 소스: 나스닥·스페이스X = Yahoo Finance(QQQ, SPCX 일별 종가) · 코스피200 선물 = Investing.com(일별 종가, 비공식 스크래핑) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
+    SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.${
+      lastK ? "" : " 코스피200 선물은 최근 갱신에 실패해 표시되지 않았습니다."
+    }<br/>
     갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
   `;
 }
