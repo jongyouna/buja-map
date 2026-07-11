@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-11T21:36:56.280Z",
+  "updatedAt": "2026-07-11T22:12:34.137Z",
   "series": {
     "nasdaq": {
       "symbol": "QQQ",
@@ -2092,6 +2092,11 @@
           "close": 145.3000030517578
         }
       ]
+    },
+    "k200": {
+      "symbol": "KOSPI200F",
+      "label": "코스피200 선물",
+      "data": []
     },
     "m2": {
       "symbol": "M2SL",
