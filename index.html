@@ -126,7 +126,7 @@
 
   <div class="panel">
     <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">선택한 기간의 시작일(단, SPCX 상장일 이전으로는 확장되지 않음)을 기준점으로 네 지표를 100으로 정규화하여 동일 축에서 비교합니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 네 지표를 100으로 정규화하여 동일 축에서 비교합니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
     <div class="period-selector" id="periodSelector">
       <button class="period-btn" data-period="1w">1주일</button>
       <button class="period-btn" data-period="1m">한달</button>
@@ -285,10 +285,7 @@ async function main() {
 
   function periodStartDate(periodKey) {
     const days = PERIOD_DAYS[periodKey];
-    const cutoff = new Date(toDate(lastDate).getTime() - days * 86400000)
-      .toISOString()
-      .slice(0, 10);
-    return cutoff > spacexStart ? cutoff : spacexStart;
+    return new Date(toDate(lastDate).getTime() - days * 86400000).toISOString().slice(0, 10);
   }
 
   let mainChart = null;
