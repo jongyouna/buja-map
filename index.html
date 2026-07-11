@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>buja-map · 자산관리 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0b0d12;
+    --panel: #14171f;
+    --panel-border: #262b38;
+    --text: #e6e9ef;
+    --muted: #8b93a7;
+    --accent-nasdaq: #5b8def;
+    --accent-spacex: #ef5b6d;
+    --accent-m2: #4fd1a5;
+    --good: #4fd1a5;
+    --bad: #ef5b6d;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --panel-border: #e1e4ea;
+      --text: #1a1d24;
+      --muted: #5b6172;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Pretendard", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 1.4rem; margin: 0; }
+  .updated { color: var(--muted); font-size: 0.85rem; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .card .label { color: var(--muted); font-size: 0.8rem; margin-bottom: 6px; }
+  .card .value { font-size: 1.6rem; font-weight: 600; }
+  .card .sub { font-size: 0.8rem; margin-top: 4px; color: var(--muted); }
+  .card .sub.up { color: var(--good); }
+  .card .sub.down { color: var(--bad); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+  }
+  .panel h2 { font-size: 1rem; margin: 0 0 4px; }
+  .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
+  .chart-wrap { position: relative; height: 340px; }
+  .chart-wrap.small { height: 220px; }
+  footer { color: var(--muted); font-size: 0.78rem; margin-top: 8px; line-height: 1.6; }
+  .legend-note { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .err { color: var(--bad); padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>buja-map · 스페이스X × M2 유동성 × 나스닥 대시보드</h1>
+    <div class="updated" id="updatedAt">로딩 중...</div>
+  </header>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="panel">
+    <h2>정규화 지수 비교 (시작=100)</h2>
+    <p class="desc">SPCX 상장일을 기준점으로 세 지표를 100으로 정규화하여 동일 축에서 비교합니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
+    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>롤링 상관계수 (QQQ ↔ SPCX, 10거래일 수익률 기준)</h2>
+    <p class="desc">두 자산의 일간 수익률 간 10일 롤링 상관계수. +1에 가까울수록 동조화, -1에 가까울수록 역행.</p>
+    <div class="chart-wrap small"><canvas id="corrChart"></canvas></div>
+  </div>
+
+  <footer id="footerNote"></footer>
+
+<script>
+const fmtPct = (v) => (v == null || isNaN(v) ? "–" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
+const fmtNum = (v, d = 2) => (v == null || isNaN(v) ? "–" : v.toLocaleString("en-US", { maximumFractionDigits: d }));
+
+function toDate(s) { return new Date(s + "T00:00:00Z"); }
+
+function dailyReturns(series) {
+  const out = [];
+  for (let i = 1; i < series.length; i++) {
+    const prev = series[i - 1].close, cur = series[i].close;
+    out.push({ date: series[i].date, ret: (cur - prev) / prev });
+  }
+  return out;
+}
+
+function pearson(a, b) {
+  const n = a.length;
+  if (n < 2) return null;
+  const meanA = a.reduce((s, x) => s + x, 0) / n;
+  const meanB = b.reduce((s, x) => s + x, 0) / n;
+  let num = 0, denA = 0, denB = 0;
+  for (let i = 0; i < n; i++) {
+    const da = a[i] - meanA, db = b[i] - meanB;
+    num += da * db; denA += da * da; denB += db * db;
+  }
+  const den = Math.sqrt(denA * denB);
+  return den === 0 ? null : num / den;
+}
+
+function rollingCorrelation(retA, retB, window) {
+  // retA, retB: [{date, ret}] aligned by date already
+  const map = new Map(retB.map((d) => [d.date, d.ret]));
+  const aligned = retA.filter((d) => map.has(d.date)).map((d) => ({ date: d.date, a: d.ret, b: map.get(d.date) }));
+  const out = [];
+  for (let i = window - 1; i < aligned.length; i++) {
+    const slice = aligned.slice(i - window + 1, i + 1);
+    const c = pearson(slice.map((s) => s.a), slice.map((s) => s.b));
+    out.push({ date: aligned[i].date, corr: c });
+  }
+  return out;
+}
+
+// M2(월간)를 일별로 forward-fill
+function m2ToDaily(m2series, dateList) {
+  const sorted = [...m2series].sort((a, b) => a.date.localeCompare(b.date));
+  const out = [];
+  let idx = -1;
+  for (const d of dateList) {
+    while (idx + 1 < sorted.length && sorted[idx + 1].date <= d) idx++;
+    out.push({ date: d, value: idx >= 0 ? sorted[idx].value : null });
+  }
+  return out;
+}
+
+function indexTo100(series, valueKey, startDate) {
+  const filtered = series.filter((d) => d.date >= startDate);
+  if (filtered.length === 0) return [];
+  const base = filtered[0][valueKey];
+  return filtered.map((d) => ({ date: d.date, value: (d[valueKey] / base) * 100 }));
+}
+
+async function main() {
+  let data;
+  try {
+    const res = await fetch("./data/data.json");
+    data = await res.json();
+  } catch (e) {
+    document.body.innerHTML = '<div class="err">data/data.json을 불러올 수 없습니다. scripts/fetch-data.js를 먼저 실행하세요.</div>';
+    return;
+  }
+
+  const nasdaq = data.series.nasdaq.data; // [{date, close}]
+  const spacex = data.series.spacex.data;
+  const m2 = data.series.m2.data; // [{date, value}]
+
+  document.getElementById("updatedAt").textContent =
+    "마지막 갱신: " + new Date(data.updatedAt).toLocaleString("ko-KR");
+
+  // ---- 요약 카드 ----
+  const lastN = nasdaq[nasdaq.length - 1], prevN = nasdaq[nasdaq.length - 2];
+  const lastS = spacex[spacex.length - 1], prevS = spacex[spacex.length - 2];
+  const lastM = m2[m2.length - 1], prevM = m2[m2.length - 2];
+  const chgN = prevN ? ((lastN.close - prevN.close) / prevN.close) * 100 : null;
+  const chgS = prevS ? ((lastS.close - prevS.close) / prevS.close) * 100 : null;
+  const chgM = prevM ? ((lastM.value - prevM.value) / prevM.value) * 100 : null;
+
+  const cards = [
+    { label: `나스닥 (${data.series.nasdaq.symbol})`, value: "$" + fmtNum(lastN.close), sub: fmtPct(chgN) + " (전일 대비)", chg: chgN, asOf: lastN.date },
+    { label: `스페이스X (${data.series.spacex.symbol})`, value: "$" + fmtNum(lastS.close), sub: fmtPct(chgS) + " (전일 대비)", chg: chgS, asOf: lastS.date },
+    { label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date },
+  ];
+  document.getElementById("cards").innerHTML = cards
+    .map(
+      (c) => `
+    <div class="card">
+      <div class="label">${c.label} · 기준일 ${c.asOf}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub ${c.chg >= 0 ? "up" : "down"}">${c.sub}</div>
+    </div>`
+    )
+    .join("");
+
+  // ---- 정규화 지수 차트 ----
+  const startDate = spacex[0].date; // SPCX 상장일 기준
+  const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
+  const spacexIdx = indexTo100(spacex, "close", startDate);
+  const allDates = nasdaq.filter((d) => d.date >= startDate).map((d) => d.date);
+  const m2Daily = m2ToDaily(m2, allDates);
+  const m2Idx = indexTo100(m2Daily, "value", startDate);
+
+  new Chart(document.getElementById("mainChart"), {
+    type: "line",
+    data: {
+      datasets: [
+        {
+          label: "나스닥(QQQ)",
+          data: nasdaqIdx.map((d) => ({ x: d.date, y: d.value })),
+          borderColor: "#5b8def",
+          backgroundColor: "#5b8def",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.15,
+        },
+        {
+          label: "스페이스X(SPCX)",
+          data: spacexIdx.map((d) => ({ x: d.date, y: d.value })),
+          borderColor: "#ef5b6d",
+          backgroundColor: "#ef5b6d",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.15,
+        },
+        {
+          label: "미국 M2 유동성",
+          data: m2Idx.map((d) => ({ x: d.date, y: d.value })),
+          borderColor: "#4fd1a5",
+          backgroundColor: "#4fd1a5",
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 0,
+          stepped: true,
+          tension: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { type: "time", time: { unit: "day" }, grid: { display: false } },
+        y: { title: { display: true, text: "지수 (시작일=100)" } },
+      },
+      plugins: { legend: { position: "top" } },
+    },
+  });
+
+  // ---- 롤링 상관계수 차트 ----
+  const retNasdaq = dailyReturns(nasdaq.filter((d) => d.date >= startDate));
+  const retSpacex = dailyReturns(spacex);
+  const window = Math.min(10, Math.max(3, retSpacex.length - 1));
+  const corr = rollingCorrelation(retNasdaq, retSpacex, window);
+
+  new Chart(document.getElementById("corrChart"), {
+    type: "line",
+    data: {
+      datasets: [
+        {
+          label: `${window}일 롤링 상관계수`,
+          data: corr.map((d) => ({ x: d.date, y: d.corr })),
+          borderColor: "#e0a458",
+          backgroundColor: "#e0a458",
+          borderWidth: 2,
+          pointRadius: 2,
+          tension: 0.2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { type: "time", time: { unit: "day" }, grid: { display: false } },
+        y: { min: -1, max: 1, title: { display: true, text: "상관계수" } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  document.getElementById("footerNote").innerHTML = `
+    데이터 소스: 나스닥·스페이스X = Yahoo Finance(QQQ, SPCX 일별 종가) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
+    SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
+    갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
+  `;
+}
+
+main();
+</script>
+</body>
+</html>
