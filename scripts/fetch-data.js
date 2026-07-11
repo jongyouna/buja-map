@@ -21,46 +21,57 @@ async function fetchYahoo(symbol, range = "2y") {
   return series;
 }
 
-// investing.com 코스피200 선물 히스토리 테이블 스크래핑 (비공식 HTML 구조 의존 — 사이트 개편 시 실패 가능)
+// investing.com 비공식 내부 API 사용 (api.investing.com — 브라우저처럼 헤더 위장, 봇 차단으로 실패 가능)
+const INVESTING_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "application/json",
+  "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+  "Domain-Id": "kr",
+  Referer: "https://kr.investing.com/indices/korea-200-futures-historical-data",
+  Origin: "https://kr.investing.com",
+  "X-Requested-With": "XMLHttpRequest",
+};
+
+async function findK200PairId() {
+  const url = "https://api.investing.com/api/search/v2/search?q=" + encodeURIComponent("Korea 200 Futures");
+  const res = await fetch(url, { headers: INVESTING_HEADERS });
+  if (!res.ok) throw new Error(`Investing.com search API 실패: ${res.status}`);
+  const json = await res.json();
+  const candidates = json.quotes || json.All || [];
+  const match =
+    candidates.find((c) => /korea\s*200\s*futures/i.test(c.name || c.symbol || "")) || candidates[0];
+  const pairId = match && (match.pairId ?? match.pair_ID ?? match.pairID);
+  if (!pairId) throw new Error("Investing.com 검색 결과에서 instrument ID를 찾지 못함");
+  return pairId;
+}
+
 async function fetchK200Futures() {
-  const url = "https://kr.investing.com/indices/korea-200-futures-historical-data";
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Accept-Language": "ko-KR,ko;q=0.9",
-    },
-  });
-  if (!res.ok) throw new Error(`Investing.com fetch failed: ${res.status}`);
-  const html = await res.text();
+  const pairId = await findK200PairId();
 
-  let tableHtml = null;
-  const byTestId = html.match(/<table[^>]*data-test="historical-data-table"[^>]*>([\s\S]*?)<\/table>/);
-  if (byTestId) {
-    tableHtml = byTestId[1];
-  } else {
-    const tables = [...html.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/g)];
-    const withClose = tables.find((t) => t[1].includes("종가"));
-    tableHtml = withClose ? withClose[1] : null;
-  }
-  if (!tableHtml) throw new Error("historical-data-table을 찾을 수 없음 (페이지 구조 변경 가능성)");
+  const end = new Date();
+  const start = new Date(end.getTime() - 400 * 86400000); // 최근 약 13개월
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  const histUrl = `https://api.investing.com/api/financialdata/historical/${pairId}?start-date=${fmt(
+    start
+  )}&end-date=${fmt(end)}&time-frame=Daily&add-missing-rows=false`;
 
-  const rows = [...tableHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)];
-  const series = [];
-  for (const row of rows) {
-    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((c) =>
-      c[1].replace(/<[^>]+>/g, "").trim()
-    );
-    if (cells.length < 2) continue;
-    const dateMatch = cells[0].match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
-    if (!dateMatch) continue;
-    const [, y, m, d] = dateMatch;
-    const date = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    const close = parseFloat(cells[1].replace(/,/g, ""));
-    if (isNaN(close)) continue;
-    series.push({ date, close });
-  }
+  const res = await fetch(histUrl, { headers: INVESTING_HEADERS });
+  if (!res.ok) throw new Error(`Investing.com historical API 실패: ${res.status}`);
+  const json = await res.json();
+  const rows = json.data || [];
+
+  const series = rows
+    .map((r) => {
+      const ts = r.rowDateTimestamp || r.rowDate;
+      const date = new Date(ts).toISOString().slice(0, 10);
+      const close =
+        typeof r.last_closeRaw === "number" ? r.last_closeRaw : parseFloat(String(r.last_close).replace(/,/g, ""));
+      return { date, close };
+    })
+    .filter((d) => !isNaN(d.close) && d.date !== "Invalid Date");
   series.sort((a, b) => a.date.localeCompare(b.date));
+  if (series.length === 0) throw new Error("Investing.com historical API 응답에 유효한 데이터가 없음");
   return series;
 }
 
