@@ -189,8 +189,8 @@
     <div class="control-group">
       <div class="control-group-label">한국</div>
       <div class="toggle-group" id="koreaToggles">
-        <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button" disabled title="한국은행 ECOS API 연동 예정">한국 M1 유동성 (준비중)</button>
-        <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button" disabled title="한국은행 ECOS API 연동 예정">한국 M2 유동성 (준비중)</button>
+        <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button">한국 M1 유동성</button>
+        <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button">한국 M2 유동성</button>
         <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
       </div>
     </div>
@@ -437,8 +437,8 @@ async function main() {
     vix: true,
     m1us: true,
     m2: true,
-    m1kr: false,
-    m2kr: false,
+    m1kr: true,
+    m2kr: true,
   };
 
   function renderMainChartWithCurrentState() {
@@ -634,7 +634,7 @@ async function main() {
   });
 
   document.getElementById("footerNote").innerHTML = `
-    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS 연동 예정<br/>
+    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시)<br/>
     SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
     갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
   `;

@@ -36,6 +36,23 @@ async function fetchFred(seriesId) {
   return series;
 }
 
+async function fetchEcos(apiKey, tableCode, itemCode) {
+  const now = new Date();
+  const end = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const start = new Date(now);
+  start.setFullYear(start.getFullYear() - 30);
+  const startStr = `${start.getFullYear()}${String(start.getMonth() + 1).padStart(2, "0")}`;
+  const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/500/${tableCode}/M/${startStr}/${end}/${itemCode}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`ECOS fetch failed for ${tableCode}/${itemCode}: ${res.status}`);
+  const json = await res.json();
+  const rows = json.StatisticSearch?.row || [];
+  return rows.map((r) => ({
+    date: `${r.TIME.slice(0, 4)}-${r.TIME.slice(4, 6)}-01`,
+    value: parseFloat(r.DATA_VALUE),
+  }));
+}
+
 function last30Years(series) {
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - 30);
@@ -71,9 +88,20 @@ async function main() {
   const m2 = last30Years(await fetchFred("M2SL"));
   console.log(`  ${m2.length} rows`);
 
-  // 한국 M1/M2: 한국은행 ECOS API 키 발급 후 연동 예정 (현재는 빈 배열)
-  const m1kr = [];
-  const m2kr = [];
+  const ecosKey = process.env.BOK_ECOS_API_KEY;
+  let m1kr = [];
+  let m2kr = [];
+  if (ecosKey) {
+    console.log("Fetching Korea M1 (BOK ECOS)...");
+    m1kr = await fetchEcos(ecosKey, "161Y001", "BBLS00");
+    console.log(`  ${m1kr.length} rows`);
+
+    console.log("Fetching Korea M2 (BOK ECOS)...");
+    m2kr = await fetchEcos(ecosKey, "161Y005", "BBHS00");
+    console.log(`  ${m2kr.length} rows`);
+  } else {
+    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2");
+  }
 
   const data = {
     updatedAt: new Date().toISOString(),

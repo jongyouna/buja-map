@@ -23,6 +23,8 @@ jobs:
         with:
           node-version: "20"
       - name: Fetch latest data
+        env:
+          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
         run: node scripts/fetch-data.js
       - name: Commit updated data
         run: |
