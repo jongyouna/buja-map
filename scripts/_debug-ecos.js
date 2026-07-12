@@ -1,4 +1,4 @@
-// 일회성 디버그: 한국은행 ECOS API에서 M1 통계표·항목 코드 확인. 사용 후 삭제 예정.
+// 일회성 디버그: M1/M2(신지표, 161Y001/161Y005) 항목코드 확인 + StatisticSearch 실제 조회 테스트. 사용 후 삭제 예정.
 // 주의: URL(인증키 포함)은 절대 로그에 출력하지 않음 — 파싱된 JSON 내용만 출력.
 const API_KEY = process.env.BOK_ECOS_API_KEY;
 if (!API_KEY) {
@@ -10,73 +10,57 @@ async function fetchJson(path) {
   const url = `https://ecos.bok.or.kr/api/${path.replace("{KEY}", API_KEY)}`;
   const res = await fetch(url);
   const text = await res.text();
-  let json;
   try {
-    json = JSON.parse(text);
+    return JSON.parse(text);
   } catch (e) {
     console.log(`  (JSON 파싱 실패, status=${res.status}, length=${text.length})`);
     return null;
   }
-  return json;
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-let callCount = 0;
-
-async function listChildren(code) {
-  callCount++;
-  if (callCount > 250) return [];
-  const suffix = code ? `/${code}` : "";
-  const json = await fetchJson(`StatisticTableList/{KEY}/json/kr/1/100${suffix}`);
-  await sleep(80);
+async function listItems(tableCode) {
+  console.log(`\n=== 통계표 ${tableCode} 항목 목록 ===`);
+  const json = await fetchJson(`StatisticItemList/{KEY}/json/kr/1/100/${tableCode}`);
   if (!json) return [];
   if (json.RESULT) {
-    console.log(`  (code=${code} RESULT: ${JSON.stringify(json.RESULT)})`);
+    console.log("  RESULT:", JSON.stringify(json.RESULT));
     return [];
   }
-  return json.StatisticTableList?.row || [];
+  const rows = json.StatisticItemList?.row || [];
+  for (const r of rows) {
+    console.log(`  ITEM_CODE=${r.ITEM_CODE}  ITEM_NAME=${r.ITEM_NAME}  CYCLE=${r.CYCLE}`);
+  }
+  return rows;
+}
+
+async function testSearch(tableCode, itemCode, label) {
+  console.log(`\n=== StatisticSearch 테스트: ${label} (${tableCode}/${itemCode}) ===`);
+  const json = await fetchJson(
+    `StatisticSearch/{KEY}/json/kr/1/15/${tableCode}/M/202401/202412/${itemCode}`
+  );
+  if (!json) return;
+  if (json.RESULT) {
+    console.log("  RESULT:", JSON.stringify(json.RESULT));
+    return;
+  }
+  const rows = json.StatisticSearch?.row || [];
+  console.log(`  rows: ${rows.length}`);
+  for (const r of rows.slice(0, 5)) {
+    console.log(`  TIME=${r.TIME}  DATA_VALUE=${r.DATA_VALUE}  UNIT_NAME=${r.UNIT_NAME}  ITEM_NAME1=${r.ITEM_NAME1}`);
+  }
 }
 
 async function main() {
-  console.log("=== 최상위 카테고리 조회 ===");
-  const roots = await listChildren("");
-  for (const r of roots) {
-    console.log(`  STAT_CODE=${r.STAT_CODE}  STAT_NAME=${r.STAT_NAME}  SRCH_YN=${r.SRCH_YN}`);
+  const m1Items = await listItems("161Y001");
+  const m2Items = await listItems("161Y005");
+
+  // 총량(헤드라인) 항목으로 보이는 것 우선 테스트 - 목록 첫 항목으로 시도
+  if (m1Items[0]) {
+    await testSearch("161Y001", m1Items[0].ITEM_CODE, `M1 (${m1Items[0].ITEM_NAME})`);
   }
-
-  const relevant = roots.filter((r) => /통화|금융|유동성/.test(r.STAT_NAME));
-  console.log(`\n관련 최상위 카테고리 ${relevant.length}개 발견, 하위 탐색 시작`);
-
-  const found = [];
-  async function walk(code, pathLabel, depth) {
-    if (depth > 6 || callCount > 250) return;
-    const rows = await listChildren(code);
-    for (const r of rows) {
-      const label = `${r.STAT_CODE} ${r.STAT_NAME} (SRCH_YN=${r.SRCH_YN})`;
-      const newPath = pathLabel ? `${pathLabel} > ${label}` : label;
-      if (/M1|협의통화/.test(r.STAT_NAME)) {
-        console.log("FOUND:", newPath);
-        found.push(newPath);
-      }
-      if (r.SRCH_YN !== "Y") {
-        await walk(r.STAT_CODE, newPath, depth + 1);
-      } else {
-        // 리프 노드도 이름에 힌트가 있을 수 있으니 전체 목록도 남겨둠
-        console.log("LEAF:", newPath);
-      }
-    }
+  if (m2Items[0]) {
+    await testSearch("161Y005", m2Items[0].ITEM_CODE, `M2 (${m2Items[0].ITEM_NAME})`);
   }
-
-  for (const r of relevant) {
-    await walk(r.STAT_CODE, `${r.STAT_CODE} ${r.STAT_NAME}`, 1);
-  }
-
-  console.log(`\n총 API 호출 수: ${callCount}`);
-  console.log(`\n=== M1/협의통화 매칭 결과 ${found.length}건 ===`);
-  for (const f of found) console.log(f);
 }
 
 main().catch((e) => {
