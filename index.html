@@ -157,6 +157,11 @@ const fmtNum = (v, d = 2) => (v == null || isNaN(v) ? "–" : v.toLocaleString("
 
 function toDate(s) { return new Date(s + "T00:00:00Z"); }
 
+function formatKoreanDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${y}년 ${m}월 ${d}일`;
+}
+
 function dailyReturns(series) {
   const out = [];
   for (let i = 1; i < series.length; i++) {
@@ -417,9 +422,46 @@ async function main() {
       mainChart.update();
       return;
     }
+
+    const rebaseLinePlugin = {
+      id: "rebaseLine",
+      afterDraw(chart) {
+        if (!baseDateOverride) return;
+        const area = chart.chartArea;
+        const px = chart.scales.x.getPixelForValue(toDate(baseDateOverride).getTime());
+        if (px == null || isNaN(px) || px < area.left || px > area.right) return;
+
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.strokeStyle = "#e0a458";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(px, area.top);
+        ctx.lineTo(px, area.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const label = formatKoreanDate(baseDateOverride);
+        ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        const textWidth = ctx.measureText(label).width;
+        const padding = 5;
+        const boxW = textWidth + padding * 2;
+        const boxX = Math.max(area.left, Math.min(px - boxW / 2, area.right - boxW));
+        const boxY = area.top + 4;
+        ctx.fillStyle = "#e0a458";
+        ctx.fillRect(boxX, boxY, boxW, 17);
+        ctx.fillStyle = "#ffffff";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, boxX + padding, boxY + 9);
+        ctx.restore();
+      },
+    };
+
     mainChart = new Chart(document.getElementById("mainChart"), {
       type: "line",
       data: { datasets },
+      plugins: [rebaseLinePlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -445,7 +487,7 @@ async function main() {
 
           baseDateOverride = clickedDate;
           renderMainChartWithCurrentState();
-          document.getElementById("rebaseNoteText").textContent = `기준일: ${clickedDate} (=100)`;
+          document.getElementById("rebaseNoteText").textContent = `기준일: ${formatKoreanDate(clickedDate)} (=100)`;
           document.getElementById("rebaseNote").hidden = false;
         },
       },
