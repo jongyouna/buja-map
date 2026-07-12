@@ -198,6 +198,7 @@
         <button class="toggle-btn" data-series="m1m2kr" data-color="#14b8a6" type="button">한국 M1/M2 비율</button>
         <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
         <button class="toggle-btn" data-series="kbSeoulApt" data-color="#fb7185" type="button">서울 아파트 매매가격지수(KB)</button>
+        <button class="toggle-btn" data-series="seoulSupply" data-color="#84cc16" type="button" title="아파트뿐 아니라 단독·연립·다세대 등 서울 전체 주택 유형 합계">서울 주택 인허가실적(연간)</button>
       </div>
     </div>
 
@@ -322,6 +323,7 @@ async function main() {
   const m1kr = data.series.m1kr ? data.series.m1kr.data : []; // [{date, value}]
   const m2kr = data.series.m2kr ? data.series.m2kr.data : []; // [{date, value}]
   const kbSeoulApt = data.series.kbSeoulApt ? data.series.kbSeoulApt.data : []; // [{date, value}]
+  const seoulHousingSupply = data.series.seoulHousingSupply ? data.series.seoulHousingSupply.data : []; // [{date, value}]
 
   // 날짜가 일치하는 두 월간 시리즈의 비율(numerator / denominator) 계산
   function ratioSeries(numerator, denominator) {
@@ -443,6 +445,7 @@ async function main() {
     { key: "m2kr", label: "한국 M2 유동성(월간, 우측축)", data: m2kr, color: "#f472b6" },
     { key: "m1m2kr", label: "한국 M1/M2 비율(월간, 우측축)", data: m1m2kr, color: "#14b8a6" },
     { key: "kbSeoulApt", label: "서울 아파트 매매가격지수(KB, 월간, 우측축)", data: kbSeoulApt, color: "#fb7185" },
+    { key: "seoulSupply", label: "서울 주택건설 인허가실적(연간, 우측축)", data: seoulHousingSupply, color: "#84cc16" },
   ];
 
   const seriesEnabled = {
@@ -457,6 +460,7 @@ async function main() {
     m2kr: true,
     m1m2kr: false,
     kbSeoulApt: true,
+    seoulSupply: false,
   };
 
   function renderMainChartWithCurrentState() {
@@ -652,7 +656,7 @@ async function main() {
   });
 
   document.getElementById("footerNote").innerHTML = `
-    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = 한국은행 ECOS(901Y062, KB 주택가격지수, 월간, 계단식 표시)<br/>
+    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = 한국은행 ECOS(901Y062, KB 주택가격지수, 월간, 계단식 표시) · 서울 주택 인허가실적 = 한국은행 ECOS(901Y105, 아파트 전용 통계가 없어 단독·연립·다세대 등 서울 전체 주택 유형 합계, 연간 합산, 계단식 표시)<br/>
     SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
     갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
   `;

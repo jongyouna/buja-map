@@ -53,6 +53,17 @@ async function fetchEcos(apiKey, tableCode, itemCode) {
   }));
 }
 
+function aggregateAnnual(series) {
+  const byYear = {};
+  for (const d of series) {
+    const y = d.date.slice(0, 4);
+    byYear[y] = (byYear[y] || 0) + d.value;
+  }
+  return Object.keys(byYear)
+    .sort()
+    .map((y) => ({ date: `${y}-01-01`, value: byYear[y] }));
+}
+
 function last30Years(series) {
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - 30);
@@ -92,6 +103,7 @@ async function main() {
   let m1kr = [];
   let m2kr = [];
   let kbSeoulApt = [];
+  let seoulHousingSupply = [];
   if (ecosKey) {
     console.log("Fetching Korea M1 (BOK ECOS)...");
     m1kr = await fetchEcos(ecosKey, "161Y001", "BBLS00");
@@ -104,8 +116,12 @@ async function main() {
     console.log("Fetching Seoul apartment price index (KB, BOK ECOS)...");
     kbSeoulApt = await fetchEcos(ecosKey, "901Y062", "P63ACA");
     console.log(`  ${kbSeoulApt.length} rows`);
+
+    console.log("Fetching Seoul housing construction permits (BOK ECOS, annual)...");
+    seoulHousingSupply = aggregateAnnual(await fetchEcos(ecosKey, "901Y105", "SEO"));
+    console.log(`  ${seoulHousingSupply.length} years`);
   } else {
-    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2/KB 주택가격지수");
+    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2/KB 주택가격지수/서울 주택 인허가실적");
   }
 
   const data = {
@@ -120,6 +136,7 @@ async function main() {
       m1kr: { symbol: "BOK-ECOS", label: "한국 M1 유동성", data: m1kr },
       m2kr: { symbol: "BOK-ECOS", label: "한국 M2 유동성", data: m2kr },
       kbSeoulApt: { symbol: "BOK-ECOS(901Y062)", label: "서울 아파트 매매가격지수(KB)", data: kbSeoulApt },
+      seoulHousingSupply: { symbol: "BOK-ECOS(901Y105)", label: "서울 주택건설 인허가실적(연간)", data: seoulHousingSupply },
     },
   };
 
