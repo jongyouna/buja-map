@@ -40,19 +40,19 @@ const DATA_PATH = path.join(__dirname, "..", "data", "data.json");
 
 async function main() {
   console.log("Fetching QQQ (Nasdaq proxy)...");
-  const qqq = await fetchYahoo("QQQ", "max");
+  const qqq = await fetchYahoo("QQQ", "10y");
   console.log(`  ${qqq.length} rows`);
 
   console.log("Fetching SPCX (SpaceX)...");
-  const spcx = await fetchYahoo("SPCX", "max");
+  const spcx = await fetchYahoo("SPCX", "10y");
   console.log(`  ${spcx.length} rows`);
 
   console.log("Fetching KOSPI200 현물지수 (Yahoo Finance)...");
-  const k200 = await fetchYahoo("%5EKS200", "max");
+  const k200 = await fetchYahoo("%5EKS200", "10y");
   console.log(`  ${k200.length} rows`);
 
   console.log("Fetching VIX (Yahoo Finance)...");
-  const vix = await fetchYahoo("%5EVIX", "max");
+  const vix = await fetchYahoo("%5EVIX", "10y");
   console.log(`  ${vix.length} rows`);
 
   console.log("Fetching M2SL (US M2 liquidity)...");
