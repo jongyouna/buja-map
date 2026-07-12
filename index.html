@@ -339,17 +339,7 @@ async function main() {
 
   const cards = [
     { label: `나스닥 (${data.series.nasdaq.symbol})`, value: "$" + fmtNum(lastN.close), sub: fmtPct(chgN) + " (전일 대비)", chg: chgN, asOf: lastN.date },
-    { label: `스페이스X (${data.series.spacex.symbol})`, value: "$" + fmtNum(lastS.close), sub: fmtPct(chgS) + " (전일 대비)", chg: chgS, asOf: lastS.date },
   ];
-  if (lastK) {
-    cards.push({
-      label: "코스피200 현물지수",
-      value: fmtNum(lastK.close),
-      sub: fmtPct(chgK) + " (전일 대비)",
-      chg: chgK,
-      asOf: lastK.date,
-    });
-  }
   if (lastV) {
     cards.push({
       label: "VIX 변동성지수",
@@ -358,16 +348,6 @@ async function main() {
       chg: chgV,
       asOf: lastV.date,
     });
-  }
-  if (lastM1) {
-    cards.push({ label: "미국 M1 유동성 (M1SL)", value: "$" + fmtNum(lastM1.value, 1) + "B", sub: fmtPct(chgM1) + " (전월 대비)", chg: chgM1, asOf: lastM1.date });
-  }
-  cards.push({ label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date });
-  if (lastM1K) {
-    cards.push({ label: "한국 M1 유동성", value: "₩" + fmtNum(lastM1K.value / 1000, 1) + "조", sub: fmtPct(chgM1K) + " (전월 대비)", chg: chgM1K, asOf: lastM1K.date });
-  }
-  if (lastM2K) {
-    cards.push({ label: "한국 M2 유동성", value: "₩" + fmtNum(lastM2K.value / 1000, 1) + "조", sub: fmtPct(chgM2K) + " (전월 대비)", chg: chgM2K, asOf: lastM2K.date });
   }
   document.getElementById("cards").innerHTML = cards
     .map(
