@@ -383,14 +383,8 @@ async function main() {
   // ---- 최상단 전일대비 변화 요약 ----
   const summaryItems = [
     { name: `나스닥(${data.series.nasdaq.symbol})`, chg: chgN, period: "전일 대비" },
-    { name: `스페이스X(${data.series.spacex.symbol})`, chg: chgS, period: "전일 대비" },
   ];
-  if (lastK) summaryItems.push({ name: "코스피200 현물지수", chg: chgK, period: "전일 대비" });
   if (lastV) summaryItems.push({ name: "VIX 변동성지수", chg: chgV, period: "전일 대비" });
-  if (lastM1) summaryItems.push({ name: "미국 M1 유동성", chg: chgM1, period: "전월 대비" });
-  summaryItems.push({ name: "미국 M2 유동성", chg: chgM, period: "전월 대비" });
-  if (lastM1K) summaryItems.push({ name: "한국 M1 유동성", chg: chgM1K, period: "전월 대비" });
-  if (lastM2K) summaryItems.push({ name: "한국 M2 유동성", chg: chgM2K, period: "전월 대비" });
   document.getElementById("summaryBar").innerHTML = summaryItems
     .map((s) => {
       const cls = s.chg >= 0 ? "up" : "down";
