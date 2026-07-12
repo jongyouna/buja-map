@@ -21,10 +21,10 @@ async function fetchYahoo(symbol, range = "2y") {
   return series;
 }
 
-async function fetchM2() {
-  const url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=M2SL";
+async function fetchFred(seriesId) {
+  const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
   const res = await fetch(url, { headers: { "User-Agent": UA } });
-  if (!res.ok) throw new Error(`FRED fetch failed: ${res.status}`);
+  if (!res.ok) throw new Error(`FRED fetch failed for ${seriesId}: ${res.status}`);
   const text = await res.text();
   const lines = text.trim().split("\n").slice(1); // skip header
   const series = lines
@@ -34,6 +34,12 @@ async function fetchM2() {
     })
     .filter((d) => d.value != null);
   return series;
+}
+
+function last30Years(series) {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 30);
+  return series.filter((d) => new Date(d.date) >= cutoff);
 }
 
 const DATA_PATH = path.join(__dirname, "..", "data", "data.json");
@@ -55,13 +61,17 @@ async function main() {
   const vix = await fetchYahoo("%5EVIX", "10y");
   console.log(`  ${vix.length} rows`);
 
+  console.log("Fetching M1SL (US M1 liquidity)...");
+  const m1us = last30Years(await fetchFred("M1SL"));
+  console.log(`  ${m1us.length} rows`);
+
   console.log("Fetching M2SL (US M2 liquidity)...");
-  const m2All = await fetchM2();
-  // 최근 30년치만 저장 (20년 조회 옵션 + 여유분)
-  const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 30);
-  const m2 = m2All.filter((d) => new Date(d.date) >= cutoff);
+  const m2 = last30Years(await fetchFred("M2SL"));
   console.log(`  ${m2.length} rows`);
+
+  // 한국 M1/M2: 한국은행 ECOS API 키 발급 후 연동 예정 (현재는 빈 배열)
+  const m1kr = [];
+  const m2kr = [];
 
   const data = {
     updatedAt: new Date().toISOString(),
@@ -70,7 +80,10 @@ async function main() {
       spacex: { symbol: "SPCX", label: "스페이스X(SPCX)", data: spcx },
       k200: { symbol: "^KS200", label: "코스피200 현물지수", data: k200 },
       vix: { symbol: "^VIX", label: "VIX 변동성지수", data: vix },
+      m1us: { symbol: "M1SL", label: "미국 M1 유동성", data: m1us },
       m2: { symbol: "M2SL", label: "미국 M2 유동성", data: m2 },
+      m1kr: { symbol: "BOK-ECOS", label: "한국 M1 유동성", data: m1kr },
+      m2kr: { symbol: "BOK-ECOS", label: "한국 M2 유동성", data: m2kr },
     },
   };
 

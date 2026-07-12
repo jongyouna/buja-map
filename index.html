@@ -94,7 +94,34 @@
   }
   .panel h2 { font-size: 1rem; margin: 0 0 4px; }
   .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
-  .period-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 14px; }
+  .control-group {
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .control-group-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .toggle-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-btn {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .toggle-btn:hover:not(:disabled) { border-color: var(--accent-nasdaq); color: var(--text); }
+  .toggle-btn.on { color: #fff; }
+  .toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .period-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
   .period-btn {
     background: transparent;
     border: 1px solid var(--panel-border);
@@ -129,20 +156,45 @@
 
   <div class="panel">
     <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">선택한 기간의 시작일을 기준점으로 다섯 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M2는 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. 나스닥·코스피200·VIX는 최근 10년치까지만 제공되어 20년 조회 시 앞부분은 공백일 수 있습니다.</p>
-    <div class="period-selector" id="periodSelector">
-      <button class="period-btn" data-period="1w">1주일</button>
-      <button class="period-btn" data-period="1m">1개월</button>
-      <button class="period-btn" data-period="6m">6개월</button>
-      <button class="period-btn" data-period="1y">1년</button>
-      <button class="period-btn" data-period="5y">5년</button>
-      <button class="period-btn" data-period="10y">10년</button>
-      <button class="period-btn" data-period="20y">20년</button>
-      <span class="rebase-note" id="rebaseNote" hidden>
-        <span id="rebaseNoteText"></span>
-        <button class="period-btn reset-btn" id="rebaseResetBtn" type="button">기준일 초기화</button>
-      </span>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 활성화된 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M1·M2 유동성은 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. 나스닥·코스피200·VIX는 최근 10년치까지만 제공되어 20년 조회 시 앞부분은 공백일 수 있습니다.</p>
+
+    <div class="control-group">
+      <div class="control-group-label">기간</div>
+      <div class="period-selector" id="periodSelector">
+        <button class="period-btn" data-period="1w">1주일</button>
+        <button class="period-btn" data-period="1m">1개월</button>
+        <button class="period-btn" data-period="6m">6개월</button>
+        <button class="period-btn" data-period="1y">1년</button>
+        <button class="period-btn" data-period="5y">5년</button>
+        <button class="period-btn" data-period="10y">10년</button>
+        <button class="period-btn" data-period="20y">20년</button>
+        <span class="rebase-note" id="rebaseNote" hidden>
+          <span id="rebaseNoteText"></span>
+          <button class="period-btn reset-btn" id="rebaseResetBtn" type="button">기준일 초기화</button>
+        </span>
+      </div>
     </div>
+
+    <div class="control-group">
+      <div class="control-group-label">글로벌</div>
+      <div class="toggle-group" id="globalToggles">
+        <button class="toggle-btn" data-series="m1us" data-color="#7dd3fc" type="button">미국 M1 유동성</button>
+        <button class="toggle-btn" data-series="m2" data-color="#4fd1a5" type="button">미국 M2 유동성</button>
+        <button class="toggle-btn" data-series="vix" data-color="#f2a93c" type="button">VIX 변동성지수</button>
+        <button class="toggle-btn" data-series="nasdaq" data-color="#5b8def" type="button">나스닥(QQQ)</button>
+        <button class="toggle-btn" data-series="spacex" data-color="#ef5b6d" type="button">스페이스X(SPCX)</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-group-label">한국</div>
+      <div class="toggle-group" id="koreaToggles">
+        <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button" disabled title="한국은행 ECOS API 연동 예정">한국 M1 유동성 (준비중)</button>
+        <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button" disabled title="한국은행 ECOS API 연동 예정">한국 M2 유동성 (준비중)</button>
+        <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
+      </div>
+    </div>
+
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
   </div>
 
@@ -212,13 +264,13 @@ function valueAsOf(sortedSeries, valueKey, date) {
   return val;
 }
 
-// M2(월간) 실제 발표 시점만 그래프에 표시 — 일별로 리샘플링하지 않고
+// 월간 발표 지표(M1/M2 등) 실제 발표 시점만 그래프에 표시 — 일별로 리샘플링하지 않고
 // 실제 월별 데이터 포인트 그대로 사용해 계단식 그래프가 달마다 뚜렷하게 보이도록 함.
 // rangeStart: 화면에 표시할 구간의 시작일 (이 이전 데이터는 그리지 않음)
 // baseDate: 100 기준점으로 삼을 날짜 (생략 시 rangeStart와 동일 — 클릭으로 재계산할 때만 rangeStart와 달라짐)
-function m2IndexTo100(m2series, rangeStart, baseDate) {
+function monthlyIndexTo100(monthlySeries, rangeStart, baseDate) {
   baseDate = baseDate || rangeStart;
-  const sorted = [...m2series].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...monthlySeries].sort((a, b) => a.date.localeCompare(b.date));
   const base = valueAsOf(sorted, "value", baseDate);
   if (base == null) return [];
 
@@ -260,6 +312,9 @@ async function main() {
   const k200 = data.series.k200 ? data.series.k200.data : []; // [{date, close}]
   const vix = data.series.vix ? data.series.vix.data : []; // [{date, close}]
   const m2 = data.series.m2.data; // [{date, value}]
+  const m1us = data.series.m1us ? data.series.m1us.data : []; // [{date, value}]
+  const m1kr = data.series.m1kr ? data.series.m1kr.data : []; // [{date, value}]
+  const m2kr = data.series.m2kr ? data.series.m2kr.data : []; // [{date, value}]
 
   document.getElementById("updatedAt").textContent =
     "마지막 갱신: " + new Date(data.updatedAt).toLocaleString("ko-KR");
@@ -360,38 +415,60 @@ async function main() {
     renderMainChartWithCurrentState();
   }
 
+  // 토글 버튼(data-series)과 매칭되는 key로 각 시리즈를 정의.
+  // LINE_SERIES = 일별 종가 기반(가격/지수), MONTHLY_SERIES = 월간 통화량 지표(우측 보조축)
+  const LINE_SERIES = [
+    { key: "nasdaq", label: "나스닥(QQQ)", data: nasdaq, color: "#5b8def" },
+    { key: "spacex", label: "스페이스X(SPCX)", data: spacex, color: "#ef5b6d" },
+    { key: "k200", label: "코스피200 현물지수", data: k200, color: "#c792ea" },
+    { key: "vix", label: "VIX 변동성지수", data: vix, color: "#f2a93c" },
+  ];
+  const MONTHLY_SERIES = [
+    { key: "m1us", label: "미국 M1 유동성(월간, 우측축)", data: m1us, color: "#7dd3fc" },
+    { key: "m2", label: "미국 M2 유동성(월간, 우측축)", data: m2, color: "#4fd1a5" },
+    { key: "m1kr", label: "한국 M1 유동성(월간, 우측축)", data: m1kr, color: "#a78bfa" },
+    { key: "m2kr", label: "한국 M2 유동성(월간, 우측축)", data: m2kr, color: "#f472b6" },
+  ];
+
+  const seriesEnabled = {
+    nasdaq: true,
+    spacex: true,
+    k200: true,
+    vix: true,
+    m1us: true,
+    m2: true,
+    m1kr: false,
+    m2kr: false,
+  };
+
   function renderMainChartWithCurrentState() {
     const baseDate = baseDateOverride || rangeStartDate;
-    const nasdaqIdx = indexTo100(nasdaq, "close", rangeStartDate, baseDate);
-    const spacexIdx = indexTo100(spacex, "close", rangeStartDate, baseDate);
-    const k200Idx = indexTo100(k200, "close", rangeStartDate, baseDate);
-    const vixIdx = indexTo100(vix, "close", rangeStartDate, baseDate);
-    const m2Idx = m2IndexTo100(m2, rangeStartDate, baseDate);
+    const datasets = [];
 
-    const datasets = [
-      {
-        label: "나스닥(QQQ)",
-        data: nasdaqIdx.map((d) => ({ x: d.date, y: d.value })),
-        borderColor: "#5b8def",
-        backgroundColor: "#5b8def",
+    for (const s of LINE_SERIES) {
+      if (!seriesEnabled[s.key]) continue;
+      const idx = indexTo100(s.data, "close", rangeStartDate, baseDate);
+      if (idx.length === 0) continue;
+      datasets.push({
+        label: s.label,
+        data: idx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: s.color,
+        backgroundColor: s.color,
         borderWidth: 2,
         pointRadius: 0,
         tension: 0.15,
-      },
-      {
-        label: "스페이스X(SPCX)",
-        data: spacexIdx.map((d) => ({ x: d.date, y: d.value })),
-        borderColor: "#ef5b6d",
-        backgroundColor: "#ef5b6d",
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.15,
-      },
-      {
-        label: "미국 M2 유동성(월간, 우측축)",
-        data: m2Idx.map((d) => ({ x: d.date, y: d.value })),
-        borderColor: "#4fd1a5",
-        backgroundColor: "#4fd1a5",
+      });
+    }
+
+    for (const s of MONTHLY_SERIES) {
+      if (!seriesEnabled[s.key]) continue;
+      const idx = monthlyIndexTo100(s.data, rangeStartDate, baseDate);
+      if (idx.length === 0) continue;
+      datasets.push({
+        label: s.label,
+        data: idx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: s.color,
+        backgroundColor: s.color,
         borderWidth: 2,
         borderDash: [4, 3],
         pointRadius: 3,
@@ -399,30 +476,6 @@ async function main() {
         stepped: "before",
         tension: 0,
         yAxisID: "y1",
-      },
-    ];
-
-    if (k200Idx.length > 0) {
-      datasets.push({
-        label: "코스피200 현물지수",
-        data: k200Idx.map((d) => ({ x: d.date, y: d.value })),
-        borderColor: "#c792ea",
-        backgroundColor: "#c792ea",
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.15,
-      });
-    }
-
-    if (vixIdx.length > 0) {
-      datasets.push({
-        label: "VIX 변동성지수",
-        data: vixIdx.map((d) => ({ x: d.date, y: d.value })),
-        borderColor: "#f2a93c",
-        backgroundColor: "#f2a93c",
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.15,
       });
     }
 
@@ -478,11 +531,11 @@ async function main() {
         interaction: { mode: "index", intersect: false },
         scales: {
           x: { type: "time", time: { unit: timeUnitForPeriod(activePeriodKey) }, grid: { display: false } },
-          y: { title: { display: true, text: "지수 (시작일=100, 나스닥·SPCX·코스피200·VIX)" } },
+          y: { title: { display: true, text: "가격·지수 (시작일=100)" } },
           y1: {
             position: "right",
             grid: { drawOnChartArea: false },
-            title: { display: true, text: "M2 지수 (시작일=100, 자체 축)" },
+            title: { display: true, text: "통화량 지수 (시작일=100, 자체 축)" },
           },
         },
         plugins: { legend: { position: "top" } },
@@ -520,6 +573,34 @@ async function main() {
     renderMainChart(activePeriodKey);
   });
 
+  // ---- 글로벌/한국 지표 토글 ----
+  function setupToggleGroup(containerId) {
+    document.querySelectorAll(`#${containerId} .toggle-btn`).forEach((btn) => {
+      const key = btn.dataset.series;
+      const color = btn.dataset.color;
+      const paint = () => {
+        if (seriesEnabled[key]) {
+          btn.classList.add("on");
+          btn.style.background = color;
+          btn.style.borderColor = color;
+        } else {
+          btn.classList.remove("on");
+          btn.style.background = "";
+          btn.style.borderColor = "";
+        }
+      };
+      paint();
+      if (btn.disabled) return;
+      btn.addEventListener("click", () => {
+        seriesEnabled[key] = !seriesEnabled[key];
+        paint();
+        renderMainChartWithCurrentState();
+      });
+    });
+  }
+  setupToggleGroup("globalToggles");
+  setupToggleGroup("koreaToggles");
+
   // ---- 롤링 상관계수 차트 ----
   const retNasdaq = dailyReturns(nasdaq.filter((d) => d.date >= spacexStart));
   const retSpacex = dailyReturns(spacex);
@@ -553,7 +634,7 @@ async function main() {
   });
 
   document.getElementById("footerNote").innerHTML = `
-    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
+    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS 연동 예정<br/>
     SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
     갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
   `;
