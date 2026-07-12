@@ -129,7 +129,7 @@
 
   <div class="panel">
     <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">선택한 기간의 시작일을 기준점으로 다섯 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M2는 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다.</p>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 다섯 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M2는 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다.</p>
     <div class="period-selector" id="periodSelector">
       <button class="period-btn" data-period="1w">1주일</button>
       <button class="period-btn" data-period="1m">한달</button>
@@ -193,31 +193,47 @@ function rollingCorrelation(retA, retB, window) {
   return out;
 }
 
-// M2(월간) 실제 발표 시점만 100 기준으로 정규화 — 일별로 리샘플링하지 않고
-// 실제 월별 데이터 포인트 그대로 사용해 계단식 그래프가 달마다 뚜렷하게 보이도록 함
-function m2IndexTo100(m2series, startDate) {
-  const sorted = [...m2series].sort((a, b) => a.date.localeCompare(b.date));
-  let base = null;
-  for (const d of sorted) {
-    if (d.date <= startDate) base = d.value;
+// series는 date 오름차순으로 정렬되어 있다고 가정. date 시점 기준 forward-fill 값 조회
+function valueAsOf(sortedSeries, valueKey, date) {
+  let val = null;
+  for (const d of sortedSeries) {
+    if (d.date <= date) val = d[valueKey];
     else break;
   }
-  if (base == null) base = sorted.length ? sorted[0].value : null;
+  if (val == null && sortedSeries.length) val = sortedSeries[0][valueKey];
+  return val;
+}
+
+// M2(월간) 실제 발표 시점만 그래프에 표시 — 일별로 리샘플링하지 않고
+// 실제 월별 데이터 포인트 그대로 사용해 계단식 그래프가 달마다 뚜렷하게 보이도록 함.
+// rangeStart: 화면에 표시할 구간의 시작일 (이 이전 데이터는 그리지 않음)
+// baseDate: 100 기준점으로 삼을 날짜 (생략 시 rangeStart와 동일 — 클릭으로 재계산할 때만 rangeStart와 달라짐)
+function m2IndexTo100(m2series, rangeStart, baseDate) {
+  baseDate = baseDate || rangeStart;
+  const sorted = [...m2series].sort((a, b) => a.date.localeCompare(b.date));
+  const base = valueAsOf(sorted, "value", baseDate);
   if (base == null) return [];
 
   const points = sorted
-    .filter((d) => d.date >= startDate)
+    .filter((d) => d.date >= rangeStart)
     .map((d) => ({ date: d.date, value: (d.value / base) * 100 }));
-  if (points.length === 0 || points[0].date > startDate) {
-    points.unshift({ date: startDate, value: 100 });
+  if (points.length === 0 || points[0].date > rangeStart) {
+    const valAtRangeStart = valueAsOf(sorted, "value", rangeStart);
+    if (valAtRangeStart != null) {
+      points.unshift({ date: rangeStart, value: (valAtRangeStart / base) * 100 });
+    }
   }
   return points;
 }
 
-function indexTo100(series, valueKey, startDate) {
-  const filtered = series.filter((d) => d.date >= startDate);
+// rangeStart: 화면에 표시할 구간의 시작일. baseDate: 100 기준점(생략 시 rangeStart와 동일).
+// 클릭으로 기준일을 재계산해도 rangeStart 이전 데이터는 그대로 유지되고, 값만 새 기준점 대비로 다시 계산됨.
+function indexTo100(series, valueKey, rangeStart, baseDate) {
+  baseDate = baseDate || rangeStart;
+  const filtered = series.filter((d) => d.date >= rangeStart);
   if (filtered.length === 0) return [];
-  const base = filtered[0][valueKey];
+  const base = valueAsOf(filtered, valueKey, baseDate);
+  if (base == null) return [];
   return filtered.map((d) => ({ date: d.date, value: (d[valueKey] / base) * 100 }));
 }
 
@@ -319,21 +335,24 @@ async function main() {
 
   let mainChart = null;
   let activePeriodKey = "1y";
-  let currentStartDate = null;
+  let rangeStartDate = null; // 화면에 표시할 구간의 시작일 (기준일 재계산과 무관하게 고정)
+  let baseDateOverride = null; // 클릭으로 재계산한 100 기준일 (null이면 rangeStartDate 사용)
 
   function renderMainChart(periodKey) {
     activePeriodKey = periodKey;
+    rangeStartDate = periodStartDate(periodKey);
+    baseDateOverride = null;
     document.getElementById("rebaseNote").hidden = true;
-    renderMainChartFromStart(periodStartDate(periodKey));
+    renderMainChartWithCurrentState();
   }
 
-  function renderMainChartFromStart(startDate) {
-    currentStartDate = startDate;
-    const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
-    const spacexIdx = indexTo100(spacex, "close", startDate);
-    const k200Idx = indexTo100(k200, "close", startDate);
-    const vixIdx = indexTo100(vix, "close", startDate);
-    const m2Idx = m2IndexTo100(m2, startDate);
+  function renderMainChartWithCurrentState() {
+    const baseDate = baseDateOverride || rangeStartDate;
+    const nasdaqIdx = indexTo100(nasdaq, "close", rangeStartDate, baseDate);
+    const spacexIdx = indexTo100(spacex, "close", rangeStartDate, baseDate);
+    const k200Idx = indexTo100(k200, "close", rangeStartDate, baseDate);
+    const vixIdx = indexTo100(vix, "close", rangeStartDate, baseDate);
+    const m2Idx = m2IndexTo100(m2, rangeStartDate, baseDate);
 
     const datasets = [
       {
@@ -421,10 +440,11 @@ async function main() {
           const value = chart.scales.x.getValueForPixel(evt.x);
           if (value == null) return;
           let clickedDate = new Date(value).toISOString().slice(0, 10);
-          if (clickedDate < currentStartDate) clickedDate = currentStartDate;
+          if (clickedDate < rangeStartDate) clickedDate = rangeStartDate;
           if (clickedDate > lastDate) clickedDate = lastDate;
 
-          renderMainChartFromStart(clickedDate);
+          baseDateOverride = clickedDate;
+          renderMainChartWithCurrentState();
           document.getElementById("rebaseNoteText").textContent = `기준일: ${clickedDate} (=100)`;
           document.getElementById("rebaseNote").hidden = false;
         },
