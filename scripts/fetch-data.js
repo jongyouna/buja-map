@@ -40,26 +40,26 @@ const DATA_PATH = path.join(__dirname, "..", "data", "data.json");
 
 async function main() {
   console.log("Fetching QQQ (Nasdaq proxy)...");
-  const qqq = await fetchYahoo("QQQ", "2y");
+  const qqq = await fetchYahoo("QQQ", "max");
   console.log(`  ${qqq.length} rows`);
 
   console.log("Fetching SPCX (SpaceX)...");
-  const spcx = await fetchYahoo("SPCX", "2y");
+  const spcx = await fetchYahoo("SPCX", "max");
   console.log(`  ${spcx.length} rows`);
 
   console.log("Fetching KOSPI200 현물지수 (Yahoo Finance)...");
-  const k200 = await fetchYahoo("%5EKS200", "2y");
+  const k200 = await fetchYahoo("%5EKS200", "max");
   console.log(`  ${k200.length} rows`);
 
   console.log("Fetching VIX (Yahoo Finance)...");
-  const vix = await fetchYahoo("%5EVIX", "2y");
+  const vix = await fetchYahoo("%5EVIX", "max");
   console.log(`  ${vix.length} rows`);
 
   console.log("Fetching M2SL (US M2 liquidity)...");
   const m2All = await fetchM2();
-  // 최근 5년치만 저장 (전체 히스토리는 불필요)
+  // 최근 30년치만 저장 (20년 조회 옵션 + 여유분)
   const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 5);
+  cutoff.setFullYear(cutoff.getFullYear() - 30);
   const m2 = m2All.filter((d) => new Date(d.date) >= cutoff);
   console.log(`  ${m2.length} rows`);
 

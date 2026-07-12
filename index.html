@@ -94,7 +94,7 @@
   }
   .panel h2 { font-size: 1rem; margin: 0 0 4px; }
   .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
-  .period-selector { display: flex; gap: 6px; margin-bottom: 14px; }
+  .period-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 14px; }
   .period-btn {
     background: transparent;
     border: 1px solid var(--panel-border);
@@ -135,6 +135,9 @@
       <button class="period-btn" data-period="1m">한달</button>
       <button class="period-btn" data-period="6m">6개월</button>
       <button class="period-btn" data-period="1y">1년</button>
+      <button class="period-btn" data-period="5y">5년</button>
+      <button class="period-btn" data-period="10y">10년</button>
+      <button class="period-btn" data-period="20y">20년</button>
       <span class="rebase-note" id="rebaseNote" hidden>
         <span id="rebaseNoteText"></span>
         <button class="period-btn reset-btn" id="rebaseResetBtn" type="button">기준일 초기화</button>
@@ -331,11 +334,17 @@ async function main() {
   // ---- 정규화 지수 차트 ----
   const spacexStart = spacex[0].date; // SPCX 상장일 이전으로는 확장 불가
   const lastDate = nasdaq[nasdaq.length - 1].date;
-  const PERIOD_DAYS = { "1w": 7, "1m": 30, "6m": 182, "1y": 365 };
+  const PERIOD_DAYS = { "1w": 7, "1m": 30, "6m": 182, "1y": 365, "5y": 1826, "10y": 3652, "20y": 7305 };
 
   function periodStartDate(periodKey) {
     const days = PERIOD_DAYS[periodKey];
     return new Date(toDate(lastDate).getTime() - days * 86400000).toISOString().slice(0, 10);
+  }
+
+  function timeUnitForPeriod(periodKey) {
+    if (periodKey === "1w" || periodKey === "1m") return "day";
+    if (periodKey === "6m" || periodKey === "1y") return "month";
+    return "year"; // 5y, 10y, 20y
   }
 
   let mainChart = null;
@@ -419,6 +428,7 @@ async function main() {
 
     if (mainChart) {
       mainChart.data.datasets = datasets;
+      mainChart.options.scales.x.time.unit = timeUnitForPeriod(activePeriodKey);
       mainChart.update();
       return;
     }
@@ -467,7 +477,7 @@ async function main() {
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         scales: {
-          x: { type: "time", time: { unit: "day" }, grid: { display: false } },
+          x: { type: "time", time: { unit: timeUnitForPeriod(activePeriodKey) }, grid: { display: false } },
           y: { title: { display: true, text: "지수 (시작일=100, 나스닥·SPCX·코스피200·VIX)" } },
           y1: {
             position: "right",
