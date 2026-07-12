@@ -1,4 +1,4 @@
-// 일회성 디버그: 서울 아파트 연도별 공급량(주택건설인허가실적 등) 데이터 소스 탐색. 사용 후 삭제 예정.
+// 일회성 디버그: 901Y105(주택건설인허가실적) 서울 항목의 세부(아파트 등) 분류 확인 + 901Y103 확인. 사용 후 삭제 예정.
 const API_KEY = process.env.BOK_ECOS_API_KEY;
 if (!API_KEY) {
   console.error("BOK_ECOS_API_KEY 없음");
@@ -17,31 +17,9 @@ async function fetchJson(path) {
   }
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-async function ecosAllRootCategories() {
-  const all = [];
-  let start = 1;
-  const pageSize = 100;
-  for (let page = 0; page < 15; page++) {
-    const end = start + pageSize - 1;
-    const json = await fetchJson(`StatisticTableList/{KEY}/json/kr/${start}/${end}/`);
-    await sleep(100);
-    if (!json || json.RESULT) break;
-    const rows = json.StatisticTableList?.row || [];
-    if (rows.length === 0) break;
-    all.push(...rows);
-    if (rows.length < pageSize) break;
-    start += pageSize;
-  }
-  return all;
-}
-
-async function listItems(tableCode, label) {
-  console.log(`\n=== 통계표 ${tableCode} (${label}) 항목 목록 ===`);
-  const json = await fetchJson(`StatisticItemList/{KEY}/json/kr/1/200/${tableCode}`);
+async function listItems(pathSuffix, label) {
+  console.log(`\n=== StatisticItemList ${pathSuffix} (${label}) ===`);
+  const json = await fetchJson(`StatisticItemList/{KEY}/json/kr/1/200/${pathSuffix}`);
   if (!json) return [];
   if (json.RESULT) {
     console.log("  RESULT:", JSON.stringify(json.RESULT));
@@ -55,20 +33,28 @@ async function listItems(tableCode, label) {
   return rows;
 }
 
-async function main() {
-  console.log("=== ECOS 전체 카테고리 조회(페이지네이션) ===");
-  const all = await ecosAllRootCategories();
-  console.log(`  총 ${all.length}건 수집`);
-
-  const keywords = /공급|입주|준공|인허가|착공|건설실적|미분양/;
-  const matches = all.filter((r) => keywords.test(r.STAT_NAME));
-  console.log(`\n  공급 관련 키워드 매칭 ${matches.length}건:`);
-  for (const r of matches) {
-    console.log(`    STAT_CODE=${r.STAT_CODE}  STAT_NAME=${r.STAT_NAME}  SRCH_YN=${r.SRCH_YN}`);
+async function testSearch(tableCode, itemPath, label) {
+  console.log(`\n=== StatisticSearch 테스트: ${label} ===`);
+  const json = await fetchJson(`StatisticSearch/{KEY}/json/kr/1/15/${tableCode}/M/202301/202412/${itemPath}`);
+  if (!json) return;
+  if (json.RESULT) {
+    console.log("  RESULT:", JSON.stringify(json.RESULT));
+    return;
   }
+  const rows = json.StatisticSearch?.row || [];
+  console.log(`  rows: ${rows.length}`);
+  console.log("  sample:", JSON.stringify(rows.slice(0, 3)));
+}
 
-  // 이미 알려진 후보(주택건설인허가실적) 항목 목록 확인
-  await listItems("901Y105", "주택건설인허가실적");
+async function main() {
+  // 901Y105 서울 항목 하위에 아파트 등 유형별 세분류가 있는지 확인
+  await listItems("901Y105/SEO", "901Y105 서울 하위");
+
+  // 901Y103 건축착공현황
+  await listItems("901Y103", "건축착공현황");
+
+  // 901Y105 서울(SEO) 자체로 실제 값 조회가 되는지 확인 (전체 주택유형 합계)
+  await testSearch("901Y105", "SEO", "901Y105/SEO (서울 전체 주택유형)");
 }
 
 main().catch((e) => {
