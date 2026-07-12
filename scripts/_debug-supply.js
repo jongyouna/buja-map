@@ -1,32 +1,34 @@
-// 일회성 디버그: odcloud.kr Swagger 스펙에서 실제 엔드포인트(uddi)와 파라미터 확인. 사용 후 삭제 예정.
+// 일회성 디버그: odcloud 입주예정물량정보 API 실제 호출 테스트(인증 방식/응답 스키마 확인). 사용 후 삭제 예정.
+// 주의: URL(인증키 포함)은 절대 로그에 출력하지 않음 — 파싱된 JSON 내용만 출력.
+const KEY = process.env.MOLIT_DATA_API_KEY;
+if (!KEY) {
+  console.error("MOLIT_DATA_API_KEY 없음");
+  process.exit(1);
+}
+
+const PATH = "15111714/v1/uddi:0b257760-ac19-4841-adb4-b38b4d153397";
+
+async function tryQueryParam() {
+  console.log("\n=== 방식1: serviceKey 쿼리파라미터 ===");
+  const url = `https://api.odcloud.kr/api/${PATH}?page=1&perPage=5&serviceKey=${encodeURIComponent(KEY)}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  console.log("status:", res.status, "length:", text.length);
+  console.log("body head:", text.slice(0, 1500));
+}
+
+async function tryAuthHeader() {
+  console.log("\n=== 방식2: Authorization 헤더(Infuser 방식) ===");
+  const url = `https://api.odcloud.kr/api/${PATH}?page=1&perPage=5`;
+  const res = await fetch(url, { headers: { Authorization: `Infuser ${KEY}` } });
+  const text = await res.text();
+  console.log("status:", res.status, "length:", text.length);
+  console.log("body head:", text.slice(0, 1500));
+}
+
 async function main() {
-  const url = "https://infuser.odcloud.kr/oas/docs?namespace=15111714/v1";
-  console.log(`=== ${url} ===`);
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
-    const text = await res.text();
-    console.log(`status=${res.status} length=${text.length}`);
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      console.log("JSON 파싱 실패, 원문 앞부분:", text.slice(0, 2000));
-      return;
-    }
-    console.log("paths:", JSON.stringify(Object.keys(json.paths || {}), null, 2));
-    for (const [p, def] of Object.entries(json.paths || {})) {
-      console.log(`\n--- PATH: ${p} ---`);
-      for (const [method, spec] of Object.entries(def)) {
-        console.log(`  ${method.toUpperCase()} summary: ${spec.summary}`);
-        const params = spec.parameters || [];
-        for (const param of params) {
-          console.log(`    param: ${param.name} (${param.in}) required=${param.required} desc=${param.description}`);
-        }
-      }
-    }
-  } catch (e) {
-    console.log("ERROR:", e.message);
-  }
+  await tryQueryParam();
+  await tryAuthHeader();
 }
 
 main().catch((e) => {

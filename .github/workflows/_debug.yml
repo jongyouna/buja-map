@@ -13,5 +13,5 @@ jobs:
           node-version: "20"
       - name: Run debug script
         env:
-          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+          MOLIT_DATA_API_KEY: ${{ secrets.MOLIT_DATA_API_KEY }}
         run: node scripts/_debug-supply.js
