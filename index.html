@@ -186,16 +186,25 @@ function rollingCorrelation(retA, retB, window) {
   return out;
 }
 
-// M2(월간)를 일별로 forward-fill
-function m2ToDaily(m2series, dateList) {
+// M2(월간) 실제 발표 시점만 100 기준으로 정규화 — 일별로 리샘플링하지 않고
+// 실제 월별 데이터 포인트 그대로 사용해 계단식 그래프가 달마다 뚜렷하게 보이도록 함
+function m2IndexTo100(m2series, startDate) {
   const sorted = [...m2series].sort((a, b) => a.date.localeCompare(b.date));
-  const out = [];
-  let idx = -1;
-  for (const d of dateList) {
-    while (idx + 1 < sorted.length && sorted[idx + 1].date <= d) idx++;
-    out.push({ date: d, value: idx >= 0 ? sorted[idx].value : null });
+  let base = null;
+  for (const d of sorted) {
+    if (d.date <= startDate) base = d.value;
+    else break;
   }
-  return out;
+  if (base == null) base = sorted.length ? sorted[0].value : null;
+  if (base == null) return [];
+
+  const points = sorted
+    .filter((d) => d.date >= startDate)
+    .map((d) => ({ date: d.date, value: (d.value / base) * 100 }));
+  if (points.length === 0 || points[0].date > startDate) {
+    points.unshift({ date: startDate, value: 100 });
+  }
+  return points;
 }
 
 function indexTo100(series, valueKey, startDate) {
@@ -294,9 +303,7 @@ async function main() {
     const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
     const spacexIdx = indexTo100(spacex, "close", startDate);
     const k200Idx = indexTo100(k200, "close", startDate);
-    const allDates = nasdaq.filter((d) => d.date >= startDate).map((d) => d.date);
-    const m2Daily = m2ToDaily(m2, allDates);
-    const m2Idx = indexTo100(m2Daily, "value", startDate);
+    const m2Idx = m2IndexTo100(m2, startDate);
 
     const datasets = [
       {
@@ -318,14 +325,15 @@ async function main() {
         tension: 0.15,
       },
       {
-        label: "미국 M2 유동성",
+        label: "미국 M2 유동성(월간)",
         data: m2Idx.map((d) => ({ x: d.date, y: d.value })),
         borderColor: "#4fd1a5",
         backgroundColor: "#4fd1a5",
         borderWidth: 2,
         borderDash: [4, 3],
-        pointRadius: 0,
-        stepped: true,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        stepped: "before",
         tension: 0,
       },
     ];
