@@ -106,7 +106,10 @@
   }
   .period-btn:hover { border-color: var(--accent-nasdaq); color: var(--text); }
   .period-btn.active { background: var(--accent-nasdaq); color: #fff; border-color: var(--accent-nasdaq); }
-  .chart-wrap { position: relative; height: 340px; }
+  .rebase-note { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); margin-left: 4px; }
+  .rebase-note[hidden] { display: none; }
+  .reset-btn { padding: 4px 10px; font-size: 0.75rem; }
+  .chart-wrap { position: relative; height: 340px; cursor: crosshair; }
   .chart-wrap.small { height: 220px; }
   footer { color: var(--muted); font-size: 0.78rem; margin-top: 8px; line-height: 1.6; }
   .legend-note { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
@@ -126,12 +129,16 @@
 
   <div class="panel">
     <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">선택한 기간의 시작일을 기준점으로 다섯 지표를 100으로 정규화하여 비교합니다. M2는 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다.</p>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 다섯 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M2는 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다.</p>
     <div class="period-selector" id="periodSelector">
       <button class="period-btn" data-period="1w">1주일</button>
       <button class="period-btn" data-period="1m">한달</button>
       <button class="period-btn" data-period="6m">6개월</button>
       <button class="period-btn" data-period="1y">1년</button>
+      <span class="rebase-note" id="rebaseNote" hidden>
+        <span id="rebaseNoteText"></span>
+        <button class="period-btn reset-btn" id="rebaseResetBtn" type="button">기준일 초기화</button>
+      </span>
     </div>
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
   </div>
@@ -311,8 +318,17 @@ async function main() {
   }
 
   let mainChart = null;
+  let activePeriodKey = "1y";
+  let currentStartDate = null;
+
   function renderMainChart(periodKey) {
-    const startDate = periodStartDate(periodKey);
+    activePeriodKey = periodKey;
+    document.getElementById("rebaseNote").hidden = true;
+    renderMainChartFromStart(periodStartDate(periodKey));
+  }
+
+  function renderMainChartFromStart(startDate) {
+    currentStartDate = startDate;
     const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
     const spacexIdx = indexTo100(spacex, "close", startDate);
     const k200Idx = indexTo100(k200, "close", startDate);
@@ -399,11 +415,24 @@ async function main() {
           },
         },
         plugins: { legend: { position: "top" } },
+        onClick(evt, _elements, chart) {
+          const area = chart.chartArea;
+          if (evt.x < area.left || evt.x > area.right || evt.y < area.top || evt.y > area.bottom) return;
+          const value = chart.scales.x.getValueForPixel(evt.x);
+          if (value == null) return;
+          let clickedDate = new Date(value).toISOString().slice(0, 10);
+          if (clickedDate < currentStartDate) clickedDate = currentStartDate;
+          if (clickedDate > lastDate) clickedDate = lastDate;
+
+          renderMainChartFromStart(clickedDate);
+          document.getElementById("rebaseNoteText").textContent = `기준일: ${clickedDate} (=100)`;
+          document.getElementById("rebaseNote").hidden = false;
+        },
       },
     });
   }
 
-  const periodButtons = document.querySelectorAll("#periodSelector .period-btn");
+  const periodButtons = document.querySelectorAll("#periodSelector .period-btn[data-period]");
   periodButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       periodButtons.forEach((b) => b.classList.remove("active"));
@@ -414,6 +443,10 @@ async function main() {
   const defaultBtn = document.querySelector('#periodSelector .period-btn[data-period="1y"]');
   defaultBtn.classList.add("active");
   renderMainChart("1y");
+
+  document.getElementById("rebaseResetBtn").addEventListener("click", () => {
+    renderMainChart(activePeriodKey);
+  });
 
   // ---- 롤링 상관계수 차트 ----
   const retNasdaq = dailyReturns(nasdaq.filter((d) => d.date >= spacexStart));
