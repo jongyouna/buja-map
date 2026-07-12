@@ -51,6 +51,10 @@ async function main() {
   const k200 = await fetchYahoo("%5EKS200", "2y");
   console.log(`  ${k200.length} rows`);
 
+  console.log("Fetching VIX (Yahoo Finance)...");
+  const vix = await fetchYahoo("%5EVIX", "2y");
+  console.log(`  ${vix.length} rows`);
+
   console.log("Fetching M2SL (US M2 liquidity)...");
   const m2All = await fetchM2();
   // 최근 5년치만 저장 (전체 히스토리는 불필요)
@@ -65,6 +69,7 @@ async function main() {
       nasdaq: { symbol: "QQQ", label: "나스닥(QQQ)", data: qqq },
       spacex: { symbol: "SPCX", label: "스페이스X(SPCX)", data: spcx },
       k200: { symbol: "^KS200", label: "코스피200 현물지수", data: k200 },
+      vix: { symbol: "^VIX", label: "VIX 변동성지수", data: vix },
       m2: { symbol: "M2SL", label: "미국 M2 유동성", data: m2 },
     },
   };

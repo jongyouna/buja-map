@@ -126,7 +126,7 @@
 
   <div class="panel">
     <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">선택한 기간의 시작일을 기준점으로 네 지표를 100으로 정규화하여 동일 축에서 비교합니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 다섯 지표를 100으로 정규화하여 동일 축에서 비교합니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
     <div class="period-selector" id="periodSelector">
       <button class="period-btn" data-period="1w">1주일</button>
       <button class="period-btn" data-period="1m">한달</button>
@@ -227,6 +227,7 @@ async function main() {
   const nasdaq = data.series.nasdaq.data; // [{date, close}]
   const spacex = data.series.spacex.data;
   const k200 = data.series.k200 ? data.series.k200.data : []; // [{date, close}]
+  const vix = data.series.vix ? data.series.vix.data : []; // [{date, close}]
   const m2 = data.series.m2.data; // [{date, value}]
 
   document.getElementById("updatedAt").textContent =
@@ -236,10 +237,12 @@ async function main() {
   const lastN = nasdaq[nasdaq.length - 1], prevN = nasdaq[nasdaq.length - 2];
   const lastS = spacex[spacex.length - 1], prevS = spacex[spacex.length - 2];
   const lastK = k200[k200.length - 1], prevK = k200[k200.length - 2];
+  const lastV = vix[vix.length - 1], prevV = vix[vix.length - 2];
   const lastM = m2[m2.length - 1], prevM = m2[m2.length - 2];
   const chgN = prevN ? ((lastN.close - prevN.close) / prevN.close) * 100 : null;
   const chgS = prevS ? ((lastS.close - prevS.close) / prevS.close) * 100 : null;
   const chgK = lastK && prevK ? ((lastK.close - prevK.close) / prevK.close) * 100 : null;
+  const chgV = lastV && prevV ? ((lastV.close - prevV.close) / prevV.close) * 100 : null;
   const chgM = prevM ? ((lastM.value - prevM.value) / prevM.value) * 100 : null;
 
   const cards = [
@@ -253,6 +256,15 @@ async function main() {
       sub: fmtPct(chgK) + " (전일 대비)",
       chg: chgK,
       asOf: lastK.date,
+    });
+  }
+  if (lastV) {
+    cards.push({
+      label: "VIX 변동성지수",
+      value: fmtNum(lastV.close),
+      sub: fmtPct(chgV) + " (전일 대비)",
+      chg: chgV,
+      asOf: lastV.date,
     });
   }
   cards.push({ label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date });
@@ -273,6 +285,7 @@ async function main() {
     { name: `스페이스X(${data.series.spacex.symbol})`, chg: chgS, period: "전일 대비" },
   ];
   if (lastK) summaryItems.push({ name: "코스피200 현물지수", chg: chgK, period: "전일 대비" });
+  if (lastV) summaryItems.push({ name: "VIX 변동성지수", chg: chgV, period: "전일 대비" });
   summaryItems.push({ name: "M2 유동성", chg: chgM, period: "전월 대비" });
   document.getElementById("summaryBar").innerHTML = summaryItems
     .map((s) => {
@@ -303,6 +316,7 @@ async function main() {
     const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
     const spacexIdx = indexTo100(spacex, "close", startDate);
     const k200Idx = indexTo100(k200, "close", startDate);
+    const vixIdx = indexTo100(vix, "close", startDate);
     const m2Idx = m2IndexTo100(m2, startDate);
 
     const datasets = [
@@ -344,6 +358,18 @@ async function main() {
         data: k200Idx.map((d) => ({ x: d.date, y: d.value })),
         borderColor: "#c792ea",
         backgroundColor: "#c792ea",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.15,
+      });
+    }
+
+    if (vixIdx.length > 0) {
+      datasets.push({
+        label: "VIX 변동성지수",
+        data: vixIdx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: "#f2a93c",
+        backgroundColor: "#f2a93c",
         borderWidth: 2,
         pointRadius: 0,
         tension: 0.15,
@@ -416,7 +442,7 @@ async function main() {
   });
 
   document.getElementById("footerNote").innerHTML = `
-    데이터 소스: 나스닥·스페이스X·코스피200 현물지수 = Yahoo Finance(QQQ, SPCX, ^KS200 일별 종가) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
+    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
     SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
     갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
   `;
