@@ -62,7 +62,9 @@ async function main() {
   console.log(`  ${vix.length} rows`);
 
   console.log("Fetching M1SL (US M1 liquidity)...");
-  const m1us = last30Years(await fetchFred("M1SL"));
+  // 2020년 5월 연준이 M1 정의를 변경(저축성예금 포함)하면서 그 이전 데이터와 단절됨
+  // (2020-04 4,856.4B -> 2020-05 16,312.5B, +236%). 재정의 이후 데이터만 사용.
+  const m1us = last30Years(await fetchFred("M1SL")).filter((d) => d.date >= "2020-05-01");
   console.log(`  ${m1us.length} rows`);
 
   console.log("Fetching M2SL (US M2 liquidity)...");
