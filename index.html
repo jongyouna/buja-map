@@ -325,11 +325,17 @@ async function main() {
   const lastK = k200[k200.length - 1], prevK = k200[k200.length - 2];
   const lastV = vix[vix.length - 1], prevV = vix[vix.length - 2];
   const lastM = m2[m2.length - 1], prevM = m2[m2.length - 2];
+  const lastM1 = m1us[m1us.length - 1], prevM1 = m1us[m1us.length - 2];
+  const lastM1K = m1kr[m1kr.length - 1], prevM1K = m1kr[m1kr.length - 2];
+  const lastM2K = m2kr[m2kr.length - 1], prevM2K = m2kr[m2kr.length - 2];
   const chgN = prevN ? ((lastN.close - prevN.close) / prevN.close) * 100 : null;
   const chgS = prevS ? ((lastS.close - prevS.close) / prevS.close) * 100 : null;
   const chgK = lastK && prevK ? ((lastK.close - prevK.close) / prevK.close) * 100 : null;
   const chgV = lastV && prevV ? ((lastV.close - prevV.close) / prevV.close) * 100 : null;
   const chgM = prevM ? ((lastM.value - prevM.value) / prevM.value) * 100 : null;
+  const chgM1 = lastM1 && prevM1 ? ((lastM1.value - prevM1.value) / prevM1.value) * 100 : null;
+  const chgM1K = lastM1K && prevM1K ? ((lastM1K.value - prevM1K.value) / prevM1K.value) * 100 : null;
+  const chgM2K = lastM2K && prevM2K ? ((lastM2K.value - prevM2K.value) / prevM2K.value) * 100 : null;
 
   const cards = [
     { label: `나스닥 (${data.series.nasdaq.symbol})`, value: "$" + fmtNum(lastN.close), sub: fmtPct(chgN) + " (전일 대비)", chg: chgN, asOf: lastN.date },
@@ -353,7 +359,16 @@ async function main() {
       asOf: lastV.date,
     });
   }
+  if (lastM1) {
+    cards.push({ label: "미국 M1 유동성 (M1SL)", value: "$" + fmtNum(lastM1.value, 1) + "B", sub: fmtPct(chgM1) + " (전월 대비)", chg: chgM1, asOf: lastM1.date });
+  }
   cards.push({ label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date });
+  if (lastM1K) {
+    cards.push({ label: "한국 M1 유동성", value: "₩" + fmtNum(lastM1K.value / 1000, 1) + "조", sub: fmtPct(chgM1K) + " (전월 대비)", chg: chgM1K, asOf: lastM1K.date });
+  }
+  if (lastM2K) {
+    cards.push({ label: "한국 M2 유동성", value: "₩" + fmtNum(lastM2K.value / 1000, 1) + "조", sub: fmtPct(chgM2K) + " (전월 대비)", chg: chgM2K, asOf: lastM2K.date });
+  }
   document.getElementById("cards").innerHTML = cards
     .map(
       (c) => `
@@ -372,7 +387,10 @@ async function main() {
   ];
   if (lastK) summaryItems.push({ name: "코스피200 현물지수", chg: chgK, period: "전일 대비" });
   if (lastV) summaryItems.push({ name: "VIX 변동성지수", chg: chgV, period: "전일 대비" });
-  summaryItems.push({ name: "M2 유동성", chg: chgM, period: "전월 대비" });
+  if (lastM1) summaryItems.push({ name: "미국 M1 유동성", chg: chgM1, period: "전월 대비" });
+  summaryItems.push({ name: "미국 M2 유동성", chg: chgM, period: "전월 대비" });
+  if (lastM1K) summaryItems.push({ name: "한국 M1 유동성", chg: chgM1K, period: "전월 대비" });
+  if (lastM2K) summaryItems.push({ name: "한국 M2 유동성", chg: chgM2K, period: "전월 대비" });
   document.getElementById("summaryBar").innerHTML = summaryItems
     .map((s) => {
       const cls = s.chg >= 0 ? "up" : "down";
