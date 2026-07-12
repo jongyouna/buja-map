@@ -1,32 +1,31 @@
-// 일회성 디버그: data.go.kr 15111714(한국부동산원_주택공급정보_입주예정물량정보) API 스펙 확인. 사용 후 삭제 예정.
+// 일회성 디버그: odcloud.kr Swagger 스펙에서 실제 엔드포인트(uddi)와 파라미터 확인. 사용 후 삭제 예정.
 async function main() {
-  const urls = [
-    "https://www.data.go.kr/data/15111714/openapi.do",
-    "https://www.data.go.kr/data/15111714/fileData.do",
-  ];
-  for (const url of urls) {
-    console.log(`\n=== ${url} ===`);
+  const url = "https://infuser.odcloud.kr/oas/docs?namespace=15111714/v1";
+  console.log(`=== ${url} ===`);
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
+    const text = await res.text();
+    console.log(`status=${res.status} length=${text.length}`);
+    let json;
     try {
-      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" } });
-      const text = await res.text();
-      console.log(`  status=${res.status} length=${text.length}`);
-      // Endpoint/요청 URL 관련 힌트 추출
-      const hints = [];
-      const patterns = [
-        /https?:\/\/apis\.data\.go\.kr\/[^\s"'<>]+/g,
-        /https?:\/\/openapi\.reb\.or\.kr[^\s"'<>]*/g,
-        /End ?[Pp]oint[^<\n]{0,200}/g,
-        /요청\s*URL[^<\n]{0,200}/g,
-        /"?endpoint"?\s*[:=]\s*"[^"]+"/g,
-      ];
-      for (const p of patterns) {
-        const m = text.match(p);
-        if (m) hints.push(...m);
-      }
-      console.log("  hints:", JSON.stringify([...new Set(hints)].slice(0, 20), null, 2));
+      json = JSON.parse(text);
     } catch (e) {
-      console.log("  ERROR:", e.message);
+      console.log("JSON 파싱 실패, 원문 앞부분:", text.slice(0, 2000));
+      return;
     }
+    console.log("paths:", JSON.stringify(Object.keys(json.paths || {}), null, 2));
+    for (const [p, def] of Object.entries(json.paths || {})) {
+      console.log(`\n--- PATH: ${p} ---`);
+      for (const [method, spec] of Object.entries(def)) {
+        console.log(`  ${method.toUpperCase()} summary: ${spec.summary}`);
+        const params = spec.parameters || [];
+        for (const param of params) {
+          console.log(`    param: ${param.name} (${param.in}) required=${param.required} desc=${param.description}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.log("ERROR:", e.message);
   }
 }
 
