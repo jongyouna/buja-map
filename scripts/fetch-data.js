@@ -91,6 +91,7 @@ async function main() {
   const ecosKey = process.env.BOK_ECOS_API_KEY;
   let m1kr = [];
   let m2kr = [];
+  let kbSeoulApt = [];
   if (ecosKey) {
     console.log("Fetching Korea M1 (BOK ECOS)...");
     m1kr = await fetchEcos(ecosKey, "161Y001", "BBLS00");
@@ -99,8 +100,12 @@ async function main() {
     console.log("Fetching Korea M2 (BOK ECOS)...");
     m2kr = await fetchEcos(ecosKey, "161Y005", "BBHS00");
     console.log(`  ${m2kr.length} rows`);
+
+    console.log("Fetching Seoul apartment price index (KB, BOK ECOS)...");
+    kbSeoulApt = await fetchEcos(ecosKey, "901Y062", "P63ACA");
+    console.log(`  ${kbSeoulApt.length} rows`);
   } else {
-    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2");
+    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2/KB 주택가격지수");
   }
 
   const data = {
@@ -114,6 +119,7 @@ async function main() {
       m2: { symbol: "M2SL", label: "미국 M2 유동성", data: m2 },
       m1kr: { symbol: "BOK-ECOS", label: "한국 M1 유동성", data: m1kr },
       m2kr: { symbol: "BOK-ECOS", label: "한국 M2 유동성", data: m2kr },
+      kbSeoulApt: { symbol: "BOK-ECOS(901Y062)", label: "서울 아파트 매매가격지수(KB)", data: kbSeoulApt },
     },
   };
 
