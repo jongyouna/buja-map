@@ -101,14 +101,30 @@
     padding: 10px 12px;
     margin-bottom: 10px;
   }
+  .control-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
   .control-group-label {
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.03em;
     color: var(--muted);
     text-transform: uppercase;
-    margin-bottom: 8px;
   }
+  .bulk-actions { display: flex; gap: 6px; }
+  .bulk-btn {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 2px 9px;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .bulk-btn:hover { border-color: var(--accent-nasdaq); color: var(--text); }
   .toggle-group { display: flex; flex-wrap: wrap; gap: 6px; }
   .toggle-item { display: inline-flex; align-items: center; gap: 4px; }
   .corr-check { width: 14px; height: 14px; accent-color: var(--accent-nasdaq); cursor: pointer; }
@@ -184,7 +200,13 @@
     </div>
 
     <div class="control-group">
-      <div class="control-group-label">글로벌</div>
+      <div class="control-group-header">
+        <div class="control-group-label">글로벌</div>
+        <div class="bulk-actions">
+          <button class="bulk-btn" data-bulk-group="global" data-bulk-action="selectAll" type="button">전체 선택</button>
+          <button class="bulk-btn" data-bulk-group="global" data-bulk-action="deselectAll" type="button">전체 해제</button>
+        </div>
+      </div>
       <div class="toggle-group" id="globalToggles">
         <span class="toggle-item">
           <input type="checkbox" class="corr-check" data-series="m1us" title="상관계수 비교 대상으로 선택 (최대 2개)">
@@ -214,7 +236,13 @@
     </div>
 
     <div class="control-group">
-      <div class="control-group-label">한국</div>
+      <div class="control-group-header">
+        <div class="control-group-label">한국</div>
+        <div class="bulk-actions">
+          <button class="bulk-btn" data-bulk-group="korea" data-bulk-action="selectAll" type="button">전체 선택</button>
+          <button class="bulk-btn" data-bulk-group="korea" data-bulk-action="deselectAll" type="button">전체 해제</button>
+        </div>
+      </div>
       <div class="toggle-group" id="koreaToggles">
         <span class="toggle-item">
           <input type="checkbox" class="corr-check" data-series="m1kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
@@ -738,26 +766,24 @@ async function main() {
     return s ? s.shortLabel || s.label : key;
   }
 
-  function setupCorrCheckboxes() {
-    const checkboxes = document.querySelectorAll(".corr-check");
+  function refreshCorrCheckboxesDisabled() {
+    const atMax = corrChecked.length >= 2;
+    document.querySelectorAll(".corr-check").forEach((cb) => {
+      if (!cb.checked) cb.disabled = atMax;
+    });
+  }
+
+  function refreshCorrStatus() {
     const statusEl = document.getElementById("corrStatus");
-
-    function refreshDisabled() {
-      const atMax = corrChecked.length >= 2;
-      checkboxes.forEach((cb) => {
-        if (!cb.checked) cb.disabled = atMax;
-      });
+    if (corrChecked.length < 2) {
+      statusEl.textContent = `상관계수를 표시하려면 지표를 2개 체크하세요 (현재 ${corrChecked.length}개 선택됨).`;
+    } else {
+      statusEl.textContent = `상관계수 비교 대상: ${corrLabel(corrChecked[0])} ↔ ${corrLabel(corrChecked[1])}`;
     }
+  }
 
-    function refreshStatus() {
-      if (corrChecked.length < 2) {
-        statusEl.textContent = `상관계수를 표시하려면 지표를 2개 체크하세요 (현재 ${corrChecked.length}개 선택됨).`;
-      } else {
-        statusEl.textContent = `상관계수 비교 대상: ${corrLabel(corrChecked[0])} ↔ ${corrLabel(corrChecked[1])}`;
-      }
-    }
-
-    checkboxes.forEach((cb) => {
+  function setupCorrCheckboxes() {
+    document.querySelectorAll(".corr-check").forEach((cb) => {
       cb.checked = corrChecked.includes(cb.dataset.series);
       cb.addEventListener("change", () => {
         const key = cb.dataset.series;
@@ -766,15 +792,66 @@ async function main() {
         } else {
           corrChecked = corrChecked.filter((k) => k !== key);
         }
-        refreshDisabled();
-        refreshStatus();
+        refreshCorrCheckboxesDisabled();
+        refreshCorrStatus();
         renderMainChartWithCurrentState();
       });
     });
-    refreshDisabled();
-    refreshStatus();
+    refreshCorrCheckboxesDisabled();
+    refreshCorrStatus();
   }
   setupCorrCheckboxes();
+
+  // ---- 글로벌/한국 전체 선택·해제 버튼 ----
+  function paintToggleButton(btn) {
+    const key = btn.dataset.series;
+    const color = btn.dataset.color;
+    if (seriesEnabled[key]) {
+      btn.classList.add("on");
+      btn.style.background = color;
+      btn.style.borderColor = color;
+    } else {
+      btn.classList.remove("on");
+      btn.style.background = "";
+      btn.style.borderColor = "";
+    }
+  }
+
+  function setupBulkActions() {
+    document.querySelectorAll(".bulk-btn").forEach((btn) => {
+      const groupId = btn.dataset.bulkGroup === "global" ? "globalToggles" : "koreaToggles";
+      const turnOn = btn.dataset.bulkAction === "selectAll";
+      btn.addEventListener("click", () => {
+        const toggleBtns = document.querySelectorAll(`#${groupId} .toggle-btn`);
+        toggleBtns.forEach((tb) => {
+          if (tb.disabled) return;
+          seriesEnabled[tb.dataset.series] = turnOn;
+          paintToggleButton(tb);
+        });
+
+        // 전체 해제 시에는 해당 그룹의 상관계수 체크박스도 함께 해제 (전체 선택은 체크박스 최대 2개
+        // 제약과 충돌하므로 데이터 표시 여부만 켬)
+        if (!turnOn) {
+          const groupKeys = Array.from(toggleBtns).map((tb) => tb.dataset.series);
+          let changed = false;
+          document.querySelectorAll(`#${groupId} .corr-check`).forEach((cb) => {
+            if (cb.checked) {
+              cb.checked = false;
+              changed = true;
+            }
+          });
+          if (changed) {
+            corrChecked = corrChecked.filter((k) => !groupKeys.includes(k));
+            refreshCorrCheckboxesDisabled();
+            refreshCorrStatus();
+          }
+        }
+
+        renderMainChartWithCurrentState();
+      });
+    });
+  }
+  setupBulkActions();
 
   document.getElementById("footerNote").innerHTML = `
     데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = KB부동산 데이터허브(data-api.kbland.kr 주택가격동향조사, 월간, 계단식 표시) · 서울 주택 인허가실적 = 한국은행 ECOS(901Y105, 아파트 전용 통계가 없어 단독·연립·다세대 등 서울 전체 주택 유형 합계, 연간 합산, 계단식 표시)<br/>
