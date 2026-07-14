@@ -53,6 +53,39 @@ async function fetchEcos(apiKey, tableCode, itemCode) {
   }));
 }
 
+// KB부동산 데이터허브(data-api.kbland.kr) 주택가격동향조사 - 가격지수
+// 참고: https://wooiljeong.github.io/python/pdr-kbland/ (PublicDataReader Kbland.get_price_index)
+// 인증키 불필요. 기간=99가 가장 긴 이력(1986년~현재)을 반환함(직접 조회로 확인).
+async function fetchKbLandPriceIndex(regionCode, regionName) {
+  const url = "https://data-api.kbland.kr/bfmstat/weekMnthlyHuseTrnd/priceIndex";
+  const params = new URLSearchParams({
+    월간주간구분코드: "01", // 월간
+    매물종별구분: "01", // 아파트
+    매매전세코드: "01", // 매매
+    지역코드: "11", // 서울(상위 코드) - 서울 전체 + 구별 데이터가 함께 반환됨
+    기간: "99", // 조회 가능한 전체 기간
+  });
+  const res = await fetch(`${url}?${params.toString()}`, { headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`KB Land fetch failed: ${res.status}`);
+  const json = await res.json();
+  const resultCode = json?.dataBody?.resultCode;
+  if (String(resultCode) !== "11000") {
+    throw new Error(`KB Land API 오류(resultCode=${resultCode}): ${JSON.stringify(json).slice(0, 300)}`);
+  }
+  const data = json.dataBody.data;
+  const dates = data.날짜리스트 || [];
+  const row = (data.데이터리스트 || []).find((r) => r.지역코드 === regionCode);
+  if (!row) throw new Error(`KB Land 응답에서 ${regionName}(지역코드 ${regionCode}) 데이터를 찾을 수 없음`);
+  const series = [];
+  for (let i = 0; i < dates.length; i++) {
+    const value = row.dataList[i];
+    if (value == null) continue;
+    const d = dates[i]; // YYYYMM
+    series.push({ date: `${d.slice(0, 4)}-${d.slice(4, 6)}-01`, value });
+  }
+  return series;
+}
+
 function aggregateAnnual(series) {
   const byYear = {};
   for (const d of series) {
@@ -99,10 +132,13 @@ async function main() {
   const m2 = last30Years(await fetchFred("M2SL"));
   console.log(`  ${m2.length} rows`);
 
+  console.log("Fetching Seoul apartment price index (KB부동산 데이터허브)...");
+  const kbSeoulApt = await fetchKbLandPriceIndex("1100000000", "서울");
+  console.log(`  ${kbSeoulApt.length} rows`);
+
   const ecosKey = process.env.BOK_ECOS_API_KEY;
   let m1kr = [];
   let m2kr = [];
-  let kbSeoulApt = [];
   let seoulHousingSupply = [];
   if (ecosKey) {
     console.log("Fetching Korea M1 (BOK ECOS)...");
@@ -113,15 +149,11 @@ async function main() {
     m2kr = await fetchEcos(ecosKey, "161Y005", "BBHS00");
     console.log(`  ${m2kr.length} rows`);
 
-    console.log("Fetching Seoul apartment price index (KB, BOK ECOS)...");
-    kbSeoulApt = await fetchEcos(ecosKey, "901Y062", "P63ACA");
-    console.log(`  ${kbSeoulApt.length} rows`);
-
     console.log("Fetching Seoul housing construction permits (BOK ECOS, annual)...");
     seoulHousingSupply = aggregateAnnual(await fetchEcos(ecosKey, "901Y105", "SEO"));
     console.log(`  ${seoulHousingSupply.length} years`);
   } else {
-    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2/KB 주택가격지수/서울 주택 인허가실적");
+    console.log("BOK_ECOS_API_KEY not set, skipping Korea M1/M2/서울 주택 인허가실적");
   }
 
   const data = {
@@ -135,7 +167,7 @@ async function main() {
       m2: { symbol: "M2SL", label: "미국 M2 유동성", data: m2 },
       m1kr: { symbol: "BOK-ECOS", label: "한국 M1 유동성", data: m1kr },
       m2kr: { symbol: "BOK-ECOS", label: "한국 M2 유동성", data: m2kr },
-      kbSeoulApt: { symbol: "BOK-ECOS(901Y062)", label: "서울 아파트 매매가격지수(KB)", data: kbSeoulApt },
+      kbSeoulApt: { symbol: "KBLAND(data-api)", label: "서울 아파트 매매가격지수(KB)", data: kbSeoulApt },
       seoulHousingSupply: { symbol: "BOK-ECOS(901Y105)", label: "서울 주택건설 인허가실적(연간)", data: seoulHousingSupply },
     },
   };
