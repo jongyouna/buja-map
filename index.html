@@ -110,6 +110,10 @@
     margin-bottom: 8px;
   }
   .toggle-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-item { display: inline-flex; align-items: center; gap: 4px; }
+  .corr-check { width: 14px; height: 14px; accent-color: var(--accent-nasdaq); cursor: pointer; }
+  .corr-check:disabled { cursor: not-allowed; opacity: 0.35; }
+  .corr-status { font-size: 0.78rem; color: var(--muted); margin: -2px 0 10px; }
   .toggle-btn {
     background: transparent;
     border: 1px solid var(--panel-border);
@@ -158,8 +162,9 @@
   <div class="cards" id="cards"></div>
 
   <div class="panel">
-    <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">선택한 기간의 시작일을 기준점으로 활성화된 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M1·M2 유동성은 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. 나스닥·코스피200·VIX는 최근 10년치까지만 제공되어 20년 조회 시 앞부분은 공백일 수 있습니다. 미국 M1 유동성은 2020년 5월 연준의 정의 변경(저축성예금 포함, 데이터 단절)으로 그 이후 데이터만 표시됩니다.</p>
+    <h2>정규화 지수 비교 (시작=100) · 롤링 상관계수 (-1~1)</h2>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 활성화된 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M1·M2 유동성은 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. 나스닥·코스피200·VIX는 최근 10년치까지만 제공되어 20년 조회 시 앞부분은 공백일 수 있습니다. 미국 M1 유동성은 2020년 5월 연준의 정의 변경(저축성예금 포함, 데이터 단절)으로 그 이후 데이터만 표시됩니다.<br/>
+    각 지표 버튼 왼쪽의 체크박스로 롤링 상관계수를 계산할 두 지표를 선택할 수 있습니다(최대 2개, 그래프 표시 여부와 무관하게 선택 가능). 체크된 두 지표가 발표/갱신되는 시점 간 수익률을 기준으로 상관계수를 계산해 점선으로 표시하며, 오른쪽 별도 축(-1~1)을 사용합니다. +1에 가까울수록 두 지표가 같은 방향으로, -1에 가까울수록 반대 방향으로 움직였다는 뜻입니다. 일별 지표는 10거래일, 월간/연간 지표는 데이터 특성에 맞춰 window 크기가 자동 조정됩니다.</p>
 
     <div class="control-group">
       <div class="control-group-label">기간</div>
@@ -181,72 +186,66 @@
     <div class="control-group">
       <div class="control-group-label">글로벌</div>
       <div class="toggle-group" id="globalToggles">
-        <button class="toggle-btn" data-series="m1us" data-color="#7dd3fc" type="button">미국 M1 유동성</button>
-        <button class="toggle-btn" data-series="m2" data-color="#4fd1a5" type="button">미국 M2 유동성</button>
-        <button class="toggle-btn" data-series="m1m2us" data-color="#eab308" type="button">미국 M1/M2 비율</button>
-        <button class="toggle-btn" data-series="vix" data-color="#f2a93c" type="button">VIX 변동성지수</button>
-        <button class="toggle-btn" data-series="nasdaq" data-color="#5b8def" type="button">나스닥(QQQ)</button>
-        <button class="toggle-btn" data-series="spacex" data-color="#ef5b6d" type="button">스페이스X(SPCX)</button>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1us" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1us" data-color="#7dd3fc" type="button">미국 M1 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m2" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m2" data-color="#4fd1a5" type="button">미국 M2 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1m2us" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1m2us" data-color="#eab308" type="button">미국 M1/M2 비율</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="vix" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="vix" data-color="#f2a93c" type="button">VIX 변동성지수</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="nasdaq" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="nasdaq" data-color="#5b8def" type="button">나스닥(QQQ)</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="spacex" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="spacex" data-color="#ef5b6d" type="button">스페이스X(SPCX)</button>
+        </span>
       </div>
     </div>
 
     <div class="control-group">
       <div class="control-group-label">한국</div>
       <div class="toggle-group" id="koreaToggles">
-        <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button">한국 M1 유동성</button>
-        <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button">한국 M2 유동성</button>
-        <button class="toggle-btn" data-series="m1m2kr" data-color="#14b8a6" type="button">한국 M1/M2 비율</button>
-        <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
-        <button class="toggle-btn" data-series="kbSeoulApt" data-color="#fb7185" type="button">서울 아파트 매매가격지수(KB)</button>
-        <button class="toggle-btn" data-series="seoulSupply" data-color="#84cc16" type="button" title="아파트뿐 아니라 단독·연립·다세대 등 서울 전체 주택 유형 합계">서울 주택 인허가실적(연간)</button>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button">한국 M1 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m2kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button">한국 M2 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1m2kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1m2kr" data-color="#14b8a6" type="button">한국 M1/M2 비율</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="k200" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="kbSeoulApt" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="kbSeoulApt" data-color="#fb7185" type="button">서울 아파트 매매가격지수(KB)</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="seoulSupply" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="seoulSupply" data-color="#84cc16" type="button" title="아파트뿐 아니라 단독·연립·다세대 등 서울 전체 주택 유형 합계">서울 주택 인허가실적(연간)</button>
+        </span>
       </div>
     </div>
+
+    <div class="corr-status" id="corrStatus"></div>
 
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
-  </div>
-
-  <div class="panel">
-    <h2>롤링 상관계수 (나스닥(QQQ) 기준)</h2>
-    <p class="desc">나스닥(QQQ)과 활성화된 지표 사이의 롤링 상관계수. 값이 발표/갱신되는 시점 간 수익률로 계산하며, 일별 지표는 10거래일, 월간/연간 지표는 데이터 특성에 맞춰 window 크기가 자동 조정됩니다. +1에 가까울수록 동조화, -1에 가까울수록 역행. 나스닥 자체는 항상 비교 기준이므로 목록에는 있지만 선택할 수 없습니다.</p>
-
-    <div class="control-group">
-      <div class="control-group-label">기간</div>
-      <div class="period-selector" id="corrPeriodSelector">
-        <button class="period-btn" data-period="1w">1주일</button>
-        <button class="period-btn" data-period="1m">1개월</button>
-        <button class="period-btn" data-period="6m">6개월</button>
-        <button class="period-btn" data-period="1y">1년</button>
-        <button class="period-btn" data-period="5y">5년</button>
-        <button class="period-btn" data-period="10y">10년</button>
-        <button class="period-btn" data-period="20y">20년</button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-group-label">글로벌</div>
-      <div class="toggle-group" id="corrGlobalToggles">
-        <button class="toggle-btn" data-series="m1us" data-color="#7dd3fc" type="button">미국 M1 유동성</button>
-        <button class="toggle-btn" data-series="m2" data-color="#4fd1a5" type="button">미국 M2 유동성</button>
-        <button class="toggle-btn" data-series="m1m2us" data-color="#eab308" type="button">미국 M1/M2 비율</button>
-        <button class="toggle-btn" data-series="vix" data-color="#f2a93c" type="button">VIX 변동성지수</button>
-        <button class="toggle-btn" data-series="nasdaq" data-color="#5b8def" type="button" disabled title="나스닥은 상관계수의 비교 기준으로 항상 사용되어 선택할 수 없습니다">나스닥(QQQ)</button>
-        <button class="toggle-btn" data-series="spacex" data-color="#ef5b6d" type="button">스페이스X(SPCX)</button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-group-label">한국</div>
-      <div class="toggle-group" id="corrKoreaToggles">
-        <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button">한국 M1 유동성</button>
-        <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button">한국 M2 유동성</button>
-        <button class="toggle-btn" data-series="m1m2kr" data-color="#14b8a6" type="button">한국 M1/M2 비율</button>
-        <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
-        <button class="toggle-btn" data-series="kbSeoulApt" data-color="#fb7185" type="button">서울 아파트 매매가격지수(KB)</button>
-        <button class="toggle-btn" data-series="seoulSupply" data-color="#84cc16" type="button" title="아파트뿐 아니라 단독·연립·다세대 등 서울 전체 주택 유형 합계">서울 주택 인허가실적(연간)</button>
-      </div>
-    </div>
-
-    <div class="chart-wrap"><canvas id="corrChart"></canvas></div>
   </div>
 
   <footer id="footerNote"></footer>
@@ -280,8 +279,12 @@ function seriesReturns(series, valueKey) {
 function alignedReturnPairs(otherSeries, otherValueKey, benchmarkSeries, benchmarkValueKey) {
   const otherRet = seriesReturns(otherSeries, otherValueKey);
   const sortedBench = [...benchmarkSeries].sort((a, b) => a.date.localeCompare(b.date));
+  if (sortedBench.length === 0) return { a: [], b: [] };
+  const benchStart = sortedBench[0].date;
   const a = [], b = [];
   for (const r of otherRet) {
+    // benchmark의 실제 데이터 시작 이전 구간은 valueAsOf가 첫 값으로 평탄하게 채워 분산이 0이 되므로 제외
+    if (r.prevDate < benchStart) continue;
     const vPrev = valueAsOf(sortedBench, benchmarkValueKey, r.prevDate);
     const vCur = valueAsOf(sortedBench, benchmarkValueKey, r.date);
     if (vPrev == null || vCur == null || vPrev === 0) continue;
@@ -519,6 +522,12 @@ async function main() {
     seoulSupply: false,
   };
 
+  const ALL_SERIES_FOR_CORR = [
+    ...LINE_SERIES.map((s) => ({ ...s, valueKey: "close" })),
+    ...MONTHLY_SERIES.map((s) => ({ ...s, valueKey: "value" })),
+  ];
+  let corrChecked = ["nasdaq", "spacex"]; // 상관계수를 계산할 두 지표 (최대 2개)
+
   function renderMainChartWithCurrentState() {
     const baseDate = baseDateOverride || rangeStartDate;
     const datasets = [];
@@ -556,6 +565,9 @@ async function main() {
         yAxisID: "y1",
       });
     }
+
+    const corrDs = corrDataset();
+    if (corrDs) datasets.push(corrDs);
 
     if (mainChart) {
       mainChart.data.datasets = datasets;
@@ -614,6 +626,13 @@ async function main() {
             position: "right",
             grid: { drawOnChartArea: false },
             title: { display: true, text: "통화량 지수 (시작일=100, 자체 축)" },
+          },
+          yCorr: {
+            position: "right",
+            min: -1,
+            max: 1,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "상관계수 (-1~1)" },
           },
         },
         plugins: { legend: { position: "top" } },
@@ -679,98 +698,83 @@ async function main() {
   setupToggleGroup("globalToggles", seriesEnabled, renderMainChartWithCurrentState);
   setupToggleGroup("koreaToggles", seriesEnabled, renderMainChartWithCurrentState);
 
-  // ---- 롤링 상관계수 차트 ----
-  const ALL_SERIES_FOR_CORR = [
-    ...LINE_SERIES.map((s) => ({ ...s, valueKey: "close" })),
-    ...MONTHLY_SERIES.map((s) => ({ ...s, valueKey: "value" })),
-  ];
+  // ---- 롤링 상관계수 (체크박스로 선택한 두 지표, 정규화 지수 차트에 함께 표시) ----
+  function corrDataset() {
+    if (corrChecked.length !== 2) return null;
+    const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === corrChecked[0]);
+    const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === corrChecked[1]);
+    if (!sA || !sB) return null;
 
-  const corrSeriesEnabled = {
-    nasdaq: true,
-    spacex: true,
-    k200: true,
-    vix: true,
-    m1us: true,
-    m2: true,
-    m1m2us: false,
-    m1kr: true,
-    m2kr: true,
-    m1m2kr: false,
-    kbSeoulApt: true,
-    seoulSupply: false,
-  };
+    const dataA = sA.data.filter((d) => d.date >= rangeStartDate);
+    const dataB = sB.data.filter((d) => d.date >= rangeStartDate);
+    if (dataA.length < 4 || dataB.length < 4) return null;
 
-  let corrChart = null;
-  let corrActivePeriodKey = "1y";
-  let corrRangeStartDate = null;
+    // 발표 빈도가 더 낮은(성긴) 쪽의 시점 간격을 기준으로 수익률을 계산해야 함.
+    // 반대로 하면 촘촘한 쪽 기준 윈도우 안에 성긴 쪽의 실제 변화가 거의 포함되지 않아
+    // 상관계수가 대부분 구간에서 정의되지 않음(분산 0)이 됨.
+    const [sparse, sparseData, dense, denseData] =
+      dataA.length <= dataB.length ? [sA, dataA, sB, dataB] : [sB, dataB, sA, dataA];
+    const { a, b } = alignedReturnPairs(sparseData, sparse.valueKey, denseData, dense.valueKey);
+    if (a.length < 3) return null;
+    const corrWindow = Math.min(10, Math.max(3, a.length));
+    const corr = rollingCorrelation(a, b, corrWindow);
+    if (corr.length === 0) return null;
 
-  function renderCorrChart() {
-    const rangeStart = corrRangeStartDate;
-    const nasdaqFiltered = nasdaq.filter((d) => d.date >= rangeStart);
-    const datasets = [];
+    return {
+      label: `상관계수: ${sA.shortLabel || sA.label} ↔ ${sB.shortLabel || sB.label}`,
+      data: corr.map((d) => ({ x: d.date, y: d.corr })),
+      borderColor: "#e0a458",
+      backgroundColor: "#e0a458",
+      borderWidth: 2,
+      borderDash: [5, 3],
+      pointRadius: 2,
+      tension: 0.2,
+      yAxisID: "yCorr",
+    };
+  }
 
-    for (const s of ALL_SERIES_FOR_CORR) {
-      if (s.key === "nasdaq" || !corrSeriesEnabled[s.key]) continue;
-      const filtered = s.data.filter((d) => d.date >= rangeStart);
-      if (filtered.length < 4) continue;
-      const { a, b } = alignedReturnPairs(filtered, s.valueKey, nasdaqFiltered, "close");
-      if (a.length < 3) continue;
-      const corrWindow = Math.min(10, Math.max(3, a.length));
-      const corr = rollingCorrelation(a, b, corrWindow);
-      if (corr.length === 0) continue;
-      datasets.push({
-        label: `나스닥↔${s.shortLabel || s.label}`,
-        data: corr.map((d) => ({ x: d.date, y: d.corr })),
-        borderColor: s.color,
-        backgroundColor: s.color,
-        borderWidth: 2,
-        pointRadius: 2,
-        tension: 0.2,
+  function corrLabel(key) {
+    const s = ALL_SERIES_FOR_CORR.find((x) => x.key === key);
+    return s ? s.shortLabel || s.label : key;
+  }
+
+  function setupCorrCheckboxes() {
+    const checkboxes = document.querySelectorAll(".corr-check");
+    const statusEl = document.getElementById("corrStatus");
+
+    function refreshDisabled() {
+      const atMax = corrChecked.length >= 2;
+      checkboxes.forEach((cb) => {
+        if (!cb.checked) cb.disabled = atMax;
       });
     }
 
-    if (corrChart) {
-      corrChart.data.datasets = datasets;
-      corrChart.options.scales.x.time.unit = timeUnitForPeriod(corrActivePeriodKey);
-      corrChart.update();
-      return;
+    function refreshStatus() {
+      if (corrChecked.length < 2) {
+        statusEl.textContent = `상관계수를 표시하려면 지표를 2개 체크하세요 (현재 ${corrChecked.length}개 선택됨).`;
+      } else {
+        statusEl.textContent = `상관계수 비교 대상: ${corrLabel(corrChecked[0])} ↔ ${corrLabel(corrChecked[1])}`;
+      }
     }
 
-    corrChart = new Chart(document.getElementById("corrChart"), {
-      type: "line",
-      data: { datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { type: "time", time: { unit: timeUnitForPeriod(corrActivePeriodKey) }, grid: { display: false } },
-          y: { min: -1, max: 1, title: { display: true, text: "상관계수" } },
-        },
-        plugins: { legend: { position: "top" } },
-      },
+    checkboxes.forEach((cb) => {
+      cb.checked = corrChecked.includes(cb.dataset.series);
+      cb.addEventListener("change", () => {
+        const key = cb.dataset.series;
+        if (cb.checked) {
+          if (corrChecked.length < 2) corrChecked.push(key);
+        } else {
+          corrChecked = corrChecked.filter((k) => k !== key);
+        }
+        refreshDisabled();
+        refreshStatus();
+        renderMainChartWithCurrentState();
+      });
     });
+    refreshDisabled();
+    refreshStatus();
   }
-
-  function renderCorr(periodKey) {
-    corrActivePeriodKey = periodKey;
-    corrRangeStartDate = periodStartDate(periodKey);
-    renderCorrChart();
-  }
-
-  const corrPeriodButtons = document.querySelectorAll("#corrPeriodSelector .period-btn[data-period]");
-  corrPeriodButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      corrPeriodButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderCorr(btn.dataset.period);
-    });
-  });
-  const corrDefaultBtn = document.querySelector('#corrPeriodSelector .period-btn[data-period="1y"]');
-  corrDefaultBtn.classList.add("active");
-  renderCorr("1y");
-
-  setupToggleGroup("corrGlobalToggles", corrSeriesEnabled, renderCorrChart);
-  setupToggleGroup("corrKoreaToggles", corrSeriesEnabled, renderCorrChart);
+  setupCorrCheckboxes();
 
   document.getElementById("footerNote").innerHTML = `
     데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = 한국은행 ECOS(901Y062, KB 주택가격지수, 월간, 계단식 표시) · 서울 주택 인허가실적 = 한국은행 ECOS(901Y105, 아파트 전용 통계가 없어 단독·연립·다세대 등 서울 전체 주택 유형 합계, 연간 합산, 계단식 표시)<br/>
