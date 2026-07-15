@@ -95,6 +95,21 @@
   }
   .panel h2 { font-size: 1rem; margin: 0 0 4px; }
   .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
+  .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .save-btn, .delete-btn {
+    flex-shrink: 0;
+    border-radius: 8px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border: 1px solid var(--panel-border);
+  }
+  .save-btn { background: var(--accent-nasdaq); color: #fff; border-color: var(--accent-nasdaq); }
+  .save-btn:hover { opacity: 0.9; }
+  .delete-btn { background: transparent; color: var(--bad); border-color: var(--bad); }
+  .delete-btn:hover { background: var(--bad); color: #fff; }
+  .saved-view-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
+  .saved-view-header .desc { margin: 0; }
   .control-group {
     border: 1px solid var(--panel-border);
     border-radius: 10px;
@@ -178,7 +193,10 @@
   <div class="cards" id="cards"></div>
 
   <div class="panel">
-    <h2>정규화 지수 비교 (시작=100) · 롤링 상관계수 (-1~1)</h2>
+    <div class="panel-header">
+      <h2>정규화 지수 비교 (시작=100) · 롤링 상관계수 (-1~1)</h2>
+      <button class="save-btn" id="saveViewBtn" type="button" title="현재 기간·지표·상관계수 선택을 저장해 새 그래프로 고정합니다">저장</button>
+    </div>
     <p class="desc">선택한 기간의 시작일을 기준점으로 활성화된 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M1·M2 유동성은 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. 나스닥·코스피200·VIX는 최근 10년치까지만 제공되어 20년 조회 시 앞부분은 공백일 수 있습니다. 미국 M1 유동성은 2020년 5월 연준의 정의 변경(저축성예금 포함, 데이터 단절)으로 그 이후 데이터만 표시됩니다.<br/>
     각 지표 버튼 왼쪽의 체크박스로 롤링 상관계수를 계산할 두 지표를 선택할 수 있습니다(최대 2개, 그래프 표시 여부와 무관하게 선택 가능). 체크된 두 지표가 발표/갱신되는 시점 간 수익률을 기준으로 상관계수를 계산해 점선으로 표시하며, 오른쪽 별도 축(-1~1)을 사용합니다. +1에 가까울수록 두 지표가 같은 방향으로, -1에 가까울수록 반대 방향으로 움직였다는 뜻입니다. 일별 지표는 10거래일, 월간/연간 지표는 데이터 특성에 맞춰 window 크기가 자동 조정됩니다.</p>
 
@@ -275,6 +293,8 @@
 
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
   </div>
+
+  <div id="savedViews"></div>
 
   <footer id="footerNote"></footer>
 
@@ -556,13 +576,13 @@ async function main() {
   ];
   let corrChecked = ["nasdaq", "spacex"]; // 상관계수를 계산할 두 지표 (최대 2개)
 
-  function renderMainChartWithCurrentState() {
-    const baseDate = baseDateOverride || rangeStartDate;
+  // 라이브 차트와 저장된(고정) 차트가 공유하는 데이터셋 구성 로직.
+  function buildDatasets(enabledObj, checkedArr, rangeStart, baseDate) {
     const datasets = [];
 
     for (const s of LINE_SERIES) {
-      if (!seriesEnabled[s.key]) continue;
-      const idx = indexTo100(s.data, "close", rangeStartDate, baseDate);
+      if (!enabledObj[s.key]) continue;
+      const idx = indexTo100(s.data, "close", rangeStart, baseDate);
       if (idx.length === 0) continue;
       datasets.push({
         label: s.label,
@@ -576,8 +596,8 @@ async function main() {
     }
 
     for (const s of MONTHLY_SERIES) {
-      if (!seriesEnabled[s.key]) continue;
-      const idx = monthlyIndexTo100(s.data, rangeStartDate, baseDate);
+      if (!enabledObj[s.key]) continue;
+      const idx = monthlyIndexTo100(s.data, rangeStart, baseDate);
       if (idx.length === 0) continue;
       datasets.push({
         label: s.label,
@@ -594,8 +614,15 @@ async function main() {
       });
     }
 
-    const corrDs = corrDataset();
+    const corrDs = corrDatasetFor(checkedArr, rangeStart);
     if (corrDs) datasets.push(corrDs);
+
+    return datasets;
+  }
+
+  function renderMainChartWithCurrentState() {
+    const baseDate = baseDateOverride || rangeStartDate;
+    const datasets = buildDatasets(seriesEnabled, corrChecked, rangeStartDate, baseDate);
 
     if (mainChart) {
       mainChart.data.datasets = datasets;
@@ -727,14 +754,14 @@ async function main() {
   setupToggleGroup("koreaToggles", seriesEnabled, renderMainChartWithCurrentState);
 
   // ---- 롤링 상관계수 (체크박스로 선택한 두 지표, 정규화 지수 차트에 함께 표시) ----
-  function corrDataset() {
-    if (corrChecked.length !== 2) return null;
-    const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === corrChecked[0]);
-    const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === corrChecked[1]);
+  function corrDatasetFor(checkedArr, rangeStart) {
+    if (!checkedArr || checkedArr.length !== 2) return null;
+    const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === checkedArr[0]);
+    const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === checkedArr[1]);
     if (!sA || !sB) return null;
 
-    const dataA = sA.data.filter((d) => d.date >= rangeStartDate);
-    const dataB = sB.data.filter((d) => d.date >= rangeStartDate);
+    const dataA = sA.data.filter((d) => d.date >= rangeStart);
+    const dataB = sB.data.filter((d) => d.date >= rangeStart);
     if (dataA.length < 4 || dataB.length < 4) return null;
 
     // 발표 빈도가 더 낮은(성긴) 쪽의 시점 간격을 기준으로 수익률을 계산해야 함.
@@ -852,6 +879,106 @@ async function main() {
     });
   }
   setupBulkActions();
+
+  // ---- 저장된 그래프 (기간·지표·상관계수 선택을 localStorage에 저장해 재방문 시에도 유지) ----
+  const SAVED_VIEWS_KEY = "buja-map-saved-views";
+  const PERIOD_LABELS = { "1w": "1주일", "1m": "1개월", "6m": "6개월", "1y": "1년", "5y": "5년", "10y": "10년", "20y": "20년" };
+
+  function loadSavedViews() {
+    try {
+      const raw = localStorage.getItem(SAVED_VIEWS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function persistSavedViews(views) {
+    try {
+      localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(views));
+    } catch (e) {
+      console.error("저장된 그래프를 localStorage에 쓰지 못했습니다:", e);
+    }
+  }
+
+  function summarizeView(view) {
+    const shownLabels = Object.keys(view.seriesEnabled)
+      .filter((k) => view.seriesEnabled[k])
+      .map(corrLabel);
+    const corrText =
+      view.corrChecked && view.corrChecked.length === 2
+        ? `상관계수: ${corrLabel(view.corrChecked[0])} ↔ ${corrLabel(view.corrChecked[1])}`
+        : "상관계수 미선택";
+    return `기간: ${PERIOD_LABELS[view.periodKey] || view.periodKey} · 표시 지표: ${shownLabels.join(", ") || "없음"} · ${corrText}`;
+  }
+
+  function renderSavedViewPanel(view) {
+    const container = document.getElementById("savedViews");
+    const panel = document.createElement("div");
+    panel.className = "panel";
+    panel.dataset.viewId = view.id;
+    panel.innerHTML = `
+      <div class="saved-view-header">
+        <div>
+          <h2>저장된 그래프</h2>
+          <p class="desc">${summarizeView(view)}<br/>저장 시각: ${new Date(view.savedAt).toLocaleString("ko-KR")}</p>
+        </div>
+        <button class="delete-btn" type="button">삭제</button>
+      </div>
+      <div class="chart-wrap"><canvas></canvas></div>
+    `;
+    container.appendChild(panel);
+
+    const rangeStart = periodStartDate(view.periodKey);
+    const datasets = buildDatasets(view.seriesEnabled, view.corrChecked, rangeStart, rangeStart);
+    new Chart(panel.querySelector("canvas"), {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { type: "time", time: { unit: timeUnitForPeriod(view.periodKey) }, grid: { display: false } },
+          y: { title: { display: true, text: "가격·지수 (시작일=100)" } },
+          y1: {
+            position: "right",
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "통화량 지수 (시작일=100, 자체 축)" },
+          },
+          yCorr: {
+            position: "right",
+            min: -1,
+            max: 1,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "상관계수 (-1~1)" },
+          },
+        },
+        plugins: { legend: { position: "top" } },
+      },
+    });
+
+    panel.querySelector(".delete-btn").addEventListener("click", () => {
+      persistSavedViews(loadSavedViews().filter((v) => v.id !== view.id));
+      panel.remove();
+    });
+  }
+
+  function saveCurrentView() {
+    const view = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      periodKey: activePeriodKey,
+      seriesEnabled: { ...seriesEnabled },
+      corrChecked: [...corrChecked],
+      savedAt: new Date().toISOString(),
+    };
+    const views = loadSavedViews();
+    views.push(view);
+    persistSavedViews(views);
+    renderSavedViewPanel(view);
+  }
+
+  document.getElementById("saveViewBtn").addEventListener("click", saveCurrentView);
+  loadSavedViews().forEach(renderSavedViewPanel);
 
   document.getElementById("footerNote").innerHTML = `
     데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = KB부동산 데이터허브(data-api.kbland.kr 주택가격동향조사, 월간, 계단식 표시) · 서울 주택 인허가실적 = 한국은행 ECOS(901Y105, 아파트 전용 통계가 없어 단독·연립·다세대 등 서울 전체 주택 유형 합계, 연간 합산, 계단식 표시)<br/>
