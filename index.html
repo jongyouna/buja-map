@@ -133,7 +133,28 @@
   .delete-btn { background: var(--panel); color: var(--bad); border-color: var(--panel-border); }
   .delete-btn:hover { background: var(--bad-bg); border-color: var(--bad); }
   .saved-view-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
-  .saved-view-header .desc { margin: 0; }
+  .saved-view-header .desc { margin: 6px 0 0; }
+  .saved-view-meta { display: flex; flex-direction: column; gap: 6px; }
+  .saved-view-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .mini-group-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-right: 2px;
+    min-width: 34px;
+  }
+  .mini-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  .mini-pill-period { background: var(--accent-nasdaq); }
+  .mini-pill-empty { color: var(--muted); font-size: 0.75rem; }
   .control-group { margin-bottom: 16px; }
   .control-group-header {
     display: flex;
@@ -609,6 +630,10 @@ async function main() {
   ];
   let corrChecked = ["nasdaq", "spacex"]; // 상관계수를 계산할 두 지표 (최대 2개)
 
+  // 글로벌/한국 그룹별 키 목록. 저장된 그래프 요약 표시에 사용.
+  const GLOBAL_KEYS = Array.from(document.querySelectorAll("#globalToggles .toggle-btn")).map((b) => b.dataset.series);
+  const KOREA_KEYS = Array.from(document.querySelectorAll("#koreaToggles .toggle-btn")).map((b) => b.dataset.series);
+
   // 라이브 차트와 저장된(고정) 차트가 공유하는 데이터셋 구성 로직.
   function buildDatasets(enabledObj, checkedArr, rangeStart, baseDate) {
     const datasets = [];
@@ -934,15 +959,10 @@ async function main() {
     }
   }
 
-  function summarizeView(view) {
-    const shownLabels = Object.keys(view.seriesEnabled)
-      .filter((k) => view.seriesEnabled[k])
-      .map(corrLabel);
-    const corrText =
-      view.corrChecked && view.corrChecked.length === 2
-        ? `상관계수: ${corrLabel(view.corrChecked[0])} ↔ ${corrLabel(view.corrChecked[1])}`
-        : "상관계수 미선택";
-    return `기간: ${PERIOD_LABELS[view.periodKey] || view.periodKey} · 표시 지표: ${shownLabels.join(", ") || "없음"} · ${corrText}`;
+  function seriesBadge(key) {
+    const s = ALL_SERIES_FOR_CORR.find((x) => x.key === key);
+    if (!s) return "";
+    return `<span class="mini-pill" style="background:${s.color};">${s.shortLabel || s.label}</span>`;
   }
 
   function renderSavedViewPanel(view) {
@@ -950,11 +970,31 @@ async function main() {
     const panel = document.createElement("div");
     panel.className = "panel";
     panel.dataset.viewId = view.id;
+
+    const globalOn = GLOBAL_KEYS.filter((k) => view.seriesEnabled[k]);
+    const koreaOn = KOREA_KEYS.filter((k) => view.seriesEnabled[k]);
+    const corrText =
+      view.corrChecked && view.corrChecked.length === 2
+        ? `${corrLabel(view.corrChecked[0])} ↔ ${corrLabel(view.corrChecked[1])}`
+        : "미선택";
+
     panel.innerHTML = `
       <div class="saved-view-header">
-        <div>
+        <div class="saved-view-meta">
           <h2>저장된 그래프</h2>
-          <p class="desc">${summarizeView(view)}<br/>저장 시각: ${new Date(view.savedAt).toLocaleString("ko-KR")}</p>
+          <div class="saved-view-badges">
+            <span class="mini-group-label">기간</span>
+            <span class="mini-pill mini-pill-period">${PERIOD_LABELS[view.periodKey] || view.periodKey}</span>
+          </div>
+          <div class="saved-view-badges">
+            <span class="mini-group-label">글로벌</span>
+            ${globalOn.length ? globalOn.map(seriesBadge).join("") : '<span class="mini-pill-empty">선택 없음</span>'}
+          </div>
+          <div class="saved-view-badges">
+            <span class="mini-group-label">한국</span>
+            ${koreaOn.length ? koreaOn.map(seriesBadge).join("") : '<span class="mini-pill-empty">선택 없음</span>'}
+          </div>
+          <p class="desc">상관계수 비교 대상: ${corrText} · 저장 시각: ${new Date(view.savedAt).toLocaleString("ko-KR")}</p>
         </div>
         <button class="delete-btn" type="button">삭제</button>
       </div>
