@@ -52,6 +52,26 @@
     justify-content: center;
   }
   .icon-btn:hover { border-color: var(--text); color: var(--text); }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .auth-area { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+  .google-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .google-btn:hover { border-color: var(--text); }
+  .user-chip { display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; }
+  .user-name { font-size: 0.82rem; font-weight: 600; color: var(--text); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .saved-views-empty .desc { margin: 0; }
   header {
     display: flex;
     justify-content: space-between;
@@ -230,7 +250,10 @@
       <span class="brand-mark"></span>
       <span>buja-map</span>
     </div>
-    <button class="icon-btn" id="refreshBtn" type="button" title="새로고침">⟳</button>
+    <div class="topbar-actions">
+      <div class="auth-area" id="authArea"></div>
+      <button class="icon-btn" id="refreshBtn" type="button" title="새로고침">⟳</button>
+    </div>
   </div>
 
   <div class="page">
@@ -352,7 +375,75 @@
   <footer id="footerNote"></footer>
   </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+// 이 config 값들은 클라이언트에 노출되어도 안전합니다. 실제 접근 제어는
+// Firebase Authentication(로그인 여부)과 Firestore 보안 규칙(request.auth.uid)이 담당합니다.
+const firebaseConfig = {
+  apiKey: "AIzaSyAfI9UjxW2GiZWNQrHvrRj0SmMSkNeONbA",
+  authDomain: "buja-map-b52eb.firebaseapp.com",
+  projectId: "buja-map-b52eb",
+  storageBucket: "buja-map-b52eb.firebasestorage.app",
+  messagingSenderId: "482597136779",
+  appId: "1:482597136779:web:06f39e7998a1ece0c6a78e",
+  measurementId: "G-2MQEZQG9M0",
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const googleProvider = new GoogleAuthProvider();
+
+let currentUser = null;
+// main()이 data.json 로딩을 마친 뒤(또는 로그인 상태가 먼저 확정된 뒤) 저장된 그래프 목록을
+// 다시 그릴 수 있도록 하는 훅. 둘 중 어느 쪽이 먼저 끝나도 항상 최신 상태로 렌더링되도록 함.
+let onAuthChangedHook = null;
+
+function renderAuthArea() {
+  const el = document.getElementById("authArea");
+  if (currentUser) {
+    el.innerHTML = `
+      <span class="user-chip">
+        ${currentUser.photoURL ? `<img class="user-avatar" src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer">` : ""}
+        <span class="user-name">${currentUser.displayName || currentUser.email || ""}</span>
+      </span>
+      <button class="icon-btn" id="signOutBtn" type="button" title="로그아웃">⎋</button>
+    `;
+    document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
+  } else {
+    el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button>`;
+    document.getElementById("signInBtn").addEventListener("click", () => {
+      signInWithPopup(auth, googleProvider).catch((err) => {
+        console.error("로그인 실패:", err);
+        alert("로그인에 실패했습니다: " + err.message);
+      });
+    });
+  }
+}
+renderAuthArea();
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  renderAuthArea();
+  if (onAuthChangedHook) await onAuthChangedHook();
+});
+
 const fmtPct = (v) => (v == null || isNaN(v) ? "–" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
 const fmtNum = (v, d = 2) => (v == null || isNaN(v) ? "–" : v.toLocaleString("en-US", { maximumFractionDigits: d }));
 
@@ -938,24 +1029,42 @@ async function main() {
   }
   setupBulkActions();
 
-  // ---- 저장된 그래프 (기간·지표·상관계수 선택을 localStorage에 저장해 재방문 시에도 유지) ----
-  const SAVED_VIEWS_KEY = "buja-map-saved-views";
+  // ---- 저장된 그래프 (기간·지표·상관계수 선택을 사용자별 Firestore 문서에 저장) ----
+  // savedViews/{uid}/views/{viewId} 구조. Firestore 보안 규칙으로 본인 uid만 읽고 쓸 수 있도록 제한.
   const PERIOD_LABELS = { "1w": "1주일", "1m": "1개월", "6m": "6개월", "1y": "1년", "5y": "5년", "10y": "10년", "20y": "20년" };
 
-  function loadSavedViews() {
-    try {
-      const raw = localStorage.getItem(SAVED_VIEWS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      return [];
-    }
+  function savedViewsCollection(uid) {
+    return collection(db, "savedViews", uid, "views");
   }
 
-  function persistSavedViews(views) {
+  async function loadSavedViews() {
+    if (!currentUser) return [];
+    const snap = await getDocs(savedViewsCollection(currentUser.uid));
+    return snap.docs.map((d) => d.data());
+  }
+
+  async function persistNewView(view) {
+    await setDoc(doc(savedViewsCollection(currentUser.uid), view.id), view);
+  }
+
+  async function deleteSavedView(viewId) {
+    await deleteDoc(doc(savedViewsCollection(currentUser.uid), viewId));
+  }
+
+  async function refreshSavedViewsUI() {
+    const container = document.getElementById("savedViews");
+    container.innerHTML = "";
+    if (!currentUser) {
+      container.innerHTML = `<div class="panel saved-views-empty"><p class="desc">Google 계정으로 로그인하면 나만의 저장된 그래프를 조회하고 저장할 수 있습니다.</p></div>`;
+      return;
+    }
     try {
-      localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(views));
+      const views = await loadSavedViews();
+      views.sort((a, b) => (a.savedAt || "").localeCompare(b.savedAt || ""));
+      views.forEach(renderSavedViewPanel);
     } catch (e) {
-      console.error("저장된 그래프를 localStorage에 쓰지 못했습니다:", e);
+      console.error("저장된 그래프를 불러오지 못했습니다:", e);
+      container.innerHTML = `<div class="panel saved-views-empty"><p class="desc">저장된 그래프를 불러오는 중 오류가 발생했습니다.</p></div>`;
     }
   }
 
@@ -1030,13 +1139,22 @@ async function main() {
       },
     });
 
-    panel.querySelector(".delete-btn").addEventListener("click", () => {
-      persistSavedViews(loadSavedViews().filter((v) => v.id !== view.id));
-      panel.remove();
+    panel.querySelector(".delete-btn").addEventListener("click", async () => {
+      try {
+        await deleteSavedView(view.id);
+        panel.remove();
+      } catch (e) {
+        console.error("저장된 그래프를 삭제하지 못했습니다:", e);
+        alert("삭제에 실패했습니다. 다시 로그인 후 시도해 주세요.");
+      }
     });
   }
 
-  function saveCurrentView() {
+  async function saveCurrentView() {
+    if (!currentUser) {
+      alert("저장하려면 먼저 오른쪽 위에서 Google 계정으로 로그인하세요.");
+      return;
+    }
     const view = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       periodKey: activePeriodKey,
@@ -1044,14 +1162,18 @@ async function main() {
       corrChecked: [...corrChecked],
       savedAt: new Date().toISOString(),
     };
-    const views = loadSavedViews();
-    views.push(view);
-    persistSavedViews(views);
-    renderSavedViewPanel(view);
+    try {
+      await persistNewView(view);
+      renderSavedViewPanel(view);
+    } catch (e) {
+      console.error("저장된 그래프를 저장하지 못했습니다:", e);
+      alert("저장에 실패했습니다. 다시 로그인 후 시도해 주세요.");
+    }
   }
 
   document.getElementById("saveViewBtn").addEventListener("click", saveCurrentView);
-  loadSavedViews().forEach(renderSavedViewPanel);
+  onAuthChangedHook = refreshSavedViewsUI;
+  await refreshSavedViewsUI();
 
   document.getElementById("footerNote").innerHTML = `
     데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = KB부동산 데이터허브(data-api.kbland.kr 주택가격동향조사, 월간, 계단식 표시) · 서울 주택 인허가실적 = 한국은행 ECOS(901Y105, 아파트 전용 통계가 없어 단독·연립·다세대 등 서울 전체 주택 유형 합계, 연간 합산, 계단식 표시)<br/>
