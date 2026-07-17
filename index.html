@@ -6,6 +6,7 @@
 <title>buja-map · 자산관리 대시보드</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     color-scheme: light;
@@ -152,6 +153,9 @@
   .save-btn:hover { opacity: 0.88; }
   .delete-btn { background: var(--panel); color: var(--bad); border-color: var(--panel-border); }
   .delete-btn:hover { background: var(--bad-bg); border-color: var(--bad); }
+  .export-btn { background: var(--panel); color: var(--muted); border-color: var(--panel-border); }
+  .export-btn:hover { border-color: var(--text); color: var(--text); }
+  .saved-view-actions { display: flex; gap: 8px; flex-shrink: 0; }
   .saved-view-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
   .saved-view-header .desc { margin: 6px 0 0; }
   .saved-view-meta { display: flex; flex-direction: column; gap: 6px; }
@@ -1105,7 +1109,10 @@ async function main() {
           </div>
           <p class="desc">상관계수 비교 대상: ${corrText} · 저장 시각: ${new Date(view.savedAt).toLocaleString("ko-KR")}</p>
         </div>
-        <button class="delete-btn" type="button">삭제</button>
+        <div class="saved-view-actions">
+          <button class="export-btn" type="button">엑셀로 저장</button>
+          <button class="delete-btn" type="button">삭제</button>
+        </div>
       </div>
       <div class="chart-wrap"><canvas></canvas></div>
     `;
@@ -1148,6 +1155,31 @@ async function main() {
         alert("삭제에 실패했습니다. 다시 로그인 후 시도해 주세요.");
       }
     });
+
+    panel.querySelector(".export-btn").addEventListener("click", () => {
+      exportViewToExcel(view, datasets);
+    });
+  }
+
+  // 저장된 그래프 하나를 시리즈별 시트로 나눈 .xlsx 파일로 내보냄 (시리즈마다 발표 주기가
+  // 달라 날짜를 억지로 맞추기보다 실제 데이터 포인트를 그대로 시트에 담는 방식을 택함).
+  function exportViewToExcel(view, datasets) {
+    const wb = XLSX.utils.book_new();
+    const usedNames = new Set();
+    datasets.forEach((ds) => {
+      const rows = ds.data.map((d) => ({ 날짜: d.x, 값: d.y }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      let base = ds.label.replace(/[\\/?*[\]:]/g, "").slice(0, 31) || "Sheet";
+      let name = base;
+      let i = 2;
+      while (usedNames.has(name)) {
+        name = `${base.slice(0, 28)}(${i++})`;
+      }
+      usedNames.add(name);
+      XLSX.utils.book_append_sheet(wb, ws, name);
+    });
+    const filename = `buja-map_${PERIOD_LABELS[view.periodKey] || view.periodKey}_${view.savedAt.slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
   }
 
   async function saveCurrentView() {
