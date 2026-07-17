@@ -211,6 +211,19 @@
   .corr-check { width: 14px; height: 14px; accent-color: var(--accent-nasdaq); cursor: pointer; }
   .corr-check:disabled { cursor: not-allowed; opacity: 0.35; }
   .corr-status { font-size: 0.78rem; color: var(--muted); margin: -2px 0 12px; }
+  .chart-with-rank { display: flex; gap: 16px; align-items: stretch; }
+  .chart-with-rank .chart-wrap { flex: 1 1 auto; min-width: 0; }
+  .corr-rank-wrap { flex: 0 0 220px; display: flex; flex-direction: column; }
+  .corr-rank-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .corr-rank-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .corr-rank-table th, .corr-rank-table td { padding: 7px 8px; border-bottom: 1px solid var(--panel-border); text-align: right; }
+  .corr-rank-table th:first-child, .corr-rank-table td:first-child { text-align: left; }
+  .corr-rank-table thead th { color: var(--muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--panel-border); }
+  .corr-rank-table .corr-rank-empty { text-align: center; color: var(--muted); padding: 16px 4px; }
+  @media (max-width: 720px) {
+    .chart-with-rank { flex-direction: column; }
+    .corr-rank-wrap { flex: 0 0 auto; }
+  }
   .toggle-btn {
     background: var(--panel);
     border: 1px solid var(--panel-border);
@@ -371,7 +384,18 @@
 
     <div class="corr-status" id="corrStatus"></div>
 
-    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+    <div class="chart-with-rank">
+      <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+      <div class="corr-rank-wrap">
+        <div class="corr-rank-title">기간별 상관계수 순위</div>
+        <table class="corr-rank-table">
+          <thead>
+            <tr><th>기간</th><th>상관계수</th><th>순위</th></tr>
+          </thead>
+          <tbody id="corrRankTableBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <div id="savedViews"></div>
@@ -682,7 +706,7 @@ async function main() {
 
   // ---- 정규화 지수 차트 ----
   const lastDate = nasdaq[nasdaq.length - 1].date;
-  const PERIOD_DAYS = { "1w": 7, "1m": 30, "6m": 182, "1y": 365, "5y": 1826, "10y": 3652, "20y": 7305 };
+  const PERIOD_DAYS = { "1w": 7, "1m": 30, "3m": 91, "6m": 182, "1y": 365, "5y": 1826, "10y": 3652, "20y": 7305 };
 
   function periodStartDate(periodKey) {
     const days = PERIOD_DAYS[periodKey];
@@ -969,6 +993,58 @@ async function main() {
     return s ? s.shortLabel || s.label : key;
   }
 
+  // ---- 선택한 두 지표의 기간별(1주일/1개월/3개월/1년) 상관계수 순위표 ----
+  const RANK_PERIODS = ["1w", "1m", "3m", "1y"];
+  const RANK_PERIOD_LABELS = { "1w": "1주일", "1m": "1개월", "3m": "3개월", "1y": "1년" };
+
+  // 롤링(구간별) 상관계수가 아니라, 해당 기간 전체를 하나의 표본으로 삼아 계산한 단일 상관계수.
+  function overallCorrelationForPeriod(keyA, keyB, periodKey) {
+    const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === keyA);
+    const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === keyB);
+    if (!sA || !sB) return null;
+
+    const rangeStart = periodStartDate(periodKey);
+    const dataA = sA.data.filter((d) => d.date >= rangeStart);
+    const dataB = sB.data.filter((d) => d.date >= rangeStart);
+    if (dataA.length < 4 || dataB.length < 4) return null;
+
+    const [sparse, sparseData, dense, denseData] =
+      dataA.length <= dataB.length ? [sA, dataA, sB, dataB] : [sB, dataB, sA, dataA];
+    const { a, b } = alignedReturnPairs(sparseData, sparse.valueKey, denseData, dense.valueKey);
+    if (a.length < 3) return null;
+    return pearson(a.map((d) => d.ret), b.map((d) => d.ret));
+  }
+
+  function renderCorrRankTable() {
+    const tbody = document.getElementById("corrRankTableBody");
+    if (corrChecked.length !== 2) {
+      tbody.innerHTML = `<tr><td colspan="3" class="corr-rank-empty">지표를 2개 체크하면<br/>기간별 상관계수를 표시합니다.</td></tr>`;
+      return;
+    }
+    const [keyA, keyB] = corrChecked;
+    const results = RANK_PERIODS.map((periodKey) => ({
+      periodKey,
+      corr: overallCorrelationForPeriod(keyA, keyB, periodKey),
+    }));
+    const ranked = results
+      .filter((r) => r.corr != null)
+      .slice()
+      .sort((a, b) => Math.abs(b.corr) - Math.abs(a.corr));
+    const rankByPeriod = new Map(ranked.map((r, i) => [r.periodKey, i + 1]));
+
+    tbody.innerHTML = results
+      .map((r) => {
+        const rank = rankByPeriod.get(r.periodKey);
+        return `
+        <tr>
+          <td>${RANK_PERIOD_LABELS[r.periodKey]}</td>
+          <td>${r.corr == null ? "–" : r.corr.toFixed(3)}</td>
+          <td>${rank ? rank + "위" : "–"}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   function refreshCorrCheckboxesDisabled() {
     const atMax = corrChecked.length >= 2;
     document.querySelectorAll(".corr-check").forEach((cb) => {
@@ -998,10 +1074,12 @@ async function main() {
         refreshCorrCheckboxesDisabled();
         refreshCorrStatus();
         renderMainChartWithCurrentState();
+        renderCorrRankTable();
       });
     });
     refreshCorrCheckboxesDisabled();
     refreshCorrStatus();
+    renderCorrRankTable();
   }
   setupCorrCheckboxes();
 
@@ -1047,6 +1125,7 @@ async function main() {
             corrChecked = corrChecked.filter((k) => !groupKeys.includes(k));
             refreshCorrCheckboxesDisabled();
             refreshCorrStatus();
+            renderCorrRankTable();
           }
         }
 
