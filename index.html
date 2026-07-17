@@ -213,12 +213,23 @@
   .corr-status { font-size: 0.78rem; color: var(--muted); margin: -2px 0 12px; }
   .chart-with-rank { display: flex; gap: 16px; align-items: stretch; }
   .chart-with-rank .chart-wrap { flex: 1 1 auto; min-width: 0; }
-  .corr-rank-wrap { flex: 0 0 220px; display: flex; flex-direction: column; }
-  .corr-rank-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .corr-rank-wrap { flex: 0 0 220px; display: flex; flex-direction: column; min-height: 0; }
+  .corr-rank-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+  .corr-rank-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
+  .corr-rank-period-select {
+    font-size: 0.72rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 3px 6px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .corr-rank-table-scroll { overflow-y: auto; flex: 1 1 auto; min-height: 0; max-height: 340px; }
   .corr-rank-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   .corr-rank-table th, .corr-rank-table td { padding: 7px 8px; border-bottom: 1px solid var(--panel-border); text-align: right; }
   .corr-rank-table th:first-child, .corr-rank-table td:first-child { text-align: left; }
-  .corr-rank-table thead th { color: var(--muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--panel-border); }
+  .corr-rank-table thead th { color: var(--muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--panel-border); position: sticky; top: 0; background: var(--panel); }
   .corr-rank-table .corr-rank-empty { text-align: center; color: var(--muted); padding: 16px 4px; }
   @media (max-width: 720px) {
     .chart-with-rank { flex-direction: column; }
@@ -387,13 +398,23 @@
     <div class="chart-with-rank">
       <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
       <div class="corr-rank-wrap">
-        <div class="corr-rank-title">기간별 상관계수 순위</div>
-        <table class="corr-rank-table">
-          <thead>
-            <tr><th>기간</th><th>상관계수</th><th>순위</th></tr>
-          </thead>
-          <tbody id="corrRankTableBody"></tbody>
-        </table>
+        <div class="corr-rank-header">
+          <div class="corr-rank-title">상관계수 순위</div>
+          <select class="corr-rank-period-select" id="corrRankPeriodSelect" title="아래 표를 나눌 기간 단위">
+            <option value="1w">1주일</option>
+            <option value="1m">1개월</option>
+            <option value="3m">3개월</option>
+            <option value="1y" selected>1년</option>
+          </select>
+        </div>
+        <div class="corr-rank-table-scroll">
+          <table class="corr-rank-table">
+            <thead>
+              <tr><th>기간</th><th>상관계수</th><th>순위</th></tr>
+            </thead>
+            <tbody id="corrRankTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -707,6 +728,7 @@ async function main() {
   // ---- 정규화 지수 차트 ----
   const lastDate = nasdaq[nasdaq.length - 1].date;
   const PERIOD_DAYS = { "1w": 7, "1m": 30, "3m": 91, "6m": 182, "1y": 365, "5y": 1826, "10y": 3652, "20y": 7305 };
+  const CORR_RANK_MAX_BUCKETS = 60; // 상관계수 순위표가 지나치게 길어지는 것을 막는 안전 상한(예: 20년÷1주일)
 
   function periodStartDate(periodKey) {
     const days = PERIOD_DAYS[periodKey];
@@ -730,6 +752,7 @@ async function main() {
     baseDateOverride = null;
     document.getElementById("rebaseNote").hidden = true;
     renderMainChartWithCurrentState();
+    renderCorrRankTable();
   }
 
   // 토글 버튼(data-series)과 매칭되는 key로 각 시리즈를 정의.
@@ -771,6 +794,7 @@ async function main() {
     ...MONTHLY_SERIES.map((s) => ({ ...s, valueKey: "value" })),
   ];
   let corrChecked = ["nasdaq", "spacex"]; // 상관계수를 계산할 두 지표 (최대 2개)
+  let corrRankBucketKey = "1y"; // 오른쪽 상관계수 순위표를 나눌 기간 단위
 
   // 글로벌/한국 그룹별 키 목록. 저장된 그래프 요약 표시에 사용.
   const GLOBAL_KEYS = Array.from(document.querySelectorAll("#globalToggles .toggle-btn")).map((b) => b.dataset.series);
@@ -993,19 +1017,16 @@ async function main() {
     return s ? s.shortLabel || s.label : key;
   }
 
-  // ---- 선택한 두 지표의 기간별(1주일/1개월/3개월/1년) 상관계수 순위표 ----
-  const RANK_PERIODS = ["1w", "1m", "3m", "1y"];
-  const RANK_PERIOD_LABELS = { "1w": "1주일", "1m": "1개월", "3m": "3개월", "1y": "1년" };
-
-  // 롤링(구간별) 상관계수가 아니라, 해당 기간 전체를 하나의 표본으로 삼아 계산한 단일 상관계수.
-  function overallCorrelationForPeriod(keyA, keyB, periodKey) {
+  // ---- 선택한 두 지표를, 정규화 지수 차트의 기간을 상관계수 표에서 고른 단위(1주일/1개월/
+  // 3개월/1년)로 잘게 나눈 구간별 상관계수 순위표. 예: 차트 기간=5년, 표 단위=1년이면
+  // 최근 1년씩 5구간(예: 21년~25년)으로 나눠 구간별 상관계수와 순위를 보여줌.
+  function overallCorrelationForRange(keyA, keyB, rangeStart, rangeEnd) {
     const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === keyA);
     const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === keyB);
     if (!sA || !sB) return null;
 
-    const rangeStart = periodStartDate(periodKey);
-    const dataA = sA.data.filter((d) => d.date >= rangeStart);
-    const dataB = sB.data.filter((d) => d.date >= rangeStart);
+    const dataA = sA.data.filter((d) => d.date >= rangeStart && d.date <= rangeEnd);
+    const dataB = sB.data.filter((d) => d.date >= rangeStart && d.date <= rangeEnd);
     if (dataA.length < 4 || dataB.length < 4) return null;
 
     const [sparse, sparseData, dense, denseData] =
@@ -1015,6 +1036,14 @@ async function main() {
     return pearson(a.map((d) => d.ret), b.map((d) => d.ret));
   }
 
+  function formatBucketLabel(bucketKey, endDateStr) {
+    const [y, m, d] = endDateStr.split("-");
+    const yy = y.slice(2);
+    if (bucketKey === "1y") return `${yy}년`;
+    if (bucketKey === "3m" || bucketKey === "1m") return `${yy}년 ${parseInt(m, 10)}월`;
+    return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
+  }
+
   function renderCorrRankTable() {
     const tbody = document.getElementById("corrRankTableBody");
     if (corrChecked.length !== 2) {
@@ -1022,23 +1051,32 @@ async function main() {
       return;
     }
     const [keyA, keyB] = corrChecked;
-    const results = RANK_PERIODS.map((periodKey) => ({
-      periodKey,
-      corr: overallCorrelationForPeriod(keyA, keyB, periodKey),
-    }));
-    const ranked = results
-      .filter((r) => r.corr != null)
-      .slice()
-      .sort((a, b) => Math.abs(b.corr) - Math.abs(a.corr));
-    const rankByPeriod = new Map(ranked.map((r, i) => [r.periodKey, i + 1]));
+    const bucketDays = PERIOD_DAYS[corrRankBucketKey];
+    const mainDays = PERIOD_DAYS[activePeriodKey];
+    const bucketCount = Math.min(CORR_RANK_MAX_BUCKETS, Math.max(1, Math.round(mainDays / bucketDays)));
 
-    tbody.innerHTML = results
-      .map((r) => {
-        const rank = rankByPeriod.get(r.periodKey);
+    const buckets = [];
+    for (let j = 1; j <= bucketCount; j++) {
+      const endDate = new Date(toDate(lastDate).getTime() - bucketDays * (bucketCount - j) * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      const startDate = new Date(toDate(endDate).getTime() - bucketDays * 86400000).toISOString().slice(0, 10);
+      buckets.push({
+        label: formatBucketLabel(corrRankBucketKey, endDate),
+        corr: overallCorrelationForRange(keyA, keyB, startDate, endDate),
+      });
+    }
+
+    const ranked = buckets.filter((b) => b.corr != null).slice().sort((a, b) => Math.abs(b.corr) - Math.abs(a.corr));
+    const rankOf = new Map(ranked.map((b, i) => [b, i + 1]));
+
+    tbody.innerHTML = buckets
+      .map((b) => {
+        const rank = rankOf.get(b);
         return `
         <tr>
-          <td>${RANK_PERIOD_LABELS[r.periodKey]}</td>
-          <td>${r.corr == null ? "–" : r.corr.toFixed(3)}</td>
+          <td>${b.label}</td>
+          <td>${b.corr == null ? "–" : b.corr.toFixed(3)}</td>
           <td>${rank ? rank + "위" : "–"}</td>
         </tr>`;
       })
@@ -1082,6 +1120,11 @@ async function main() {
     renderCorrRankTable();
   }
   setupCorrCheckboxes();
+
+  document.getElementById("corrRankPeriodSelect").addEventListener("change", (e) => {
+    corrRankBucketKey = e.target.value;
+    renderCorrRankTable();
+  });
 
   // ---- 글로벌/한국 전체 선택·해제 버튼 ----
   function paintToggleButton(btn) {
