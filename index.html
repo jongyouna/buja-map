@@ -413,11 +413,18 @@ const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
+// 저장된 그래프를 사용자의 구글 드라이브에 스프레드시트로 만들기 위한 추가 권한.
+googleProvider.addScope("https://www.googleapis.com/auth/spreadsheets");
 
 let currentUser = null;
 // main()이 data.json 로딩을 마친 뒤(또는 로그인 상태가 먼저 확정된 뒤) 저장된 그래프 목록을
 // 다시 그릴 수 있도록 하는 훅. 둘 중 어느 쪽이 먼저 끝나도 항상 최신 상태로 렌더링되도록 함.
 let onAuthChangedHook = null;
+
+// 구글 스프레드시트 생성용 OAuth 액세스 토큰. Firebase는 페이지 새로고침 시 로그인 세션은
+// 유지하지만 이 토큰은 넘겨주지 않으므로, 새로고침 후 내보내기를 시도하면 재로그인 팝업으로
+// 새 토큰을 받아온다(ensureGoogleAccessToken 참고).
+let googleAccessToken = null;
 
 function renderAuthArea() {
   const el = document.getElementById("authArea");
@@ -433,10 +440,15 @@ function renderAuthArea() {
   } else {
     el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button>`;
     document.getElementById("signInBtn").addEventListener("click", () => {
-      signInWithPopup(auth, googleProvider).catch((err) => {
-        console.error("로그인 실패:", err);
-        alert("로그인에 실패했습니다: " + err.message);
-      });
+      signInWithPopup(auth, googleProvider)
+        .then((result) => {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential) googleAccessToken = credential.accessToken;
+        })
+        .catch((err) => {
+          console.error("로그인 실패:", err);
+          alert("로그인에 실패했습니다: " + err.message);
+        });
     });
   }
 }
@@ -444,9 +456,20 @@ renderAuthArea();
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  if (!user) googleAccessToken = null;
   renderAuthArea();
   if (onAuthChangedHook) await onAuthChangedHook();
 });
+
+// 스프레드시트 생성에 쓸 유효한 액세스 토큰을 반환. 없으면(새로고침 직후 등) 팝업으로 재획득.
+async function ensureGoogleAccessToken() {
+  if (googleAccessToken) return googleAccessToken;
+  const result = await signInWithPopup(auth, googleProvider);
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  if (!credential) throw new Error("구글 인증 정보를 가져오지 못했습니다.");
+  googleAccessToken = credential.accessToken;
+  return googleAccessToken;
+}
 
 const fmtPct = (v) => (v == null || isNaN(v) ? "–" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
 const fmtNum = (v, d = 2) => (v == null || isNaN(v) ? "–" : v.toLocaleString("en-US", { maximumFractionDigits: d }));
@@ -1110,6 +1133,7 @@ async function main() {
           <p class="desc">상관계수 비교 대상: ${corrText} · 저장 시각: ${new Date(view.savedAt).toLocaleString("ko-KR")}</p>
         </div>
         <div class="saved-view-actions">
+          <button class="export-btn sheets-btn" type="button">구글시트로 저장</button>
           <button class="export-btn" type="button">엑셀로 저장</button>
           <button class="delete-btn" type="button">삭제</button>
         </div>
@@ -1156,30 +1180,100 @@ async function main() {
       }
     });
 
-    panel.querySelector(".export-btn").addEventListener("click", () => {
+    panel.querySelector(".export-btn:not(.sheets-btn)").addEventListener("click", () => {
       exportViewToExcel(view, datasets);
+    });
+
+    const sheetsBtn = panel.querySelector(".sheets-btn");
+    sheetsBtn.addEventListener("click", async () => {
+      sheetsBtn.disabled = true;
+      const originalText = sheetsBtn.textContent;
+      sheetsBtn.textContent = "생성 중...";
+      try {
+        await exportViewToGoogleSheets(view, datasets);
+      } finally {
+        sheetsBtn.disabled = false;
+        sheetsBtn.textContent = originalText;
+      }
     });
   }
 
-  // 저장된 그래프 하나를 시리즈별 시트로 나눈 .xlsx 파일로 내보냄 (시리즈마다 발표 주기가
-  // 달라 날짜를 억지로 맞추기보다 실제 데이터 포인트를 그대로 시트에 담는 방식을 택함).
+  // 서로 다른 발표 주기(일/월/연)를 가진 시리즈들을 날짜 합집합 기준 하나의 표로 합침.
+  // 각 시리즈는 실제 데이터가 있는 날짜에만 값을 채우고 나머지는 빈 칸으로 둠(임의 보간 없음).
+  function buildExportRows(datasets) {
+    const valueMaps = datasets.map((ds) => new Map(ds.data.map((d) => [d.x, d.y])));
+    const dateSet = new Set();
+    datasets.forEach((ds) => ds.data.forEach((d) => dateSet.add(d.x)));
+    const dates = Array.from(dateSet).sort();
+    const headers = ["날짜", ...datasets.map((ds) => ds.label)];
+    const rows = dates.map((date) => [date, ...valueMaps.map((m) => (m.has(date) ? m.get(date) : ""))]);
+    return { headers, rows };
+  }
+
+  function exportFileTitle(view) {
+    return `buja-map_${PERIOD_LABELS[view.periodKey] || view.periodKey}_${view.savedAt.slice(0, 10)}`;
+  }
+
+  // 저장된 그래프의 모든 지표를 날짜 기준 하나의 시트로 합쳐 .xlsx로 내보냄.
   function exportViewToExcel(view, datasets) {
+    const { headers, rows } = buildExportRows(datasets);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const wb = XLSX.utils.book_new();
-    const usedNames = new Set();
-    datasets.forEach((ds) => {
-      const rows = ds.data.map((d) => ({ 날짜: d.x, 값: d.y }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      let base = ds.label.replace(/[\\/?*[\]:]/g, "").slice(0, 31) || "Sheet";
-      let name = base;
-      let i = 2;
-      while (usedNames.has(name)) {
-        name = `${base.slice(0, 28)}(${i++})`;
-      }
-      usedNames.add(name);
-      XLSX.utils.book_append_sheet(wb, ws, name);
+    XLSX.utils.book_append_sheet(wb, ws, "데이터");
+    XLSX.writeFile(wb, `${exportFileTitle(view)}.xlsx`);
+  }
+
+  // Google Sheets API로 사용자 본인의 구글 드라이브에 새 스프레드시트를 만들고 데이터를 채운 뒤 엶.
+  async function createGoogleSheet(view, datasets, token) {
+    const { headers, rows } = buildExportRows(datasets);
+    const title = exportFileTitle(view);
+
+    const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ properties: { title }, sheets: [{ properties: { title: "데이터" } }] }),
     });
-    const filename = `buja-map_${PERIOD_LABELS[view.periodKey] || view.periodKey}_${view.savedAt.slice(0, 10)}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    if (!createRes.ok) throw Object.assign(new Error(`스프레드시트 생성 실패 (${createRes.status})`), { status: createRes.status });
+    const created = await createRes.json();
+
+    const updateRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${created.spreadsheetId}/values/${encodeURIComponent("데이터!A1")}?valueInputOption=RAW`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ values: [headers, ...rows] }),
+      }
+    );
+    if (!updateRes.ok) throw Object.assign(new Error(`데이터 입력 실패 (${updateRes.status})`), { status: updateRes.status });
+
+    return created.spreadsheetUrl;
+  }
+
+  async function exportViewToGoogleSheets(view, datasets) {
+    if (!currentUser) {
+      alert("먼저 오른쪽 위에서 Google 계정으로 로그인하세요.");
+      return;
+    }
+    try {
+      const token = await ensureGoogleAccessToken();
+      let url;
+      try {
+        url = await createGoogleSheet(view, datasets, token);
+      } catch (e) {
+        // 토큰 만료(401) 시 한 번만 재로그인 후 재시도
+        if (e.status === 401) {
+          googleAccessToken = null;
+          const freshToken = await ensureGoogleAccessToken();
+          url = await createGoogleSheet(view, datasets, freshToken);
+        } else {
+          throw e;
+        }
+      }
+      window.open(url, "_blank");
+    } catch (e) {
+      console.error("구글 스프레드시트 생성에 실패했습니다:", e);
+      alert("구글 스프레드시트 생성에 실패했습니다: " + e.message);
+    }
   }
 
   async function saveCurrentView() {
