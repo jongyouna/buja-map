@@ -775,15 +775,15 @@ async function main() {
   ];
 
   const seriesEnabled = {
-    nasdaq: true,
-    spacex: true,
-    k200: true,
-    vix: true,
-    m1us: true,
-    m2: true,
+    nasdaq: false,
+    spacex: false,
+    k200: false,
+    vix: false,
+    m1us: false,
+    m2: false,
     m1m2us: false,
     m1kr: true,
-    m2kr: true,
+    m2kr: false,
     m1m2kr: false,
     kbSeoulApt: true,
     seoulSupply: false,
@@ -793,7 +793,7 @@ async function main() {
     ...LINE_SERIES.map((s) => ({ ...s, valueKey: "close" })),
     ...MONTHLY_SERIES.map((s) => ({ ...s, valueKey: "value" })),
   ];
-  let corrChecked = ["nasdaq", "spacex"]; // 상관계수를 계산할 두 지표 (최대 2개)
+  let corrChecked = ["m1kr", "kbSeoulApt"]; // 상관계수를 계산할 두 지표 (최대 2개)
   let corrRankBucketKey = "1y"; // 오른쪽 상관계수 순위표를 나눌 기간 단위
 
   // 글로벌/한국 그룹별 키 목록. 저장된 그래프 요약 표시에 사용.
