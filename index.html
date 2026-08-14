@@ -1530,6 +1530,129 @@ async function main() {
 
 main();
 document.getElementById("refreshBtn").addEventListener("click", () => location.reload());
+
+// ---- 상단 탭 (거시경제 / 네이버 부동산) ----
+// 네이버 탭은 처음 열릴 때 한 번만 데이터를 불러온다.
+let naverLoaded = false;
+document.querySelectorAll("#tabBar .tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll("#tabBar .tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".tab-panel").forEach((p) => {
+      p.hidden = p.id !== `tabPanel-${tab}`;
+    });
+    if (tab === "naver" && !naverLoaded) {
+      naverLoaded = true;
+      initNaverTab();
+    }
+  });
+});
+
+// ---- 네이버 부동산 탭 ----
+// data/naver-land.json은 scripts/fetch-naver-land.js가 매일 GitHub Actions에서 생성한다.
+// (네이버 API는 브라우저에서 직접 호출하면 CORS로 막히므로 빌드 시점에 수집해 정적 파일로 제공)
+async function initNaverTab() {
+  const tbody = document.getElementById("naverTableBody");
+  const updatedEl = document.getElementById("naverUpdatedAt");
+  let payload;
+  try {
+    const res = await fetch("./data/naver-land.json");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    payload = await res.json();
+  } catch (e) {
+    console.error("네이버 부동산 데이터를 불러오지 못했습니다:", e);
+    updatedEl.textContent = "";
+    tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
+    return;
+  }
+
+  const regionSelect = document.getElementById("naverRegionSelect");
+  const tradeSelect = document.getElementById("naverTradeSelect");
+  const regions = payload.regions || [];
+  regionSelect.innerHTML = regions.map((r) => `<option value="${r.cortarNo}">${r.name}</option>`).join("");
+
+  updatedEl.textContent = payload.updatedAt
+    ? `마지막 갱신: ${new Date(payload.updatedAt).toLocaleString("ko-KR")} · 출처: 네이버 부동산`
+    : "출처: 네이버 부동산";
+
+  let sortKey = "count";
+  let sortDir = "desc";
+
+  const fmtManwon = (v) => (v == null ? "–" : v >= 10000 ? `${(v / 10000).toFixed(2)}억` : `${Math.round(v).toLocaleString("ko-KR")}만`);
+
+  function currentRows() {
+    const region = regions.find((r) => r.cortarNo === regionSelect.value);
+    if (!region) return [];
+    return (region.complexes || []).filter((c) => c.tradeType === tradeSelect.value);
+  }
+
+  function renderSummary(rows) {
+    const totalListings = rows.reduce((s, r) => s + r.count, 0);
+    const pyeongPrices = rows.map((r) => r.avgPyeongPrice).filter((v) => v != null);
+    const avgPyeong = pyeongPrices.length ? pyeongPrices.reduce((s, v) => s + v, 0) / pyeongPrices.length : null;
+    const items = [
+      { name: "단지 수", value: `${rows.length.toLocaleString("ko-KR")}곳` },
+      { name: "총 매물 수", value: `${totalListings.toLocaleString("ko-KR")}건` },
+      { name: "평균 평당가", value: avgPyeong == null ? "–" : `${Math.round(avgPyeong).toLocaleString("ko-KR")}만원` },
+    ];
+    document.getElementById("naverSummaryBar").innerHTML = items
+      .map((i) => `<div class="summary-pill"><span class="name">${i.name}</span><span class="chg">${i.value}</span></div>`)
+      .join("");
+  }
+
+  function render() {
+    const rows = currentRows().slice().sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    renderSummary(rows);
+
+    document.querySelectorAll("#naverTable th.sortable").forEach((th) => {
+      th.classList.remove("sorted-asc", "sorted-desc");
+      if (th.dataset.sort === sortKey) th.classList.add(sortDir === "asc" ? "sorted-asc" : "sorted-desc");
+    });
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${r.complexName}</a>` : r.complexName}</td>
+        <td class="num">${r.count.toLocaleString("ko-KR")}</td>
+        <td class="num">${fmtManwon(r.minPrice)}</td>
+        <td class="num">${fmtManwon(r.medianPrice)}</td>
+        <td class="num">${fmtManwon(r.maxPrice)}</td>
+        <td class="num">${r.avgPyeongPrice == null ? "–" : Math.round(r.avgPyeongPrice).toLocaleString("ko-KR")}</td>
+        <td class="num">${r.avgArea == null ? "–" : r.avgArea.toFixed(1) + "㎡"}</td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  document.querySelectorAll("#naverTable th.sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (sortKey === key) {
+        sortDir = sortDir === "asc" ? "desc" : "asc";
+      } else {
+        sortKey = key;
+        sortDir = key === "complexName" ? "asc" : "desc";
+      }
+      render();
+    });
+  });
+  regionSelect.addEventListener("change", render);
+  tradeSelect.addEventListener("change", render);
+  render();
+}
 </script>
 </body>
 </html>
