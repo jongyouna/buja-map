@@ -80,9 +80,22 @@ Get-Service actions.runner.*
 - **Node.js** (LTS) — 워크플로가 `node`를 직접 호출
 - **Git for Windows** — `actions/checkout`과 커밋 단계가 `git`을 사용
 
-> 워크플로는 Windows PowerShell로 실행됩니다. Git for Windows는 `bash.exe`를
-> `C:\Program Files\Git\bin`에 두지만 PATH에는 `cmd` 폴더만 추가하므로,
-> 워크플로에서 `shell: bash`를 쓰면 `bash: command not found`로 실패합니다.
+### 워크플로가 `shell: cmd`를 쓰는 이유
+
+윈도우 러너에서 다른 셸은 각각 아래 문제로 실패합니다(둘 다 실제로 겪은 오류입니다):
+
+| 셸 | 증상 | 원인 |
+| --- | --- | --- |
+| `bash` | `bash: command not found` | Git for Windows가 `bash.exe`를 `C:\Program Files\Git\bin`에 두는데 PATH에는 `cmd` 폴더만 추가됨 |
+| `powershell` | `PSSecurityException` / `UnauthorizedAccess` | 기본 실행 정책이 `Restricted`라 스텝 스크립트(`.ps1`) 실행이 차단됨 |
+
+`cmd`는 실행 정책의 영향을 받지 않고 항상 존재하므로, 러너 PC 설정을 바꾸지 않아도 동작합니다. 나중에 러너를 서비스 계정(`NETWORK SERVICE`)으로 돌려도 같은 이유로 안전합니다.
+
+PowerShell을 굳이 쓰고 싶다면 러너 PC에서 실행 정책을 완화해야 합니다:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
 
 ## 동작 방식
 

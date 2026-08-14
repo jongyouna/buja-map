@@ -31,10 +31,13 @@ jobs:
     runs-on: [self-hosted, naver-scraper]
     defaults:
       run:
-        # 윈도우 러너에는 bash가 PATH에 없다(Git for Windows는 cmd 폴더만 PATH에 넣고
-        # bash.exe는 bin 폴더에 있음). shell: bash로 두면 "bash: command not found"로
-        # 즉시 실패하므로, 항상 존재하는 Windows PowerShell을 사용한다.
-        shell: powershell
+        # 윈도우 러너에서 shell 선택 시 주의점:
+        #  - bash : Git for Windows가 bash.exe를 bin 폴더에 두는데 PATH에는 cmd 폴더만
+        #           들어가므로 "bash: command not found"로 실패한다.
+        #  - powershell : 기본 실행 정책이 Restricted면 스텝 스크립트(.ps1) 실행이
+        #           PSSecurityException(UnauthorizedAccess)로 차단된다.
+        # cmd는 실행 정책의 영향을 받지 않고 항상 존재하므로 cmd를 사용한다.
+        shell: cmd
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,8 +45,10 @@ jobs:
           node-version: "20"
       - name: Install dependencies
         run: |
-          npm install --no-save playwright
-          npx playwright install chromium
+          call npm install --no-save playwright
+          if errorlevel 1 exit /b 1
+          call npx playwright install chromium
+          if errorlevel 1 exit /b 1
       - name: Fetch Naver Land listings
         # 스케줄 실행은 서울 전체, 수동 실행은 선택한 범위(기본 강남구만).
         # 일부 지역만 수집해도 나머지 지역 데이터는 스크립트가 병합해 보존한다.
@@ -51,23 +56,23 @@ jobs:
           NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
         run: node scripts/fetch-naver-land.js
       - name: Commit updated data
-        # PowerShell 5.1은 && / || 연결을 지원하지 않으므로 종료 코드를 직접 확인한다.
-        # git diff --cached --quiet 는 변경이 있을 때 1을 반환한다.
+        # git diff --cached --quiet 는 변경이 있을 때 1을 반환한다(= errorlevel 1).
+        # if 블록 안의 괄호가 커밋 메시지와 얽히지 않도록 goto로 분기한다.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/naver-land.json
           git diff --cached --quiet
-          if ($LASTEXITCODE -ne 0) {
-            git commit -m "chore: 네이버 부동산 매물 갱신 ($env:NAVER_SCOPE)"
-            if ($LASTEXITCODE -ne 0) { exit 1 }
-            git pull --rebase origin main
-            if ($LASTEXITCODE -ne 0) { exit 1 }
-            git push
-            if ($LASTEXITCODE -ne 0) { exit 1 }
-          } else {
-            Write-Host "no changes"
-          }
-          exit 0
+          if errorlevel 1 goto commit
+          echo no changes
+          exit /b 0
+          :commit
+          git commit -m "chore: 네이버 부동산 매물 갱신 - %NAVER_SCOPE%"
+          if errorlevel 1 exit /b 1
+          git pull --rebase origin main
+          if errorlevel 1 exit /b 1
+          git push
+          if errorlevel 1 exit /b 1
+          exit /b 0
         env:
           NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
