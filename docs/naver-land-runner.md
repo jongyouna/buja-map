@@ -52,22 +52,42 @@ Playwright로 진짜 브라우저를 띄워도 막힙니다. **봇 탐지가 아
 > `svc.sh`는 Linux·macOS 전용입니다. Windows에서 `.\svc.cmd start`를 실행하면
 > `CommandNotFoundException`이 납니다. 서비스 등록은 `config.cmd`가 직접 처리합니다.
 
-이미 서비스 없이 등록을 마쳤다면, **관리자 권한 PowerShell**에서 설정을 다시 하며 서비스로 붙입니다:
+이미 `run.cmd`로 돌리고 있다면 아래 순서로 전환합니다.
+
+**① 실행 중인 `run.cmd` 중지** — 해당 창에서 `Ctrl+C`. 서비스와 동시에 뜨면 충돌합니다.
+
+**② 새 등록 토큰 받기** — Settings → Actions → Runners → New self-hosted runner 페이지의 `--token` 값 (약 1시간 후 만료)
+
+**③ 관리자 권한 PowerShell**에서 설정을 다시 하며 서비스로 붙입니다:
 
 ```powershell
 cd C:\Users\<사용자명>\actions-runner
 .\config.cmd --url https://github.com/jongyouna/buja-map --token <새 토큰> --labels naver-scraper --runasservice --replace --unattended
 ```
 
-- `<새 토큰>`: Settings → Actions → Runners → New self-hosted runner 페이지의 토큰 (약 1시간 후 만료)
+- `--labels naver-scraper`: 반드시 포함. 빠지면 작업이 큐에 걸린 채 실행되지 않습니다
 - `--replace`: 같은 이름으로 이미 등록된 러너를 대체
 - `--runasservice`: 서비스로 설치 (기본 계정 `NT AUTHORITY\NETWORK SERVICE`)
 
-서비스 상태는 표준 Windows 명령으로 확인합니다:
+> `config.cmd`는 `.ps1`이 아니라 배치 파일이므로, PowerShell 실행 정책(`Restricted`)의 영향을 받지 않습니다.
+
+**④ 확인**
 
 ```powershell
 Get-Service actions.runner.*
 ```
+
+`Status: Running`이면 정상이고, GitHub Runners 페이지에서도 Idle로 보여야 합니다.
+
+### 서비스 전환 시 주의점
+
+- **PC가 깨어 있어야 합니다.** 서비스로 등록해도 예약 시각에 절전/최대 절전 상태면 실행되지 않습니다. 전원 설정에서 절전을 끄거나 해당 시간에 깨어나도록 설정하세요. 로그인 상태일 필요는 없습니다.
+- **첫 실행은 더 걸립니다.** Playwright는 Chromium을 계정별 프로필(`%LOCALAPPDATA%\ms-playwright`)에 캐시합니다. 서비스 계정은 프로필이 다르므로 약 130MB를 한 번 다시 받습니다.
+- **본인 계정으로 돌리려면** 아래처럼 지정할 수 있습니다(캐시 공유 가능, 대신 비밀번호 필요). 특별한 이유가 없으면 기본값을 권장합니다:
+
+  ```powershell
+  .\config.cmd --url https://github.com/jongyouna/buja-map --token <새 토큰> --labels naver-scraper --runasservice --windowslogonaccount "$env:COMPUTERNAME\<사용자명>" --windowslogonpassword "<비밀번호>" --replace --unattended
+  ```
 
 ## 라벨 확인
 
