@@ -39,11 +39,18 @@ const REAL_ESTATE_TYPES = ["A01"]; // A01=아파트
 const PYEONG_M2 = 3.305785;
 
 const PAGE_SIZE = 20; // 네이버 API가 20 초과 시 400을 반환함
-// 동 하나에 대한 안전 상한. 동 단위로 쪼개 조회하므로 실제로는 대부분 몇 페이지에서 끝난다.
-// (구 단위로 조회하던 시절에는 이 상한에 걸려 모든 구가 500건에서 잘렸다.)
-const MAX_PAGES_PER_QUERY = 50;
+const MAX_PAGES_PER_QUERY = 50; // 타일 하나당 상한(1000건). 넘치면 타일을 4분할해 다시 조회한다.
 const MAX_ATTEMPTS = 3; // 브라우저 세션 자체가 죽는 등 전체 재시도
-const TARGETS_PER_BROWSER_SESSION = 30; // 이 개수(동)마다 브라우저를 새로 띄워 세션을 신선하게 유지
+const TILES_PER_BROWSER_SESSION = 40; // 이 개수(타일)마다 브라우저를 새로 띄워 세션을 신선하게 유지
+
+// 조회 격자 한 칸의 크기(도 단위). 위도 0.008 ≈ 890m, 경도 0.010 ≈ 880m.
+const TILE_LAT = 0.008;
+const TILE_LON = 0.01;
+// 동 중심 좌표만 알고 있으므로 구 경계를 넉넉히 덮도록 여유를 둔다.
+const AREA_MARGIN = { lat: 0.012, lon: 0.015 };
+// 밀집 타일을 4분할하는 최대 깊이. 깊이 5면 한 칸이 약 28m까지 줄어들어,
+// 대단지가 몰린 구역도 상한 안으로 들어온다(깊이 3에서는 누락이 발생했다).
+const MAX_SUBDIVIDE_DEPTH = 5;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = (baseMs) => baseMs + Math.floor(Math.random() * baseMs * 0.5);
@@ -99,13 +106,16 @@ async function subInfoList(page, legalDivisionLevelType, legalDivisionNumber) {
   return json.result || [];
 }
 
-// 수집은 항상 "동" 단위로 한다. 구 하나를 큰 박스로 한 번에 조회하면 두 가지 문제가 생긴다:
-//   1) 매물이 상한(MAX_PAGES_PER_QUERY x PAGE_SIZE)에 걸려 잘린다. 실제로 강남·송파·서초·
-//      마포·성동이 모두 정확히 500건에서 멈춰 있었다.
-//   2) 바운딩 박스는 사각형이라 인접 구까지 걸친다. 성동구 성수동 트리마제가 강남구로,
-//      서초구 단지 59곳이 강남구에도 함께 집계됐다.
-// 동별 좁은 박스로 조회하고 응답의 실제 주소(address.sector)로 한 번 더 거르면 둘 다 풀린다.
-// 주소 필터가 중복 제거 역할도 하므로(매물의 소재 동은 하나뿐) 동 간 중복 걱정도 없다.
+// 수집 대상 구의 하위 동 목록을 받아, 동 이름 -> 구 매핑과 조회할 격자(타일)를 만든다.
+//
+// 왜 동별 박스가 아니라 격자인가:
+// 처음에는 구 하나를 큰 박스로 조회했는데, 상한에 걸려 모든 구가 정확히 500건에서 잘렸고
+// 박스가 인접 구까지 걸쳐 남의 구 매물이 섞였다. 다음으로 동마다 박스를 잡아 주소로 걸렀더니
+// 섞임은 사라졌지만, 이웃 동 매물을 매번 다시 받느라 조회 예산을 낭비했다(신사동은 1000건을
+// 받아 23건만 건짐, 전체 적중률 22%). 결국 동 14곳에 15분이 걸렸고 여전히 잘렸다.
+//
+// 어차피 주소로 구를 판정하므로 박스를 행정구역에 맞출 이유가 없다. 겹치지 않는 격자로
+// 한 번씩만 훑고 받은 매물을 주소로 각 구에 배정하면 중복 조회가 사라진다.
 async function buildTargets(page) {
   let guList = await subInfoList(page, "SI", SEOUL_SI_NUMBER);
   if (SCOPE_CONFIG.onlyGu) {
@@ -113,34 +123,44 @@ async function buildTargets(page) {
     if (guList.length === 0) throw new Error(`범위 ${SCOPE}에 해당하는 구를 찾지 못했습니다.`);
   }
 
-  const targets = [];
+  const dongToGu = new Map(); // 동 이름 -> 구 번호
+  const dongNumbers = new Map(); // "구명|동명" -> 동 번호 (정밀 동 지역에 필요)
+  const coords = [];
   for (const gu of guList) {
     const dongList = await subInfoList(page, "GUN", gu.legalDivisionNumber);
     for (const dong of dongList) {
-      targets.push({
-        guNumber: gu.legalDivisionNumber,
-        guName: gu.legalDivisionName,
-        dongNumber: dong.legalDivisionNumber,
-        dongName: dong.legalDivisionName,
-        coordinates: dong.coordinates,
-      });
+      dongToGu.set(dong.legalDivisionName, gu.legalDivisionNumber);
+      dongNumbers.set(`${gu.legalDivisionName}|${dong.legalDivisionName}`, dong.legalDivisionNumber);
+      if (dong.coordinates) coords.push(dong.coordinates);
     }
     await sleep(jitter(400));
   }
-  if (targets.length === 0) throw new Error("수집 대상 동 목록이 비어 있습니다.");
-  return { guList, targets };
+  if (coords.length === 0) throw new Error("수집 대상 동 목록이 비어 있습니다.");
+
+  return { guList, dongToGu, dongNumbers, tiles: buildTileGrid(coords) };
 }
 
-// 동 하나를 덮는 박스. 주소 필터가 넘친 매물을 걸러주므로 경계를 넉넉히 잡아도 안전하다.
-function boundingBoxFor(coordinates) {
-  const delta = { lat: 0.015, lon: 0.018 };
-  const { xCoordinate, yCoordinate } = coordinates;
-  return {
-    left: xCoordinate - delta.lon,
-    right: xCoordinate + delta.lon,
-    top: yCoordinate + delta.lat,
-    bottom: yCoordinate - delta.lat,
-  };
+// 동 중심 좌표들을 모두 덮는 사각 영역을 겹치지 않는 격자로 나눈다.
+function buildTileGrid(coords) {
+  const xs = coords.map((c) => c.xCoordinate);
+  const ys = coords.map((c) => c.yCoordinate);
+  const left = Math.min(...xs) - AREA_MARGIN.lon;
+  const right = Math.max(...xs) + AREA_MARGIN.lon;
+  const bottom = Math.min(...ys) - AREA_MARGIN.lat;
+  const top = Math.max(...ys) + AREA_MARGIN.lat;
+
+  const tiles = [];
+  for (let y = bottom; y < top; y += TILE_LAT) {
+    for (let x = left; x < right; x += TILE_LON) {
+      tiles.push({
+        left: x,
+        right: Math.min(x + TILE_LON, right),
+        bottom: y,
+        top: Math.min(y + TILE_LAT, top),
+      });
+    }
+  }
+  return tiles;
 }
 
 async function fetchArticlesForRegion(page, boundingBox, tradeType) {
@@ -255,22 +275,36 @@ function aggregateComplexes(articles, tradeType) {
   return complexes;
 }
 
-// 동 하나를 조회하고, 응답 중 실제로 그 동에 속한 매물만 남긴다.
-async function fetchOneDong(page, target) {
-  const boundingBox = boundingBoxFor(target.coordinates);
-  const byTradeType = new Map();
-  for (const tradeType of TRADE_TYPES) {
-    const fetched = await fetchArticlesForRegion(page, boundingBox, tradeType);
-    const kept = fetched.filter((a) => a.address?.sector === target.dongName);
-    byTradeType.set(tradeType, kept);
-    const capHit = fetched.length >= MAX_PAGES_PER_QUERY * PAGE_SIZE;
-    console.log(
-      `    ${target.dongName} ${tradeType}: 조회 ${fetched.length}건 → 동 일치 ${kept.length}건` +
-        (capHit ? "  ※상한 도달(잘렸을 수 있음)" : "")
-    );
-    await sleep(jitter(1000));
+// 타일 하나를 조회한다. 상한에 걸리면 매물이 빽빽하다는 뜻이므로 4분할해 다시 조회한다.
+// 분할된 타일끼리는 겹치지 않으므로 같은 매물이 두 번 잡히지 않는다.
+async function fetchTile(page, tile, tradeType, depth, stats) {
+  const fetched = await fetchArticlesForRegion(page, tile, tradeType);
+  stats.queries++;
+  stats.fetched += fetched.length;
+
+  const capHit = fetched.length >= MAX_PAGES_PER_QUERY * PAGE_SIZE;
+  if (!capHit) return fetched;
+  if (depth >= MAX_SUBDIVIDE_DEPTH) {
+    stats.truncated++;
+    console.log(`      ※ 최대 분할 깊이에서도 상한 도달 - 일부 누락 가능`);
+    return fetched;
   }
-  return byTradeType;
+
+  stats.subdivided++;
+  const midX = (tile.left + tile.right) / 2;
+  const midY = (tile.bottom + tile.top) / 2;
+  const quads = [
+    { left: tile.left, right: midX, bottom: tile.bottom, top: midY },
+    { left: midX, right: tile.right, bottom: tile.bottom, top: midY },
+    { left: tile.left, right: midX, bottom: midY, top: tile.top },
+    { left: midX, right: tile.right, bottom: midY, top: tile.top },
+  ];
+  const out = [];
+  for (const quad of quads) {
+    await sleep(jitter(700));
+    out.push(...(await fetchTile(page, quad, tradeType, depth + 1, stats)));
+  }
+  return out;
 }
 
 async function fetchAllRegions() {
@@ -280,20 +314,25 @@ async function fetchAllRegions() {
   const byGu = new Map();
   // 정밀 동(흑석동 등)은 별도 지역으로도 남기기 위해 따로 보관
   const spotlightArticles = new Map();
+  const stats = { queries: 0, fetched: 0, kept: 0, subdivided: 0, truncated: 0 };
 
   try {
     session = await newStealthPage(browser);
-    const { guList, targets } = await buildTargets(session.page);
-    console.log(`대상 ${guList.length}개 구 / ${targets.length}개 동 (범위: ${SCOPE_CONFIG.label})`);
+    const { guList, dongToGu, dongNumbers, tiles } = await buildTargets(session.page);
+    console.log(`대상 ${guList.length}개 구 / 조회 타일 ${tiles.length}개 (범위: ${SCOPE_CONFIG.label})`);
 
     for (const gu of guList) {
       byGu.set(gu.legalDivisionNumber, { gu, articles: new Map() });
     }
+    const spotlightKeys = new Set(
+      (SCOPE_CONFIG.includeSpotlightDongs ? SPOTLIGHT_DONGS : []).map((s) => `${s.gu}|${s.dong}`)
+    );
+    const guNameByNumber = new Map(guList.map((g) => [g.legalDivisionNumber, g.legalDivisionName]));
 
-    for (let i = 0; i < targets.length; i++) {
-      const target = targets[i];
+    for (let i = 0; i < tiles.length; i++) {
+      const tile = tiles[i];
 
-      if (i > 0 && i % TARGETS_PER_BROWSER_SESSION === 0) {
+      if (i > 0 && i % TILES_PER_BROWSER_SESSION === 0) {
         console.log("브라우저 세션 갱신...");
         await session.context.close();
         await browser.close();
@@ -301,30 +340,56 @@ async function fetchAllRegions() {
         session = await newStealthPage(browser);
       }
 
-      console.log(`[${i + 1}/${targets.length}] ${target.guName} ${target.dongName}`);
       try {
-        const byTradeType = await fetchOneDong(session.page, target);
-        const bucket = byGu.get(target.guNumber);
-        for (const [tradeType, articles] of byTradeType) {
-          if (!bucket.articles.has(tradeType)) bucket.articles.set(tradeType, []);
-          bucket.articles.get(tradeType).push(...articles);
+        for (const tradeType of TRADE_TYPES) {
+          const articles = await fetchTile(session.page, tile, tradeType, 0, stats);
+          let kept = 0;
+          for (const a of articles) {
+            const sector = a.address?.sector;
+            const guNumber = sector ? dongToGu.get(sector) : null;
+            if (!guNumber) continue; // 수집 대상 밖의 지역
+            kept++;
 
-          const isSpotlight = SCOPE_CONFIG.includeSpotlightDongs &&
-            SPOTLIGHT_DONGS.some((s) => s.gu === target.guName && s.dong === target.dongName);
-          if (isSpotlight) {
-            const key = `${target.guName}|${target.dongName}`;
-            if (!spotlightArticles.has(key)) spotlightArticles.set(key, { target, byTradeType: new Map() });
-            spotlightArticles.get(key).byTradeType.set(tradeType, articles);
+            const bucket = byGu.get(guNumber);
+            if (!bucket.articles.has(tradeType)) bucket.articles.set(tradeType, []);
+            bucket.articles.get(tradeType).push(a);
+
+            const spotKey = `${guNameByNumber.get(guNumber)}|${sector}`;
+            if (spotlightKeys.has(spotKey)) {
+              if (!spotlightArticles.has(spotKey)) {
+                spotlightArticles.set(spotKey, {
+                  guName: guNameByNumber.get(guNumber),
+                  dongName: sector,
+                  dongNumber: dongNumbers.get(spotKey),
+                  byTradeType: new Map(),
+                });
+              }
+              const spot = spotlightArticles.get(spotKey);
+              if (!spot.byTradeType.has(tradeType)) spot.byTradeType.set(tradeType, []);
+              spot.byTradeType.get(tradeType).push(a);
+            }
           }
+          stats.kept += kept;
+          if (articles.length > 0) {
+            console.log(`[${i + 1}/${tiles.length}] ${tradeType}: 조회 ${articles.length}건 → 대상 ${kept}건`);
+          }
+          await sleep(jitter(700));
         }
       } catch (err) {
-        console.log(`  오류(건너뜀): ${err.message}`);
+        console.log(`[${i + 1}/${tiles.length}] 오류(건너뜀): ${err.message}`);
       }
     }
   } finally {
     if (session) await session.context.close().catch(() => {});
     await browser.close().catch(() => {});
   }
+
+  const hitRate = stats.fetched ? Math.round((stats.kept / stats.fetched) * 100) : 0;
+  console.log(
+    `[수집 요약] 조회 ${stats.queries}회 / 받은 매물 ${stats.fetched}건 / 대상 ${stats.kept}건 (적중률 ${hitRate}%)` +
+      ` / 타일 분할 ${stats.subdivided}회` +
+      (stats.truncated ? ` / 최대 깊이 상한 도달 ${stats.truncated}회 ※일부 누락 가능` : "")
+  );
 
   // 구 단위 지역: 그 구의 모든 동에서 모은 매물을 한 번에 집계
   const results = [];
@@ -349,16 +414,16 @@ async function fetchAllRegions() {
   }
 
   // 정밀 동 지역(구 집계와 별개로 동 단위 행도 제공)
-  for (const { target, byTradeType } of spotlightArticles.values()) {
+  for (const spot of spotlightArticles.values()) {
     const complexes = [];
-    for (const [tradeType, list] of byTradeType) complexes.push(...aggregateComplexes(list, tradeType));
+    for (const [tradeType, list] of spot.byTradeType) complexes.push(...aggregateComplexes(list, tradeType));
     if (complexes.length === 0) continue;
     results.push({
-      cortarNo: target.dongNumber,
-      name: `서울 ${target.guName} ${target.dongName}`,
+      cortarNo: spot.dongNumber,
+      name: `서울 ${spot.guName} ${spot.dongName}`,
       si: "서울",
-      gugun: target.guName,
-      dong: target.dongName,
+      gugun: spot.guName,
+      dong: spot.dongName,
       updatedAt: new Date().toISOString(),
       complexes,
     });
