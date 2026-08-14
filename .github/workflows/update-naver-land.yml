@@ -31,8 +31,10 @@ jobs:
     runs-on: [self-hosted, naver-scraper]
     defaults:
       run:
-        # 윈도우 러너에서도 아래 git 스크립트가 그대로 동작하도록 Git Bash 사용
-        shell: bash
+        # 윈도우 러너에는 bash가 PATH에 없다(Git for Windows는 cmd 폴더만 PATH에 넣고
+        # bash.exe는 bin 폴더에 있음). shell: bash로 두면 "bash: command not found"로
+        # 즉시 실패하므로, 항상 존재하는 Windows PowerShell을 사용한다.
+        shell: powershell
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,12 +51,23 @@ jobs:
           NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
         run: node scripts/fetch-naver-land.js
       - name: Commit updated data
+        # PowerShell 5.1은 && / || 연결을 지원하지 않으므로 종료 코드를 직접 확인한다.
+        # git diff --cached --quiet 는 변경이 있을 때 1을 반환한다.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/naver-land.json
-          git diff --cached --quiet && echo "no changes" || git commit -m "chore: 네이버 부동산 매물 갱신 (${NAVER_SCOPE})"
-          git pull --rebase origin main
-          git push
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: 네이버 부동산 매물 갱신 ($env:NAVER_SCOPE)"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+            git pull --rebase origin main
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+            git push
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          } else {
+            Write-Host "no changes"
+          }
+          exit 0
         env:
           NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}

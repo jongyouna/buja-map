@@ -78,7 +78,11 @@ Get-Service actions.runner.*
 러너 PC에 아래가 설치돼 있어야 합니다:
 
 - **Node.js** (LTS) — 워크플로가 `node`를 직접 호출
-- **Git for Windows** — 워크플로가 `shell: bash`(Git Bash)를 사용
+- **Git for Windows** — `actions/checkout`과 커밋 단계가 `git`을 사용
+
+> 워크플로는 Windows PowerShell로 실행됩니다. Git for Windows는 `bash.exe`를
+> `C:\Program Files\Git\bin`에 두지만 PATH에는 `cmd` 폴더만 추가하므로,
+> 워크플로에서 `shell: bash`를 쓰면 `bash: command not found`로 실패합니다.
 
 ## 동작 방식
 
