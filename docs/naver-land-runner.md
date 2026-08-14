@@ -34,22 +34,44 @@ Playwright로 진짜 브라우저를 띄워도 막힙니다. **봇 탐지가 아
    - **`Enter any additional labels` → `naver-scraper` 입력** ← 워크플로가 이 라벨로 러너를 찾습니다
    - `Enter name of work folder` → 그냥 Enter
 
-## 서비스로 등록 (PC 켜져 있으면 자동 실행)
+## 실행 방법 두 가지
 
-`config.cmd` 실행 중 `Would you like to run the runner as service?` 질문에 `Y`로 답하면 바로 서비스로 등록됩니다.
-
-이미 `N`으로 넘어갔다면, **관리자 권한 PowerShell**에서 러너 폴더로 이동해 아래를 실행합니다:
+### 1) 창 띄워놓고 실행 (권한 불필요, 테스트용)
 
 ```powershell
-.\svc.cmd install
-.\svc.cmd start
+.\run.cmd
 ```
 
-(`svc.sh`는 Linux·macOS용입니다. Windows에서는 `svc.cmd`를 씁니다.)
+이 창이 열려 있는 동안에만 작업을 받습니다. 창을 닫거나 재부팅하면 멈춥니다.
 
-상태 확인과 중지는 각각 `.\svc.cmd status`, `.\svc.cmd stop` 입니다.
+### 2) 서비스로 등록 (PC가 켜져 있으면 자동 실행)
 
-서비스로 등록하면 로그인하지 않아도 백그라운드에서 돌고, PC 재부팅 후에도 자동으로 뜹니다. 등록하지 않으면 `.\run.cmd`를 실행해둔 창이 열려 있는 동안에만 작업을 받습니다.
+`config.cmd` 실행 중 `Would you like to run the runner as service?`에 `Y`로 답하면 등록됩니다. 단, **관리자 권한 PowerShell이 아니면** `Needs Administrator privileges for configuring runner as windows service.`로 실패합니다.
+
+> **주의: Windows 러너 패키지에는 `svc.cmd`/`svc.sh`가 없습니다.**
+> `svc.sh`는 Linux·macOS 전용입니다. Windows에서 `.\svc.cmd start`를 실행하면
+> `CommandNotFoundException`이 납니다. 서비스 등록은 `config.cmd`가 직접 처리합니다.
+
+이미 서비스 없이 등록을 마쳤다면, **관리자 권한 PowerShell**에서 설정을 다시 하며 서비스로 붙입니다:
+
+```powershell
+cd C:\Users\<사용자명>\actions-runner
+.\config.cmd --url https://github.com/jongyouna/buja-map --token <새 토큰> --labels naver-scraper --runasservice --replace --unattended
+```
+
+- `<새 토큰>`: Settings → Actions → Runners → New self-hosted runner 페이지의 토큰 (약 1시간 후 만료)
+- `--replace`: 같은 이름으로 이미 등록된 러너를 대체
+- `--runasservice`: 서비스로 설치 (기본 계정 `NT AUTHORITY\NETWORK SERVICE`)
+
+서비스 상태는 표준 Windows 명령으로 확인합니다:
+
+```powershell
+Get-Service actions.runner.*
+```
+
+## 라벨 확인
+
+워크플로는 `naver-scraper` 라벨로 러너를 찾습니다. 설정 중 `Enter any additional labels` 단계를 그냥 넘겼다면, Settings → Actions → Runners에서 해당 러너를 클릭해 라벨을 추가하면 됩니다. **라벨이 없으면 작업이 큐에 걸린 채 실행되지 않습니다.**
 
 ## 사전 요구사항
 
