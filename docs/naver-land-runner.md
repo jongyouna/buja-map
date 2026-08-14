@@ -18,9 +18,16 @@ Playwright로 진짜 브라우저를 띄워도 막힙니다. **봇 탐지가 아
 
 ## 러너 설치
 
+> **주의: 이 단계는 반드시 PowerShell에서 실행합니다. Git Bash가 아닙니다.**
+> GitHub가 안내하는 `Invoke-WebRequest`, `Add-Type` 등은 PowerShell 전용 명령이라
+> Git Bash에 붙여넣으면 `bash: Invoke-WebRequest: command not found`가 납니다.
+> (뒤에 나오는 "로컬에서 직접 돌리기"의 node/git 명령은 Git Bash로 하셔도 됩니다.)
+
 1. GitHub 저장소 → **Settings → Actions → Runners → New self-hosted runner**
 2. **Windows / x64** 선택
-3. 화면에 나오는 명령을 PowerShell에서 그대로 실행 (`config.cmd`까지)
+3. 화면에 나오는 명령을 **PowerShell**에서 그대로 실행 (`config.cmd`까지).
+   `--token` 값은 그 페이지에 표시된 것을 써야 하며 약 1시간 후 만료되므로,
+   시간이 지났으면 페이지를 새로고침해 새 토큰을 받습니다.
 4. 설정 중 질문에 이렇게 답합니다:
    - `Enter the name of the runner group` → 그냥 Enter
    - `Enter the name of runner` → 그냥 Enter (기본값)
@@ -29,20 +36,20 @@ Playwright로 진짜 브라우저를 띄워도 막힙니다. **봇 탐지가 아
 
 ## 서비스로 등록 (PC 켜져 있으면 자동 실행)
 
-관리자 권한 PowerShell에서 러너 폴더로 이동한 뒤:
+`config.cmd` 실행 중 `Would you like to run the runner as service?` 질문에 `Y`로 답하면 바로 서비스로 등록됩니다.
+
+이미 `N`으로 넘어갔다면, **관리자 권한 PowerShell**에서 러너 폴더로 이동해 아래를 실행합니다:
 
 ```powershell
-./svc.sh install
-./svc.sh start
+.\svc.cmd install
+.\svc.cmd start
 ```
 
-Windows에서는 아래를 사용합니다:
+(`svc.sh`는 Linux·macOS용입니다. Windows에서는 `svc.cmd`를 씁니다.)
 
-```powershell
-./config.cmd --runasservice
-```
+상태 확인과 중지는 각각 `.\svc.cmd status`, `.\svc.cmd stop` 입니다.
 
-서비스로 등록하면 로그인하지 않아도 백그라운드에서 돌고, PC 재부팅 후에도 자동으로 뜹니다.
+서비스로 등록하면 로그인하지 않아도 백그라운드에서 돌고, PC 재부팅 후에도 자동으로 뜹니다. 등록하지 않으면 `.\run.cmd`를 실행해둔 창이 열려 있는 동안에만 작업을 받습니다.
 
 ## 사전 요구사항
 
