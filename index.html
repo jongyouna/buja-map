@@ -53,6 +53,59 @@
     justify-content: center;
   }
   .icon-btn:hover { border-color: var(--text); color: var(--text); }
+  .tabbar {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 12px 16px;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab-panel[hidden] { display: none; }
+  .naver-controls { display: flex; gap: 8px; flex-shrink: 0; }
+  .naver-controls select {
+    font-size: 0.8rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .naver-table-scroll { overflow-x: auto; }
+  .naver-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+  .naver-table th, .naver-table td { padding: 9px 12px; border-bottom: 1px solid var(--panel-border); text-align: left; }
+  .naver-table th.num, .naver-table td.num { text-align: right; }
+  .naver-table thead th {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+  }
+  .naver-table th.sortable { cursor: pointer; user-select: none; }
+  .naver-table th.sortable:hover { color: var(--text); }
+  .naver-table th.sorted-asc::after { content: " ▲"; font-size: 0.65rem; }
+  .naver-table th.sorted-desc::after { content: " ▼"; font-size: 0.65rem; }
+  .naver-table tbody tr:hover { background: var(--bg); }
+  .naver-table .naver-empty { text-align: center; color: var(--muted); padding: 28px 8px; }
+  .naver-complex-link { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .naver-complex-link:hover { border-bottom-style: solid; }
   .topbar-actions { display: flex; align-items: center; gap: 10px; }
   .auth-area { display: flex; align-items: center; gap: 8px; min-height: 36px; }
   .google-btn {
@@ -284,7 +337,13 @@
     </div>
   </div>
 
+  <nav class="tabbar" id="tabBar">
+    <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
+    <button class="tab-btn" data-tab="naver" type="button">네이버 부동산</button>
+  </nav>
+
   <div class="page">
+  <section class="tab-panel" id="tabPanel-macro">
   <p class="intro">본 플랫폼은 거시경제의 핵심 동력인 유동성(Liquidity) 변화를 추적하여, 데이터에 기반한 자산 배분 전략을 도출할 수 있도록 지원하는 대시보드입니다.</p>
 
   <div class="summary-bar" id="summaryBar"></div>
@@ -422,6 +481,44 @@
   <div id="savedViews"></div>
 
   <footer id="footerNote"></footer>
+  </section>
+
+  <section class="tab-panel" id="tabPanel-naver" hidden>
+    <p class="intro">네이버 부동산에 등록된 아파트 매물을 단지별로 모아 평당가·매물 수·가격대를 비교합니다. 데이터는 매일 자동으로 갱신되며, 아래 표의 열 제목을 클릭하면 정렬할 수 있습니다.</p>
+
+    <div class="summary-bar" id="naverSummaryBar"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>단지별 매물 분석</h2>
+        <div class="naver-controls">
+          <select id="naverRegionSelect" title="지역 선택"></select>
+          <select id="naverTradeSelect" title="거래 유형">
+            <option value="A1" selected>매매</option>
+            <option value="B1">전세</option>
+          </select>
+        </div>
+      </div>
+      <p class="desc" id="naverUpdatedAt">데이터를 불러오는 중입니다...</p>
+
+      <div class="naver-table-scroll">
+        <table class="naver-table" id="naverTable">
+          <thead>
+            <tr>
+              <th data-sort="complexName" class="sortable">단지명</th>
+              <th data-sort="count" class="sortable num">매물 수</th>
+              <th data-sort="minPrice" class="sortable num">최저가</th>
+              <th data-sort="medianPrice" class="sortable num">중위가</th>
+              <th data-sort="maxPrice" class="sortable num">최고가</th>
+              <th data-sort="avgPyeongPrice" class="sortable num">평당가(만원)</th>
+              <th data-sort="avgArea" class="sortable num">평균 공급면적</th>
+            </tr>
+          </thead>
+          <tbody id="naverTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
   </div>
 
 <script type="module">
