@@ -1805,7 +1805,8 @@ async function initNaverTab() {
   const includeChipRow = document.getElementById("includeChipRow");
   const excludeChipRow = document.getElementById("excludeChipRow");
 
-  const gugunList = [...new Set(regions.filter((r) => !r.dong).map((r) => r.gugun))].sort((a, b) => a.localeCompare(b, "ko"));
+  // 동 단위로만 수집된 구(예: 동작구 흑석동)도 목록에 나와야 하므로 구 단위 지역만 거르지 않는다.
+  const gugunList = [...new Set(regions.map((r) => r.gugun).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
   gugunSelect.innerHTML = `<option value="">전체</option>` + gugunList.map((g) => `<option value="${g}">${g}</option>`).join("");
 
   function refreshDongOptions() {
@@ -1848,7 +1849,9 @@ async function initNaverTab() {
   function regionMatchesChip(region, c) {
     if (region.si !== c.si) return false;
     if (c.level === "si") return true;
-    if (c.level === "gugun") return region.gugun === c.gugun && !region.dong;
+    // 구 단위 칩은 그 구의 동 단위 지역까지 포함한다(동작구처럼 동 데이터만 있는 경우가 있고,
+    // 구·동이 겹쳐도 currentRows()에서 complexNo로 중복을 제거함).
+    if (c.level === "gugun") return region.gugun === c.gugun;
     return region.gugun === c.gugun && region.dong === c.dong;
   }
 

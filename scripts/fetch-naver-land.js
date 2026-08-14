@@ -192,13 +192,20 @@ function aggregateComplexes(articles, tradeType) {
         tradeType,
         prices: [],
         areas: [],
+        pyeongPrices: [],
         approvalElapsedYears: [],
       });
     }
     const bucket = byComplex.get(key);
     const rawPrice = tradeType === "A1" ? a.priceInfo?.dealPrice : a.priceInfo?.warrantyPrice;
-    if (rawPrice > 0) bucket.prices.push(rawPrice / 10000); // 원 -> 만원
-    if (a.spaceInfo?.supplySpace > 0) bucket.areas.push(a.spaceInfo.supplySpace);
+    const price = rawPrice > 0 ? rawPrice / 10000 : null; // 원 -> 만원
+    const area = a.spaceInfo?.supplySpace > 0 ? a.spaceInfo.supplySpace : null;
+    if (price != null) bucket.prices.push(price);
+    if (area != null) bucket.areas.push(area);
+    // 평당가는 같은 매물의 가격과 면적이 둘 다 있을 때만 그 자리에서 계산해 쌓는다.
+    // prices/areas 배열을 인덱스로 짝지으면, 가격만 있고 면적이 없는 매물이 하나라도
+    // 섞이는 순간 이후 항목들이 다른 매물의 면적과 잘못 짝지어진다.
+    if (price != null && area != null) bucket.pyeongPrices.push(price / (area / PYEONG_M2));
     if (typeof a.buildingInfo?.approvalElapsedYear === "number") {
       bucket.approvalElapsedYears.push(a.buildingInfo.approvalElapsedYear);
     }
@@ -209,9 +216,7 @@ function aggregateComplexes(articles, tradeType) {
     const prices = bucket.prices.slice().sort((x, y) => x - y);
     const areas = bucket.areas;
     const avgArea = areas.length ? areas.reduce((s, v) => s + v, 0) / areas.length : null;
-    const pyeongPrices = bucket.prices
-      .map((p, i) => (areas[i] ? p / (areas[i] / PYEONG_M2) : null))
-      .filter((v) => v != null);
+    const pyeongPrices = bucket.pyeongPrices;
     const years = bucket.approvalElapsedYears;
     complexes.push({
       complexNo: bucket.complexNo,
