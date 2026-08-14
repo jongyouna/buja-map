@@ -39,7 +39,10 @@ const REAL_ESTATE_TYPES = ["A01"]; // A01=아파트
 const PYEONG_M2 = 3.305785;
 
 const PAGE_SIZE = 20; // 네이버 API가 20 초과 시 400을 반환함
-const MAX_PAGES_PER_QUERY = 50; // 타일 하나당 상한(1000건). 넘치면 타일을 4분할해 다시 조회한다.
+const MAX_PAGES_PER_QUERY = 50; // 더 쪼갤 수 없는 타일의 마지막 상한(1000건)
+// 아직 쪼갤 수 있는 타일은 이만큼(500건)만 떠보고, 더 남아 있으면 곧바로 4분할한다.
+// 1000건까지 다 받은 뒤 버리고 재조회하면 그 페이지들이 통째로 낭비된다.
+const SUBDIVIDE_PROBE_PAGES = 25;
 const MAX_ATTEMPTS = 3; // 브라우저 세션 자체가 죽는 등 전체 재시도
 const TILES_PER_BROWSER_SESSION = 40; // 이 개수(타일)마다 브라우저를 새로 띄워 세션을 신선하게 유지
 
@@ -48,6 +51,10 @@ const TILE_LAT = 0.008;
 const TILE_LON = 0.01;
 // 동 중심 좌표만 알고 있으므로 구 경계를 넉넉히 덮도록 여유를 둔다.
 const AREA_MARGIN = { lat: 0.012, lon: 0.015 };
+// 구는 사각형이 아니다. 격자를 사각형 그대로 쓰면 모서리 타일이 이웃 구의 밀집 지역에
+// 놓여, 남의 구 매물을 잔뜩 받아 전부 버리게 된다(강남구 단독 수집이 느렸던 원인).
+// 대상 동 중심에서 이 거리 안에 있는 타일만 남겨 격자를 실제 구 모양에 가깝게 깎는다.
+const TILE_KEEP_RADIUS = { lat: 0.014, lon: 0.017 };
 // 밀집 타일을 4분할하는 최대 깊이. 깊이 5면 한 칸이 약 28m까지 줄어들어,
 // 대단지가 몰린 구역도 상한 안으로 들어온다(깊이 3에서는 누락이 발생했다).
 const MAX_SUBDIVIDE_DEPTH = 5;
@@ -160,14 +167,26 @@ function buildTileGrid(coords) {
       });
     }
   }
-  return tiles;
+
+  // 대상 동에서 멀리 떨어진 모서리 타일은 조회하지 않는다.
+  return tiles.filter((t) => {
+    const cx = (t.left + t.right) / 2;
+    const cy = (t.bottom + t.top) / 2;
+    return coords.some(
+      (c) =>
+        Math.abs(c.xCoordinate - cx) <= TILE_KEEP_RADIUS.lon &&
+        Math.abs(c.yCoordinate - cy) <= TILE_KEEP_RADIUS.lat
+    );
+  });
 }
 
-async function fetchArticlesForRegion(page, boundingBox, tradeType) {
+// maxPages까지만 받아오고, 아직 더 남았는지(hasMore)를 함께 돌려준다.
+// 분할할 수 있는 타일이라면 적은 페이지만 떠보고 바로 쪼개는 편이 싸다.
+async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
   const collected = [];
   let cursor = { seed: undefined, lastInfo: undefined };
 
-  for (let pageIndex = 0; pageIndex < MAX_PAGES_PER_QUERY; pageIndex++) {
+  for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
     const articlePagingRequest = { size: PAGE_SIZE };
     if (cursor.seed) articlePagingRequest.seed = cursor.seed;
     if (cursor.lastInfo) articlePagingRequest.lastInfo = cursor.lastInfo;
@@ -207,12 +226,12 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType) {
       collected.push(rep);
     }
 
-    if (!json.result?.hasNextPage) break;
+    if (!json.result?.hasNextPage) return { articles: collected, hasMore: false };
     cursor = { seed: json.result.seed, lastInfo: json.result.lastInfo };
-    await sleep(jitter(1000));
+    if (pageIndex < maxPages - 1) await sleep(jitter(1000));
   }
 
-  return collected;
+  return { articles: collected, hasMore: true };
 }
 
 function median(sortedNums) {
@@ -278,19 +297,23 @@ function aggregateComplexes(articles, tradeType) {
 // 타일 하나를 조회한다. 상한에 걸리면 매물이 빽빽하다는 뜻이므로 4분할해 다시 조회한다.
 // 분할된 타일끼리는 겹치지 않으므로 같은 매물이 두 번 잡히지 않는다.
 async function fetchTile(page, tile, tradeType, depth, stats) {
-  const fetched = await fetchArticlesForRegion(page, tile, tradeType);
+  // 분할 여지가 있으면 SUBDIVIDE_PROBE_PAGES까지만 떠본다. 상한까지 다 받아놓고
+  // 쪼개면 그 페이지들이 통째로 버려지므로, 밀집 타일일수록 일찍 쪼개는 편이 싸다.
+  const canSubdivide = depth < MAX_SUBDIVIDE_DEPTH;
+  const budget = canSubdivide ? SUBDIVIDE_PROBE_PAGES : MAX_PAGES_PER_QUERY;
+  const { articles: fetched, hasMore } = await fetchArticlesForRegion(page, tile, tradeType, budget);
   stats.queries++;
   stats.fetched += fetched.length;
 
-  const capHit = fetched.length >= MAX_PAGES_PER_QUERY * PAGE_SIZE;
-  if (!capHit) return fetched;
-  if (depth >= MAX_SUBDIVIDE_DEPTH) {
+  if (!hasMore) return fetched;
+  if (!canSubdivide) {
     stats.truncated++;
     console.log(`      ※ 최대 분할 깊이에서도 상한 도달 - 일부 누락 가능`);
     return fetched;
   }
 
   stats.subdivided++;
+  stats.wasted += fetched.length;
   const midX = (tile.left + tile.right) / 2;
   const midY = (tile.bottom + tile.top) / 2;
   const quads = [
@@ -314,7 +337,7 @@ async function fetchAllRegions() {
   const byGu = new Map();
   // 정밀 동(흑석동 등)은 별도 지역으로도 남기기 위해 따로 보관
   const spotlightArticles = new Map();
-  const stats = { queries: 0, fetched: 0, kept: 0, subdivided: 0, truncated: 0 };
+  const stats = { queries: 0, fetched: 0, kept: 0, subdivided: 0, truncated: 0, wasted: 0 };
 
   try {
     session = await newStealthPage(browser);
@@ -387,7 +410,7 @@ async function fetchAllRegions() {
   const hitRate = stats.fetched ? Math.round((stats.kept / stats.fetched) * 100) : 0;
   console.log(
     `[수집 요약] 조회 ${stats.queries}회 / 받은 매물 ${stats.fetched}건 / 대상 ${stats.kept}건 (적중률 ${hitRate}%)` +
-      ` / 타일 분할 ${stats.subdivided}회` +
+      ` / 타일 분할 ${stats.subdivided}회(버린 조회 ${stats.wasted}건)` +
       (stats.truncated ? ` / 최대 깊이 상한 도달 ${stats.truncated}회 ※일부 누락 가능` : "")
   );
 
