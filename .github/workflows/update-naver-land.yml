@@ -1,0 +1,36 @@
+name: Update Naver Land listings
+
+on:
+  schedule:
+    - cron: "0 17 * * *" # 매일 UTC 17:00 = KST 익일 02:00
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update-naver-land:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm install --no-save playwright && npx playwright install --with-deps chromium
+      - name: Fetch Naver Land listings (강남/송파/서초/마포/성동구 + 흑석동)
+        # GitHub Actions의 클라우드 IP는 네이버 부동산에 차단될 가능성이 높음.
+        # 실패 시 기존 data/naver-land.json을 그대로 두고 이 워크플로만 실패로 끝난다
+        # (거시경제 대시보드 갱신 워크플로와는 완전히 분리되어 있어 서로 영향 없음).
+        run: node scripts/fetch-naver-land.js
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/naver-land.json
+          git diff --cached --quiet && echo "no changes" || git commit -m "chore: 네이버 부동산 매물 갱신"
+          git push

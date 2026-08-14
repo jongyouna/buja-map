@@ -6,28 +6,20 @@
 <title>buja-map · 자산관리 대시보드</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
-    color-scheme: light dark;
-    --bg: #0b0d12;
-    --panel: #14171f;
-    --panel-border: #262b38;
-    --text: #e6e9ef;
-    --muted: #8b93a7;
-    --accent-nasdaq: #5b8def;
-    --accent-spacex: #ef5b6d;
-    --accent-m2: #4fd1a5;
-    --good: #4fd1a5;
-    --bad: #ef5b6d;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f5f6f8;
-      --panel: #ffffff;
-      --panel-border: #e1e4ea;
-      --text: #1a1d24;
-      --muted: #5b6172;
-    }
+    color-scheme: light;
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --panel-border: #e5e7eb;
+    --text: #101828;
+    --muted: #667085;
+    --accent-nasdaq: #101828;
+    --good: #067647;
+    --good-bg: #ecfdf3;
+    --bad: #b42318;
+    --bad-bg: #fef3f2;
   }
   * { box-sizing: border-box; }
   body {
@@ -35,8 +27,105 @@
     font-family: -apple-system, "Segoe UI", "Pretendard", "Noto Sans KR", sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 24px;
   }
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; color: var(--text); }
+  .brand-mark { width: 26px; height: 26px; border: 2px solid var(--text); border-radius: 50%; flex-shrink: 0; }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:hover { border-color: var(--text); color: var(--text); }
+  .tabbar {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 12px 16px;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab-panel[hidden] { display: none; }
+  .naver-controls { display: flex; gap: 8px; flex-shrink: 0; }
+  .naver-controls select {
+    font-size: 0.8rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .naver-table-scroll { overflow-x: auto; }
+  .naver-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+  .naver-table th, .naver-table td { padding: 9px 12px; border-bottom: 1px solid var(--panel-border); text-align: left; }
+  .naver-table th.num, .naver-table td.num { text-align: right; }
+  .naver-table thead th {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+  }
+  .naver-table th.sortable { cursor: pointer; user-select: none; }
+  .naver-table th.sortable:hover { color: var(--text); }
+  .naver-table th.sorted-asc::after { content: " ▲"; font-size: 0.65rem; }
+  .naver-table th.sorted-desc::after { content: " ▼"; font-size: 0.65rem; }
+  .naver-table tbody tr:hover { background: var(--bg); }
+  .naver-table .naver-empty { text-align: center; color: var(--muted); padding: 28px 8px; }
+  .naver-complex-link { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .naver-complex-link:hover { border-bottom-style: solid; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .auth-area { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+  .google-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .google-btn:hover { border-color: var(--text); }
+  .user-chip { display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; }
+  .user-name { font-size: 0.82rem; font-weight: 600; color: var(--text); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .saved-views-empty .desc { margin: 0; }
   header {
     display: flex;
     justify-content: space-between;
@@ -45,48 +134,220 @@
     gap: 8px;
     margin-bottom: 20px;
   }
-  h1 { font-size: 1.4rem; margin: 0; }
+  h1 { font-size: 1.6rem; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
   .updated { color: var(--muted); font-size: 0.85rem; }
+  .intro { color: var(--muted); font-size: 0.92rem; line-height: 1.5; margin: 0 0 20px; max-width: 860px; }
+  .summary-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .summary-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+  .summary-pill .name { color: var(--muted); }
+  .summary-pill .chg { font-weight: 700; }
+  .summary-pill .chg.up { color: var(--good); }
+  .summary-pill .chg.down { color: var(--bad); }
+  .summary-pill .period { color: var(--muted); font-size: 0.75rem; }
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
-    margin-bottom: 22px;
+    gap: 16px;
+    margin-bottom: 24px;
   }
   .card {
     background: var(--panel);
     border: 1px solid var(--panel-border);
-    border-radius: 12px;
-    padding: 16px 18px;
+    border-radius: 14px;
+    padding: 20px 22px;
   }
-  .card .label { color: var(--muted); font-size: 0.8rem; margin-bottom: 6px; }
-  .card .value { font-size: 1.6rem; font-weight: 600; }
-  .card .sub { font-size: 0.8rem; margin-top: 4px; color: var(--muted); }
-  .card .sub.up { color: var(--good); }
-  .card .sub.down { color: var(--bad); }
+  .card .label { color: var(--muted); font-size: 0.82rem; margin-bottom: 10px; font-weight: 500; }
+  .card .value { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.01em; }
+  .card .sub {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.78rem;
+    margin-top: 10px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .card .sub.up { color: var(--good); background: var(--good-bg); }
+  .card .sub.down { color: var(--bad); background: var(--bad-bg); }
   .panel {
     background: var(--panel);
     border: 1px solid var(--panel-border);
-    border-radius: 12px;
-    padding: 18px;
+    border-radius: 16px;
+    padding: 22px 24px;
     margin-bottom: 20px;
   }
-  .panel h2 { font-size: 1rem; margin: 0 0 4px; }
-  .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 14px; }
-  .chart-wrap { position: relative; height: 340px; }
+  .panel h2 { font-size: 1.05rem; margin: 0 0 4px; font-weight: 700; }
+  .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 16px; line-height: 1.55; }
+  .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .save-btn, .delete-btn {
+    flex-shrink: 0;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--panel-border);
+  }
+  .save-btn { background: var(--accent-nasdaq); color: #fff; border-color: var(--accent-nasdaq); }
+  .save-btn:hover { opacity: 0.88; }
+  .delete-btn { background: var(--panel); color: var(--bad); border-color: var(--panel-border); }
+  .delete-btn:hover { background: var(--bad-bg); border-color: var(--bad); }
+  .export-btn { background: var(--panel); color: var(--muted); border-color: var(--panel-border); }
+  .export-btn:hover { border-color: var(--text); color: var(--text); }
+  .saved-view-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .saved-view-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
+  .saved-view-header .desc { margin: 6px 0 0; }
+  .saved-view-meta { display: flex; flex-direction: column; gap: 6px; }
+  .saved-view-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .mini-group-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-right: 2px;
+    min-width: 34px;
+  }
+  .mini-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  .mini-pill-period { background: var(--accent-nasdaq); }
+  .mini-pill-empty { color: var(--muted); font-size: 0.75rem; }
+  .control-group { margin-bottom: 16px; }
+  .control-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .control-group-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .bulk-actions { display: flex; gap: 6px; }
+  .bulk-btn {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .bulk-btn:hover { border-color: var(--text); color: var(--text); }
+  .toggle-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-item { display: inline-flex; align-items: center; gap: 4px; }
+  .corr-check { width: 14px; height: 14px; accent-color: var(--accent-nasdaq); cursor: pointer; }
+  .corr-check:disabled { cursor: not-allowed; opacity: 0.35; }
+  .corr-status { font-size: 0.78rem; color: var(--muted); margin: -2px 0 12px; }
+  .chart-with-rank { display: flex; gap: 16px; align-items: stretch; }
+  .chart-with-rank .chart-wrap { flex: 1 1 auto; min-width: 0; }
+  .corr-rank-wrap { flex: 0 0 220px; display: flex; flex-direction: column; min-height: 0; }
+  .corr-rank-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+  .corr-rank-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
+  .corr-rank-period-select {
+    font-size: 0.72rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 3px 6px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .corr-rank-table-scroll { overflow-y: auto; flex: 1 1 auto; min-height: 0; max-height: 340px; }
+  .corr-rank-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .corr-rank-table th, .corr-rank-table td { padding: 7px 8px; border-bottom: 1px solid var(--panel-border); text-align: right; }
+  .corr-rank-table th:first-child, .corr-rank-table td:first-child { text-align: left; }
+  .corr-rank-table thead th { color: var(--muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--panel-border); position: sticky; top: 0; background: var(--panel); }
+  .corr-rank-table .corr-rank-empty { text-align: center; color: var(--muted); padding: 16px 4px; }
+  @media (max-width: 720px) {
+    .chart-with-rank { flex-direction: column; }
+    .corr-rank-wrap { flex: 0 0 auto; }
+  }
+  .toggle-btn {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .toggle-btn:hover:not(:disabled) { border-color: var(--text); color: var(--text); }
+  .toggle-btn.on { color: #fff; }
+  .toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .period-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+  .period-btn {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .period-btn:hover { border-color: var(--text); color: var(--text); }
+  .period-btn.active { background: var(--accent-nasdaq); color: #fff; border-color: var(--accent-nasdaq); }
+  .rebase-note { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); margin-left: 4px; }
+  .rebase-note[hidden] { display: none; }
+  .reset-btn { padding: 4px 10px; font-size: 0.75rem; }
+  .chart-wrap { position: relative; height: 340px; cursor: crosshair; }
   .chart-wrap.small { height: 220px; }
   footer { color: var(--muted); font-size: 0.78rem; margin-top: 8px; line-height: 1.6; }
   .legend-note { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .err { color: var(--bad); padding: 40px; text-align: center; }
-  .table-wrap { overflow-x: auto; }
-  .listing-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
-  .listing-table th, .listing-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--panel-border); }
-  .listing-table th { color: var(--muted); font-weight: 500; }
-  .listing-table tbody tr:hover { background: rgba(128, 128, 128, 0.08); }
 </style>
 </head>
 <body>
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-mark"></span>
+      <span>buja-map</span>
+    </div>
+    <div class="topbar-actions">
+      <div class="auth-area" id="authArea"></div>
+      <button class="icon-btn" id="refreshBtn" type="button" title="새로고침">⟳</button>
+    </div>
+  </div>
+
+  <nav class="tabbar" id="tabBar">
+    <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
+    <button class="tab-btn" data-tab="naver" type="button">네이버 부동산</button>
+  </nav>
+
+  <div class="page">
+  <section class="tab-panel" id="tabPanel-macro">
+  <p class="intro">본 플랫폼은 거시경제의 핵심 동력인 유동성(Liquidity) 변화를 추적하여, 데이터에 기반한 자산 배분 전략을 도출할 수 있도록 지원하는 대시보드입니다.</p>
+
+  <div class="summary-bar" id="summaryBar"></div>
+
   <header>
     <h1>buja-map · 스페이스X × M2 유동성 × 나스닥 대시보드</h1>
     <div class="updated" id="updatedAt">로딩 중...</div>
@@ -95,39 +356,306 @@
   <div class="cards" id="cards"></div>
 
   <div class="panel">
-    <h2>정규화 지수 비교 (시작=100)</h2>
-    <p class="desc">SPCX 상장일을 기준점으로 세 지표를 100으로 정규화하여 동일 축에서 비교합니다. M2는 월간 발표치를 계단식으로 표시합니다.</p>
-    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+    <div class="panel-header">
+      <h2>정규화 지수 비교 (시작=100) · 롤링 상관계수 (-1~1)</h2>
+      <button class="save-btn" id="saveViewBtn" type="button" title="현재 기간·지표·상관계수 선택을 저장해 새 그래프로 고정합니다">저장</button>
+    </div>
+    <p class="desc">선택한 기간의 시작일을 기준점으로 활성화된 지표를 100으로 정규화하여 비교합니다. 차트 위 특정 시점을 클릭하면 표시 구간은 그대로 두고 그 날짜를 새 기준점(=100)으로 다시 계산합니다. M1·M2 유동성은 변동폭이 다른 지표보다 훨씬 작아 오른쪽 보조축에 별도로 표시하며, 월간 발표치를 계단식으로 나타냅니다. SPCX는 상장일 이전 구간에 데이터가 없어 해당 기간은 공백으로 표시됩니다. 나스닥·코스피200·VIX는 최근 10년치까지만 제공되어 20년 조회 시 앞부분은 공백일 수 있습니다. 미국 M1 유동성은 2020년 5월 연준의 정의 변경(저축성예금 포함, 데이터 단절)으로 그 이후 데이터만 표시됩니다.<br/>
+    각 지표 버튼 왼쪽의 체크박스로 롤링 상관계수를 계산할 두 지표를 선택할 수 있습니다(최대 2개, 그래프 표시 여부와 무관하게 선택 가능). 체크된 두 지표가 발표/갱신되는 시점 간 수익률을 기준으로 상관계수를 계산해 점선으로 표시하며, 오른쪽 별도 축(-1~1)을 사용합니다. +1에 가까울수록 두 지표가 같은 방향으로, -1에 가까울수록 반대 방향으로 움직였다는 뜻입니다. 일별 지표는 10거래일, 월간/연간 지표는 데이터 특성에 맞춰 window 크기가 자동 조정됩니다.</p>
+
+    <div class="control-group">
+      <div class="control-group-label">기간</div>
+      <div class="period-selector" id="periodSelector">
+        <button class="period-btn" data-period="1w">1주일</button>
+        <button class="period-btn" data-period="1m">1개월</button>
+        <button class="period-btn" data-period="6m">6개월</button>
+        <button class="period-btn" data-period="1y">1년</button>
+        <button class="period-btn" data-period="5y">5년</button>
+        <button class="period-btn" data-period="10y">10년</button>
+        <button class="period-btn" data-period="20y">20년</button>
+        <span class="rebase-note" id="rebaseNote" hidden>
+          <span id="rebaseNoteText"></span>
+          <button class="period-btn reset-btn" id="rebaseResetBtn" type="button">기준일 초기화</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-group-header">
+        <div class="control-group-label">글로벌</div>
+        <div class="bulk-actions">
+          <button class="bulk-btn" data-bulk-group="global" data-bulk-action="selectAll" type="button">전체 선택</button>
+          <button class="bulk-btn" data-bulk-group="global" data-bulk-action="deselectAll" type="button">전체 해제</button>
+        </div>
+      </div>
+      <div class="toggle-group" id="globalToggles">
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1us" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1us" data-color="#7dd3fc" type="button">미국 M1 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m2" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m2" data-color="#4fd1a5" type="button">미국 M2 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1m2us" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1m2us" data-color="#eab308" type="button">미국 M1/M2 비율</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="vix" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="vix" data-color="#f2a93c" type="button">VIX 변동성지수</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="nasdaq" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="nasdaq" data-color="#5b8def" type="button">나스닥(QQQ)</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="spacex" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="spacex" data-color="#ef5b6d" type="button">스페이스X(SPCX)</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-group-header">
+        <div class="control-group-label">한국</div>
+        <div class="bulk-actions">
+          <button class="bulk-btn" data-bulk-group="korea" data-bulk-action="selectAll" type="button">전체 선택</button>
+          <button class="bulk-btn" data-bulk-group="korea" data-bulk-action="deselectAll" type="button">전체 해제</button>
+        </div>
+      </div>
+      <div class="toggle-group" id="koreaToggles">
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1kr" data-color="#a78bfa" type="button">한국 M1 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m2kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m2kr" data-color="#f472b6" type="button">한국 M2 유동성</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="m1m2kr" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="m1m2kr" data-color="#14b8a6" type="button">한국 M1/M2 비율</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="k200" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="k200" data-color="#c792ea" type="button">코스피200 현물지수</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="kbSeoulApt" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="kbSeoulApt" data-color="#fb7185" type="button">서울 아파트 매매가격지수(KB)</button>
+        </span>
+        <span class="toggle-item">
+          <input type="checkbox" class="corr-check" data-series="seoulSupply" title="상관계수 비교 대상으로 선택 (최대 2개)">
+          <button class="toggle-btn" data-series="seoulSupply" data-color="#84cc16" type="button" title="아파트뿐 아니라 단독·연립·다세대 등 서울 전체 주택 유형 합계">서울 주택 인허가실적(연간)</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="corr-status" id="corrStatus"></div>
+
+    <div class="chart-with-rank">
+      <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+      <div class="corr-rank-wrap">
+        <div class="corr-rank-header">
+          <div class="corr-rank-title">상관계수 순위</div>
+          <select class="corr-rank-period-select" id="corrRankPeriodSelect" title="아래 표를 나눌 기간 단위">
+            <option value="1w">1주일</option>
+            <option value="1m">1개월</option>
+            <option value="3m">3개월</option>
+            <option value="1y" selected>1년</option>
+          </select>
+        </div>
+        <div class="corr-rank-table-scroll">
+          <table class="corr-rank-table">
+            <thead>
+              <tr><th>기간</th><th>상관계수</th><th>순위</th></tr>
+            </thead>
+            <tbody id="corrRankTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="panel">
-    <h2>롤링 상관계수 (QQQ ↔ SPCX, 10거래일 수익률 기준)</h2>
-    <p class="desc">두 자산의 일간 수익률 간 10일 롤링 상관계수. +1에 가까울수록 동조화, -1에 가까울수록 역행.</p>
-    <div class="chart-wrap small"><canvas id="corrChart"></canvas></div>
-  </div>
-
-  <div class="panel" id="naverLandPanel" style="display:none">
-    <h2>네이버 부동산 · 동작구 흑석동 아파트 매물</h2>
-    <p class="desc" id="naverLandDesc"></p>
-    <div class="cards" id="naverLandCards"></div>
-    <div class="table-wrap"><table class="listing-table" id="naverLandTable"></table></div>
-  </div>
+  <div id="savedViews"></div>
 
   <footer id="footerNote"></footer>
+  </section>
 
-<script>
+  <section class="tab-panel" id="tabPanel-naver" hidden>
+    <div class="panel-header">
+      <p class="intro">네이버 부동산에 등록된 아파트 매물을 단지별로 모아 평당가·매물 수·가격대를 비교합니다. 데이터는 매일 자동으로 갱신되며, 아래 표의 열 제목을 클릭하면 정렬할 수 있습니다.</p>
+      <div class="updated" id="naverTopBadge"></div>
+    </div>
+
+    <div class="summary-bar" id="naverSummaryBar"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>단지별 매물 분석</h2>
+        <div class="naver-controls">
+          <select id="naverRegionSelect" title="지역 선택"></select>
+          <select id="naverTradeSelect" title="거래 유형">
+            <option value="A1" selected>매매</option>
+          </select>
+        </div>
+      </div>
+      <p class="desc" id="naverUpdatedAt">데이터를 불러오는 중입니다...</p>
+
+      <div class="naver-table-scroll">
+        <table class="naver-table" id="naverTable">
+          <thead>
+            <tr>
+              <th data-sort="complexName" class="sortable">단지명</th>
+              <th data-sort="count" class="sortable num">매물 수</th>
+              <th data-sort="minPrice" class="sortable num">최저가</th>
+              <th data-sort="medianPrice" class="sortable num">중위가</th>
+              <th data-sort="maxPrice" class="sortable num">최고가</th>
+              <th data-sort="avgPyeongPrice" class="sortable num">평당가(만원)</th>
+              <th data-sort="avgArea" class="sortable num">평균 공급면적</th>
+            </tr>
+          </thead>
+          <tbody id="naverTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+// 이 config 값들은 클라이언트에 노출되어도 안전합니다. 실제 접근 제어는
+// Firebase Authentication(로그인 여부)과 Firestore 보안 규칙(request.auth.uid)이 담당합니다.
+const firebaseConfig = {
+  apiKey: "AIzaSyAfI9UjxW2GiZWNQrHvrRj0SmMSkNeONbA",
+  authDomain: "buja-map-b52eb.firebaseapp.com",
+  projectId: "buja-map-b52eb",
+  storageBucket: "buja-map-b52eb.firebasestorage.app",
+  messagingSenderId: "482597136779",
+  appId: "1:482597136779:web:06f39e7998a1ece0c6a78e",
+  measurementId: "G-2MQEZQG9M0",
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const googleProvider = new GoogleAuthProvider();
+// 저장된 그래프를 사용자의 구글 드라이브에 스프레드시트로 만들기 위한 추가 권한.
+googleProvider.addScope("https://www.googleapis.com/auth/spreadsheets");
+
+let currentUser = null;
+// main()이 data.json 로딩을 마친 뒤(또는 로그인 상태가 먼저 확정된 뒤) 저장된 그래프 목록을
+// 다시 그릴 수 있도록 하는 훅. 둘 중 어느 쪽이 먼저 끝나도 항상 최신 상태로 렌더링되도록 함.
+let onAuthChangedHook = null;
+
+// 구글 스프레드시트 생성용 OAuth 액세스 토큰. Firebase는 페이지 새로고침 시 로그인 세션은
+// 유지하지만 이 토큰은 넘겨주지 않으므로, 새로고침 후 내보내기를 시도하면 재로그인 팝업으로
+// 새 토큰을 받아온다(ensureGoogleAccessToken 참고).
+let googleAccessToken = null;
+
+function renderAuthArea() {
+  const el = document.getElementById("authArea");
+  if (currentUser) {
+    el.innerHTML = `
+      <span class="user-chip">
+        ${currentUser.photoURL ? `<img class="user-avatar" src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer">` : ""}
+        <span class="user-name">${currentUser.displayName || currentUser.email || ""}</span>
+      </span>
+      <button class="icon-btn" id="signOutBtn" type="button" title="로그아웃">⎋</button>
+    `;
+    document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
+  } else {
+    el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button>`;
+    document.getElementById("signInBtn").addEventListener("click", () => {
+      signInWithPopup(auth, googleProvider)
+        .then((result) => {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential) googleAccessToken = credential.accessToken;
+        })
+        .catch((err) => {
+          console.error("로그인 실패:", err);
+          alert("로그인에 실패했습니다: " + err.message);
+        });
+    });
+  }
+}
+renderAuthArea();
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (!user) googleAccessToken = null;
+  renderAuthArea();
+  if (onAuthChangedHook) await onAuthChangedHook();
+});
+
+// 스프레드시트 생성에 쓸 유효한 액세스 토큰을 반환. 없으면(새로고침 직후 등) 팝업으로 재획득.
+async function ensureGoogleAccessToken() {
+  if (googleAccessToken) return googleAccessToken;
+  const result = await signInWithPopup(auth, googleProvider);
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  if (!credential) throw new Error("구글 인증 정보를 가져오지 못했습니다.");
+  googleAccessToken = credential.accessToken;
+  return googleAccessToken;
+}
+
 const fmtPct = (v) => (v == null || isNaN(v) ? "–" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
 const fmtNum = (v, d = 2) => (v == null || isNaN(v) ? "–" : v.toLocaleString("en-US", { maximumFractionDigits: d }));
 
 function toDate(s) { return new Date(s + "T00:00:00Z"); }
 
-function dailyReturns(series) {
+function formatKoreanDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${y}년 ${m}월 ${d}일`;
+}
+
+// series는 임의의 값 필드(valueKey)를 가진 {date, ...} 배열. 연속된 두 시점 간 수익률을 계산.
+// 일별/월간/연간 등 발표 주기가 다른 지표를 동일한 방식으로 다룰 수 있도록 일반화.
+function seriesReturns(series, valueKey) {
+  const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date));
   const out = [];
-  for (let i = 1; i < series.length; i++) {
-    const prev = series[i - 1].close, cur = series[i].close;
-    out.push({ date: series[i].date, ret: (cur - prev) / prev });
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1][valueKey], cur = sorted[i][valueKey];
+    if (prev == null || cur == null || prev === 0) continue;
+    out.push({ date: sorted[i].date, prevDate: sorted[i - 1].date, ret: (cur - prev) / prev });
   }
   return out;
+}
+
+// otherSeries의 발표 시점 간격에 맞춰 benchmarkSeries의 같은 구간 수익률을 계산해 1:1로 정렬된
+// 두 수익률 배열을 반환. 서로 다른 발표 주기(일/월/연)의 지표를 나스닥과 짝지을 때 사용.
+function alignedReturnPairs(otherSeries, otherValueKey, benchmarkSeries, benchmarkValueKey) {
+  const otherRet = seriesReturns(otherSeries, otherValueKey);
+  const sortedBench = [...benchmarkSeries].sort((a, b) => a.date.localeCompare(b.date));
+  if (sortedBench.length === 0) return { a: [], b: [] };
+  const benchStart = sortedBench[0].date;
+  const a = [], b = [];
+  for (const r of otherRet) {
+    // benchmark의 실제 데이터 시작 이전 구간은 valueAsOf가 첫 값으로 평탄하게 채워 분산이 0이 되므로 제외
+    if (r.prevDate < benchStart) continue;
+    const vPrev = valueAsOf(sortedBench, benchmarkValueKey, r.prevDate);
+    const vCur = valueAsOf(sortedBench, benchmarkValueKey, r.date);
+    if (vPrev == null || vCur == null || vPrev === 0) continue;
+    a.push({ date: r.date, ret: r.ret });
+    b.push({ date: r.date, ret: (vCur - vPrev) / vPrev });
+  }
+  return { a, b };
 }
 
 function pearson(a, b) {
@@ -145,34 +673,58 @@ function pearson(a, b) {
 }
 
 function rollingCorrelation(retA, retB, window) {
-  // retA, retB: [{date, ret}] aligned by date already
-  const map = new Map(retB.map((d) => [d.date, d.ret]));
-  const aligned = retA.filter((d) => map.has(d.date)).map((d) => ({ date: d.date, a: d.ret, b: map.get(d.date) }));
+  // retA, retB: [{date, ret}], 이미 인덱스 기준으로 1:1 정렬되어 있다고 가정 (alignedReturnPairs 결과)
   const out = [];
-  for (let i = window - 1; i < aligned.length; i++) {
-    const slice = aligned.slice(i - window + 1, i + 1);
-    const c = pearson(slice.map((s) => s.a), slice.map((s) => s.b));
-    out.push({ date: aligned[i].date, corr: c });
+  for (let i = window - 1; i < retA.length; i++) {
+    const a = retA.slice(i - window + 1, i + 1).map((d) => d.ret);
+    const b = retB.slice(i - window + 1, i + 1).map((d) => d.ret);
+    const c = pearson(a, b);
+    out.push({ date: retA[i].date, corr: c });
   }
   return out;
 }
 
-// M2(월간)를 일별로 forward-fill
-function m2ToDaily(m2series, dateList) {
-  const sorted = [...m2series].sort((a, b) => a.date.localeCompare(b.date));
-  const out = [];
-  let idx = -1;
-  for (const d of dateList) {
-    while (idx + 1 < sorted.length && sorted[idx + 1].date <= d) idx++;
-    out.push({ date: d, value: idx >= 0 ? sorted[idx].value : null });
+// series는 date 오름차순으로 정렬되어 있다고 가정. date 시점 기준 forward-fill 값 조회
+function valueAsOf(sortedSeries, valueKey, date) {
+  let val = null;
+  for (const d of sortedSeries) {
+    if (d.date <= date) val = d[valueKey];
+    else break;
   }
-  return out;
+  if (val == null && sortedSeries.length) val = sortedSeries[0][valueKey];
+  return val;
 }
 
-function indexTo100(series, valueKey, startDate) {
-  const filtered = series.filter((d) => d.date >= startDate);
+// 월간 발표 지표(M1/M2 등) 실제 발표 시점만 그래프에 표시 — 일별로 리샘플링하지 않고
+// 실제 월별 데이터 포인트 그대로 사용해 계단식 그래프가 달마다 뚜렷하게 보이도록 함.
+// rangeStart: 화면에 표시할 구간의 시작일 (이 이전 데이터는 그리지 않음)
+// baseDate: 100 기준점으로 삼을 날짜 (생략 시 rangeStart와 동일 — 클릭으로 재계산할 때만 rangeStart와 달라짐)
+function monthlyIndexTo100(monthlySeries, rangeStart, baseDate) {
+  baseDate = baseDate || rangeStart;
+  const sorted = [...monthlySeries].sort((a, b) => a.date.localeCompare(b.date));
+  const base = valueAsOf(sorted, "value", baseDate);
+  if (base == null) return [];
+
+  const points = sorted
+    .filter((d) => d.date >= rangeStart)
+    .map((d) => ({ date: d.date, value: (d.value / base) * 100 }));
+  if (points.length === 0 || points[0].date > rangeStart) {
+    const valAtRangeStart = valueAsOf(sorted, "value", rangeStart);
+    if (valAtRangeStart != null) {
+      points.unshift({ date: rangeStart, value: (valAtRangeStart / base) * 100 });
+    }
+  }
+  return points;
+}
+
+// rangeStart: 화면에 표시할 구간의 시작일. baseDate: 100 기준점(생략 시 rangeStart와 동일).
+// 클릭으로 기준일을 재계산해도 rangeStart 이전 데이터는 그대로 유지되고, 값만 새 기준점 대비로 다시 계산됨.
+function indexTo100(series, valueKey, rangeStart, baseDate) {
+  baseDate = baseDate || rangeStart;
+  const filtered = series.filter((d) => d.date >= rangeStart);
   if (filtered.length === 0) return [];
-  const base = filtered[0][valueKey];
+  const base = valueAsOf(filtered, valueKey, baseDate);
+  if (base == null) return [];
   return filtered.map((d) => ({ date: d.date, value: (d[valueKey] / base) * 100 }));
 }
 
@@ -188,7 +740,27 @@ async function main() {
 
   const nasdaq = data.series.nasdaq.data; // [{date, close}]
   const spacex = data.series.spacex.data;
+  const k200 = data.series.k200 ? data.series.k200.data : []; // [{date, close}]
+  const vix = data.series.vix ? data.series.vix.data : []; // [{date, close}]
   const m2 = data.series.m2.data; // [{date, value}]
+  const m1us = data.series.m1us ? data.series.m1us.data : []; // [{date, value}]
+  const m1kr = data.series.m1kr ? data.series.m1kr.data : []; // [{date, value}]
+  const m2kr = data.series.m2kr ? data.series.m2kr.data : []; // [{date, value}]
+  const kbSeoulApt = data.series.kbSeoulApt ? data.series.kbSeoulApt.data : []; // [{date, value}]
+  const seoulHousingSupply = data.series.seoulHousingSupply ? data.series.seoulHousingSupply.data : []; // [{date, value}]
+
+  // 날짜가 일치하는 두 월간 시리즈의 비율(numerator / denominator) 계산
+  function ratioSeries(numerator, denominator) {
+    const denomMap = new Map(denominator.map((d) => [d.date, d.value]));
+    const out = [];
+    for (const n of numerator) {
+      const dv = denomMap.get(n.date);
+      if (dv != null && dv !== 0) out.push({ date: n.date, value: n.value / dv });
+    }
+    return out;
+  }
+  const m1m2us = ratioSeries(m1us, m2);
+  const m1m2kr = ratioSeries(m1kr, m2kr);
 
   document.getElementById("updatedAt").textContent =
     "마지막 갱신: " + new Date(data.updatedAt).toLocaleString("ko-KR");
@@ -196,193 +768,900 @@ async function main() {
   // ---- 요약 카드 ----
   const lastN = nasdaq[nasdaq.length - 1], prevN = nasdaq[nasdaq.length - 2];
   const lastS = spacex[spacex.length - 1], prevS = spacex[spacex.length - 2];
+  const lastK = k200[k200.length - 1], prevK = k200[k200.length - 2];
+  const lastV = vix[vix.length - 1], prevV = vix[vix.length - 2];
   const lastM = m2[m2.length - 1], prevM = m2[m2.length - 2];
+  const lastM1 = m1us[m1us.length - 1], prevM1 = m1us[m1us.length - 2];
+  const lastM1K = m1kr[m1kr.length - 1], prevM1K = m1kr[m1kr.length - 2];
+  const lastM2K = m2kr[m2kr.length - 1], prevM2K = m2kr[m2kr.length - 2];
   const chgN = prevN ? ((lastN.close - prevN.close) / prevN.close) * 100 : null;
   const chgS = prevS ? ((lastS.close - prevS.close) / prevS.close) * 100 : null;
+  const chgK = lastK && prevK ? ((lastK.close - prevK.close) / prevK.close) * 100 : null;
+  const chgV = lastV && prevV ? ((lastV.close - prevV.close) / prevV.close) * 100 : null;
   const chgM = prevM ? ((lastM.value - prevM.value) / prevM.value) * 100 : null;
+  const chgM1 = lastM1 && prevM1 ? ((lastM1.value - prevM1.value) / prevM1.value) * 100 : null;
+  const chgM1K = lastM1K && prevM1K ? ((lastM1K.value - prevM1K.value) / prevM1K.value) * 100 : null;
+  const chgM2K = lastM2K && prevM2K ? ((lastM2K.value - prevM2K.value) / prevM2K.value) * 100 : null;
 
   const cards = [
     { label: `나스닥 (${data.series.nasdaq.symbol})`, value: "$" + fmtNum(lastN.close), sub: fmtPct(chgN) + " (전일 대비)", chg: chgN, asOf: lastN.date },
-    { label: `스페이스X (${data.series.spacex.symbol})`, value: "$" + fmtNum(lastS.close), sub: fmtPct(chgS) + " (전일 대비)", chg: chgS, asOf: lastS.date },
-    { label: "미국 M2 유동성 (M2SL)", value: "$" + fmtNum(lastM.value, 1) + "B", sub: fmtPct(chgM) + " (전월 대비)", chg: chgM, asOf: lastM.date },
   ];
+  if (lastV) {
+    cards.push({
+      label: "VIX 변동성지수",
+      value: fmtNum(lastV.close),
+      sub: fmtPct(chgV) + " (전일 대비)",
+      chg: chgV,
+      asOf: lastV.date,
+    });
+  }
   document.getElementById("cards").innerHTML = cards
     .map(
       (c) => `
     <div class="card">
       <div class="label">${c.label} · 기준일 ${c.asOf}</div>
       <div class="value">${c.value}</div>
-      <div class="sub ${c.chg >= 0 ? "up" : "down"}">${c.sub}</div>
+      <div class="sub ${c.chg >= 0 ? "up" : "down"}">${c.chg >= 0 ? "↑" : "↓"} ${c.sub}</div>
     </div>`
     )
     .join("");
 
+  // ---- 최상단 전일대비 변화 요약 ----
+  const summaryItems = [
+    { name: `나스닥(${data.series.nasdaq.symbol})`, chg: chgN, period: "전일 대비" },
+  ];
+  if (lastV) summaryItems.push({ name: "VIX 변동성지수", chg: chgV, period: "전일 대비" });
+  document.getElementById("summaryBar").innerHTML = summaryItems
+    .map((s) => {
+      const cls = s.chg >= 0 ? "up" : "down";
+      const arrow = s.chg >= 0 ? "▲" : "▼";
+      return `
+    <div class="summary-pill">
+      <span class="name">${s.name}</span>
+      <span class="chg ${cls}">${arrow} ${fmtPct(s.chg)}</span>
+      <span class="period">(${s.period})</span>
+    </div>`;
+    })
+    .join("");
+
   // ---- 정규화 지수 차트 ----
-  const startDate = spacex[0].date; // SPCX 상장일 기준
-  const nasdaqIdx = indexTo100(nasdaq, "close", startDate);
-  const spacexIdx = indexTo100(spacex, "close", startDate);
-  const allDates = nasdaq.filter((d) => d.date >= startDate).map((d) => d.date);
-  const m2Daily = m2ToDaily(m2, allDates);
-  const m2Idx = indexTo100(m2Daily, "value", startDate);
+  const lastDate = nasdaq[nasdaq.length - 1].date;
+  const PERIOD_DAYS = { "1w": 7, "1m": 30, "3m": 91, "6m": 182, "1y": 365, "5y": 1826, "10y": 3652, "20y": 7305 };
+  const CORR_RANK_MAX_BUCKETS = 60; // 상관계수 순위표가 지나치게 길어지는 것을 막는 안전 상한(예: 20년÷1주일)
 
-  new Chart(document.getElementById("mainChart"), {
-    type: "line",
-    data: {
-      datasets: [
-        {
-          label: "나스닥(QQQ)",
-          data: nasdaqIdx.map((d) => ({ x: d.date, y: d.value })),
-          borderColor: "#5b8def",
-          backgroundColor: "#5b8def",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.15,
-        },
-        {
-          label: "스페이스X(SPCX)",
-          data: spacexIdx.map((d) => ({ x: d.date, y: d.value })),
-          borderColor: "#ef5b6d",
-          backgroundColor: "#ef5b6d",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.15,
-        },
-        {
-          label: "미국 M2 유동성",
-          data: m2Idx.map((d) => ({ x: d.date, y: d.value })),
-          borderColor: "#4fd1a5",
-          backgroundColor: "#4fd1a5",
-          borderWidth: 2,
-          borderDash: [4, 3],
-          pointRadius: 0,
-          stepped: true,
-          tension: 0,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        x: { type: "time", time: { unit: "day" }, grid: { display: false } },
-        y: { title: { display: true, text: "지수 (시작일=100)" } },
+  function periodStartDate(periodKey) {
+    const days = PERIOD_DAYS[periodKey];
+    return new Date(toDate(lastDate).getTime() - days * 86400000).toISOString().slice(0, 10);
+  }
+
+  function timeUnitForPeriod(periodKey) {
+    if (periodKey === "1w" || periodKey === "1m") return "day";
+    if (periodKey === "6m" || periodKey === "1y") return "month";
+    return "year"; // 5y, 10y, 20y
+  }
+
+  let mainChart = null;
+  let activePeriodKey = "1y";
+  let rangeStartDate = null; // 화면에 표시할 구간의 시작일 (기준일 재계산과 무관하게 고정)
+  let baseDateOverride = null; // 클릭으로 재계산한 100 기준일 (null이면 rangeStartDate 사용)
+
+  function renderMainChart(periodKey) {
+    activePeriodKey = periodKey;
+    rangeStartDate = periodStartDate(periodKey);
+    baseDateOverride = null;
+    document.getElementById("rebaseNote").hidden = true;
+    renderMainChartWithCurrentState();
+    renderCorrRankTable();
+  }
+
+  // 토글 버튼(data-series)과 매칭되는 key로 각 시리즈를 정의.
+  // LINE_SERIES = 일별 종가 기반(가격/지수), MONTHLY_SERIES = 월간 통화량 지표(우측 보조축)
+  const LINE_SERIES = [
+    { key: "nasdaq", label: "나스닥(QQQ)", data: nasdaq, color: "#5b8def" },
+    { key: "spacex", label: "스페이스X(SPCX)", data: spacex, color: "#ef5b6d" },
+    { key: "k200", label: "코스피200 현물지수", data: k200, color: "#c792ea" },
+    { key: "vix", label: "VIX 변동성지수", data: vix, color: "#f2a93c" },
+  ];
+  const MONTHLY_SERIES = [
+    { key: "m1us", label: "미국 M1 유동성(월간, 우측축)", shortLabel: "미국 M1 유동성", data: m1us, color: "#7dd3fc" },
+    { key: "m2", label: "미국 M2 유동성(월간, 우측축)", shortLabel: "미국 M2 유동성", data: m2, color: "#4fd1a5" },
+    { key: "m1m2us", label: "미국 M1/M2 비율(월간, 우측축)", shortLabel: "미국 M1/M2 비율", data: m1m2us, color: "#eab308" },
+    { key: "m1kr", label: "한국 M1 유동성(월간, 우측축)", shortLabel: "한국 M1 유동성", data: m1kr, color: "#a78bfa" },
+    { key: "m2kr", label: "한국 M2 유동성(월간, 우측축)", shortLabel: "한국 M2 유동성", data: m2kr, color: "#f472b6" },
+    { key: "m1m2kr", label: "한국 M1/M2 비율(월간, 우측축)", shortLabel: "한국 M1/M2 비율", data: m1m2kr, color: "#14b8a6" },
+    { key: "kbSeoulApt", label: "서울 아파트 매매가격지수(KB, 월간, 우측축)", shortLabel: "서울 아파트 매매가격지수(KB)", data: kbSeoulApt, color: "#fb7185" },
+    { key: "seoulSupply", label: "서울 주택건설 인허가실적(연간, 우측축)", shortLabel: "서울 주택 인허가실적(연간)", data: seoulHousingSupply, color: "#84cc16" },
+  ];
+
+  const seriesEnabled = {
+    nasdaq: false,
+    spacex: false,
+    k200: false,
+    vix: false,
+    m1us: false,
+    m2: false,
+    m1m2us: false,
+    m1kr: true,
+    m2kr: false,
+    m1m2kr: false,
+    kbSeoulApt: true,
+    seoulSupply: false,
+  };
+
+  const ALL_SERIES_FOR_CORR = [
+    ...LINE_SERIES.map((s) => ({ ...s, valueKey: "close" })),
+    ...MONTHLY_SERIES.map((s) => ({ ...s, valueKey: "value" })),
+  ];
+  let corrChecked = ["m1kr", "kbSeoulApt"]; // 상관계수를 계산할 두 지표 (최대 2개)
+  let corrRankBucketKey = "1y"; // 오른쪽 상관계수 순위표를 나눌 기간 단위
+
+  // 글로벌/한국 그룹별 키 목록. 저장된 그래프 요약 표시에 사용.
+  const GLOBAL_KEYS = Array.from(document.querySelectorAll("#globalToggles .toggle-btn")).map((b) => b.dataset.series);
+  const KOREA_KEYS = Array.from(document.querySelectorAll("#koreaToggles .toggle-btn")).map((b) => b.dataset.series);
+
+  // 라이브 차트와 저장된(고정) 차트가 공유하는 데이터셋 구성 로직.
+  function buildDatasets(enabledObj, checkedArr, rangeStart, baseDate) {
+    const datasets = [];
+
+    for (const s of LINE_SERIES) {
+      if (!enabledObj[s.key]) continue;
+      const idx = indexTo100(s.data, "close", rangeStart, baseDate);
+      if (idx.length === 0) continue;
+      datasets.push({
+        label: s.label,
+        data: idx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: s.color,
+        backgroundColor: s.color,
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.15,
+      });
+    }
+
+    for (const s of MONTHLY_SERIES) {
+      if (!enabledObj[s.key]) continue;
+      const idx = monthlyIndexTo100(s.data, rangeStart, baseDate);
+      if (idx.length === 0) continue;
+      datasets.push({
+        label: s.label,
+        data: idx.map((d) => ({ x: d.date, y: d.value })),
+        borderColor: s.color,
+        backgroundColor: s.color,
+        borderWidth: 2,
+        borderDash: [4, 3],
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        stepped: "before",
+        tension: 0,
+        yAxisID: "y1",
+      });
+    }
+
+    const corrDs = corrDatasetFor(checkedArr, rangeStart);
+    if (corrDs) datasets.push(corrDs);
+
+    return datasets;
+  }
+
+  function renderMainChartWithCurrentState() {
+    const baseDate = baseDateOverride || rangeStartDate;
+    const datasets = buildDatasets(seriesEnabled, corrChecked, rangeStartDate, baseDate);
+
+    if (mainChart) {
+      mainChart.data.datasets = datasets;
+      mainChart.options.scales.x.time.unit = timeUnitForPeriod(activePeriodKey);
+      mainChart.update();
+      return;
+    }
+
+    const rebaseLinePlugin = {
+      id: "rebaseLine",
+      afterDraw(chart) {
+        if (!baseDateOverride) return;
+        const area = chart.chartArea;
+        const px = chart.scales.x.getPixelForValue(toDate(baseDateOverride).getTime());
+        if (px == null || isNaN(px) || px < area.left || px > area.right) return;
+
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.strokeStyle = "#e0a458";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(px, area.top);
+        ctx.lineTo(px, area.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const label = formatKoreanDate(baseDateOverride);
+        ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        const textWidth = ctx.measureText(label).width;
+        const padding = 5;
+        const boxW = textWidth + padding * 2;
+        const boxX = Math.max(area.left, Math.min(px - boxW / 2, area.right - boxW));
+        const boxY = area.top + 4;
+        ctx.fillStyle = "#e0a458";
+        ctx.fillRect(boxX, boxY, boxW, 17);
+        ctx.fillStyle = "#ffffff";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, boxX + padding, boxY + 9);
+        ctx.restore();
       },
-      plugins: { legend: { position: "top" } },
-    },
+    };
+
+    mainChart = new Chart(document.getElementById("mainChart"), {
+      type: "line",
+      data: { datasets },
+      plugins: [rebaseLinePlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { type: "time", time: { unit: timeUnitForPeriod(activePeriodKey) }, grid: { display: false } },
+          y: { title: { display: true, text: "가격·지수 (시작일=100)" } },
+          y1: {
+            position: "right",
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "통화량 지수 (시작일=100, 자체 축)" },
+          },
+          yCorr: {
+            position: "right",
+            min: -1,
+            max: 1,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "상관계수 (-1~1)" },
+          },
+        },
+        plugins: { legend: { position: "top" } },
+        onClick(evt, _elements, chart) {
+          const area = chart.chartArea;
+          if (evt.x < area.left || evt.x > area.right || evt.y < area.top || evt.y > area.bottom) return;
+          const value = chart.scales.x.getValueForPixel(evt.x);
+          if (value == null) return;
+          let clickedDate = new Date(value).toISOString().slice(0, 10);
+          if (clickedDate < rangeStartDate) clickedDate = rangeStartDate;
+          if (clickedDate > lastDate) clickedDate = lastDate;
+
+          baseDateOverride = clickedDate;
+          renderMainChartWithCurrentState();
+          document.getElementById("rebaseNoteText").textContent = `기준일: ${formatKoreanDate(clickedDate)} (=100)`;
+          document.getElementById("rebaseNote").hidden = false;
+        },
+      },
+    });
+  }
+
+  const periodButtons = document.querySelectorAll("#periodSelector .period-btn[data-period]");
+  periodButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      periodButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderMainChart(btn.dataset.period);
+    });
+  });
+  const defaultBtn = document.querySelector('#periodSelector .period-btn[data-period="1y"]');
+  defaultBtn.classList.add("active");
+  renderMainChart("1y");
+
+  document.getElementById("rebaseResetBtn").addEventListener("click", () => {
+    renderMainChart(activePeriodKey);
   });
 
-  // ---- 롤링 상관계수 차트 ----
-  const retNasdaq = dailyReturns(nasdaq.filter((d) => d.date >= startDate));
-  const retSpacex = dailyReturns(spacex);
-  const window = Math.min(10, Math.max(3, retSpacex.length - 1));
-  const corr = rollingCorrelation(retNasdaq, retSpacex, window);
+  // ---- 글로벌/한국 지표 토글 (정규화 지수 차트 / 롤링 상관계수 차트 공통) ----
+  function setupToggleGroup(containerId, enabledState, onChange) {
+    document.querySelectorAll(`#${containerId} .toggle-btn`).forEach((btn) => {
+      const key = btn.dataset.series;
+      const color = btn.dataset.color;
+      const paint = () => {
+        if (enabledState[key]) {
+          btn.classList.add("on");
+          btn.style.background = color;
+          btn.style.borderColor = color;
+        } else {
+          btn.classList.remove("on");
+          btn.style.background = "";
+          btn.style.borderColor = "";
+        }
+      };
+      paint();
+      if (btn.disabled) return;
+      btn.addEventListener("click", () => {
+        enabledState[key] = !enabledState[key];
+        paint();
+        onChange();
+      });
+    });
+  }
+  setupToggleGroup("globalToggles", seriesEnabled, renderMainChartWithCurrentState);
+  setupToggleGroup("koreaToggles", seriesEnabled, renderMainChartWithCurrentState);
 
-  new Chart(document.getElementById("corrChart"), {
-    type: "line",
-    data: {
-      datasets: [
-        {
-          label: `${window}일 롤링 상관계수`,
-          data: corr.map((d) => ({ x: d.date, y: d.corr })),
-          borderColor: "#e0a458",
-          backgroundColor: "#e0a458",
-          borderWidth: 2,
-          pointRadius: 2,
-          tension: 0.2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { type: "time", time: { unit: "day" }, grid: { display: false } },
-        y: { min: -1, max: 1, title: { display: true, text: "상관계수" } },
-      },
-      plugins: { legend: { display: false } },
-    },
+  // ---- 롤링 상관계수 (체크박스로 선택한 두 지표, 정규화 지수 차트에 함께 표시) ----
+  function corrDatasetFor(checkedArr, rangeStart) {
+    if (!checkedArr || checkedArr.length !== 2) return null;
+    const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === checkedArr[0]);
+    const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === checkedArr[1]);
+    if (!sA || !sB) return null;
+
+    const dataA = sA.data.filter((d) => d.date >= rangeStart);
+    const dataB = sB.data.filter((d) => d.date >= rangeStart);
+    if (dataA.length < 4 || dataB.length < 4) return null;
+
+    // 발표 빈도가 더 낮은(성긴) 쪽의 시점 간격을 기준으로 수익률을 계산해야 함.
+    // 반대로 하면 촘촘한 쪽 기준 윈도우 안에 성긴 쪽의 실제 변화가 거의 포함되지 않아
+    // 상관계수가 대부분 구간에서 정의되지 않음(분산 0)이 됨.
+    const [sparse, sparseData, dense, denseData] =
+      dataA.length <= dataB.length ? [sA, dataA, sB, dataB] : [sB, dataB, sA, dataA];
+    const { a, b } = alignedReturnPairs(sparseData, sparse.valueKey, denseData, dense.valueKey);
+    if (a.length < 3) return null;
+    const corrWindow = Math.min(10, Math.max(3, a.length));
+    const corr = rollingCorrelation(a, b, corrWindow);
+    if (corr.length === 0) return null;
+
+    return {
+      label: `상관계수: ${sA.shortLabel || sA.label} ↔ ${sB.shortLabel || sB.label}`,
+      data: corr.map((d) => ({ x: d.date, y: d.corr })),
+      borderColor: "#e0a458",
+      backgroundColor: "#e0a458",
+      borderWidth: 2,
+      borderDash: [5, 3],
+      pointRadius: 2,
+      tension: 0.2,
+      yAxisID: "yCorr",
+    };
+  }
+
+  function corrLabel(key) {
+    const s = ALL_SERIES_FOR_CORR.find((x) => x.key === key);
+    return s ? s.shortLabel || s.label : key;
+  }
+
+  // ---- 선택한 두 지표를, 정규화 지수 차트의 기간을 상관계수 표에서 고른 단위(1주일/1개월/
+  // 3개월/1년)로 잘게 나눈 구간별 상관계수 순위표. 예: 차트 기간=5년, 표 단위=1년이면
+  // 최근 1년씩 5구간(예: 21년~25년)으로 나눠 구간별 상관계수와 순위를 보여줌.
+  function overallCorrelationForRange(keyA, keyB, rangeStart, rangeEnd) {
+    const sA = ALL_SERIES_FOR_CORR.find((s) => s.key === keyA);
+    const sB = ALL_SERIES_FOR_CORR.find((s) => s.key === keyB);
+    if (!sA || !sB) return null;
+
+    const dataA = sA.data.filter((d) => d.date >= rangeStart && d.date <= rangeEnd);
+    const dataB = sB.data.filter((d) => d.date >= rangeStart && d.date <= rangeEnd);
+    if (dataA.length < 4 || dataB.length < 4) return null;
+
+    const [sparse, sparseData, dense, denseData] =
+      dataA.length <= dataB.length ? [sA, dataA, sB, dataB] : [sB, dataB, sA, dataA];
+    const { a, b } = alignedReturnPairs(sparseData, sparse.valueKey, denseData, dense.valueKey);
+    if (a.length < 3) return null;
+    return pearson(a.map((d) => d.ret), b.map((d) => d.ret));
+  }
+
+  function formatBucketLabel(bucketKey, endDateStr) {
+    const [y, m, d] = endDateStr.split("-");
+    const yy = y.slice(2);
+    if (bucketKey === "1y") return `${yy}년`;
+    if (bucketKey === "3m" || bucketKey === "1m") return `${yy}년 ${parseInt(m, 10)}월`;
+    return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
+  }
+
+  function renderCorrRankTable() {
+    const tbody = document.getElementById("corrRankTableBody");
+    if (corrChecked.length !== 2) {
+      tbody.innerHTML = `<tr><td colspan="3" class="corr-rank-empty">지표를 2개 체크하면<br/>기간별 상관계수를 표시합니다.</td></tr>`;
+      return;
+    }
+    const [keyA, keyB] = corrChecked;
+    const bucketDays = PERIOD_DAYS[corrRankBucketKey];
+    const mainDays = PERIOD_DAYS[activePeriodKey];
+    const bucketCount = Math.min(CORR_RANK_MAX_BUCKETS, Math.max(1, Math.round(mainDays / bucketDays)));
+
+    const buckets = [];
+    for (let j = 1; j <= bucketCount; j++) {
+      const endDate = new Date(toDate(lastDate).getTime() - bucketDays * (bucketCount - j) * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      const startDate = new Date(toDate(endDate).getTime() - bucketDays * 86400000).toISOString().slice(0, 10);
+      buckets.push({
+        label: formatBucketLabel(corrRankBucketKey, endDate),
+        corr: overallCorrelationForRange(keyA, keyB, startDate, endDate),
+      });
+    }
+
+    const ranked = buckets.filter((b) => b.corr != null).slice().sort((a, b) => Math.abs(b.corr) - Math.abs(a.corr));
+    const rankOf = new Map(ranked.map((b, i) => [b, i + 1]));
+
+    tbody.innerHTML = buckets
+      .map((b) => {
+        const rank = rankOf.get(b);
+        return `
+        <tr>
+          <td>${b.label}</td>
+          <td>${b.corr == null ? "–" : b.corr.toFixed(3)}</td>
+          <td>${rank ? rank + "위" : "–"}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function refreshCorrCheckboxesDisabled() {
+    const atMax = corrChecked.length >= 2;
+    document.querySelectorAll(".corr-check").forEach((cb) => {
+      if (!cb.checked) cb.disabled = atMax;
+    });
+  }
+
+  function refreshCorrStatus() {
+    const statusEl = document.getElementById("corrStatus");
+    if (corrChecked.length < 2) {
+      statusEl.textContent = `상관계수를 표시하려면 지표를 2개 체크하세요 (현재 ${corrChecked.length}개 선택됨).`;
+    } else {
+      statusEl.textContent = `상관계수 비교 대상: ${corrLabel(corrChecked[0])} ↔ ${corrLabel(corrChecked[1])}`;
+    }
+  }
+
+  function setupCorrCheckboxes() {
+    document.querySelectorAll(".corr-check").forEach((cb) => {
+      cb.checked = corrChecked.includes(cb.dataset.series);
+      cb.addEventListener("change", () => {
+        const key = cb.dataset.series;
+        if (cb.checked) {
+          if (corrChecked.length < 2) corrChecked.push(key);
+        } else {
+          corrChecked = corrChecked.filter((k) => k !== key);
+        }
+        refreshCorrCheckboxesDisabled();
+        refreshCorrStatus();
+        renderMainChartWithCurrentState();
+        renderCorrRankTable();
+      });
+    });
+    refreshCorrCheckboxesDisabled();
+    refreshCorrStatus();
+    renderCorrRankTable();
+  }
+  setupCorrCheckboxes();
+
+  document.getElementById("corrRankPeriodSelect").addEventListener("change", (e) => {
+    corrRankBucketKey = e.target.value;
+    renderCorrRankTable();
   });
+
+  // ---- 글로벌/한국 전체 선택·해제 버튼 ----
+  function paintToggleButton(btn) {
+    const key = btn.dataset.series;
+    const color = btn.dataset.color;
+    if (seriesEnabled[key]) {
+      btn.classList.add("on");
+      btn.style.background = color;
+      btn.style.borderColor = color;
+    } else {
+      btn.classList.remove("on");
+      btn.style.background = "";
+      btn.style.borderColor = "";
+    }
+  }
+
+  function setupBulkActions() {
+    document.querySelectorAll(".bulk-btn").forEach((btn) => {
+      const groupId = btn.dataset.bulkGroup === "global" ? "globalToggles" : "koreaToggles";
+      const turnOn = btn.dataset.bulkAction === "selectAll";
+      btn.addEventListener("click", () => {
+        const toggleBtns = document.querySelectorAll(`#${groupId} .toggle-btn`);
+        toggleBtns.forEach((tb) => {
+          if (tb.disabled) return;
+          seriesEnabled[tb.dataset.series] = turnOn;
+          paintToggleButton(tb);
+        });
+
+        // 전체 해제 시에는 해당 그룹의 상관계수 체크박스도 함께 해제 (전체 선택은 체크박스 최대 2개
+        // 제약과 충돌하므로 데이터 표시 여부만 켬)
+        if (!turnOn) {
+          const groupKeys = Array.from(toggleBtns).map((tb) => tb.dataset.series);
+          let changed = false;
+          document.querySelectorAll(`#${groupId} .corr-check`).forEach((cb) => {
+            if (cb.checked) {
+              cb.checked = false;
+              changed = true;
+            }
+          });
+          if (changed) {
+            corrChecked = corrChecked.filter((k) => !groupKeys.includes(k));
+            refreshCorrCheckboxesDisabled();
+            refreshCorrStatus();
+            renderCorrRankTable();
+          }
+        }
+
+        renderMainChartWithCurrentState();
+      });
+    });
+  }
+  setupBulkActions();
+
+  // ---- 저장된 그래프 (기간·지표·상관계수 선택을 사용자별 Firestore 문서에 저장) ----
+  // savedViews/{uid}/views/{viewId} 구조. Firestore 보안 규칙으로 본인 uid만 읽고 쓸 수 있도록 제한.
+  const PERIOD_LABELS = { "1w": "1주일", "1m": "1개월", "6m": "6개월", "1y": "1년", "5y": "5년", "10y": "10년", "20y": "20년" };
+
+  function savedViewsCollection(uid) {
+    return collection(db, "savedViews", uid, "views");
+  }
+
+  async function loadSavedViews() {
+    if (!currentUser) return [];
+    const snap = await getDocs(savedViewsCollection(currentUser.uid));
+    return snap.docs.map((d) => d.data());
+  }
+
+  async function persistNewView(view) {
+    await setDoc(doc(savedViewsCollection(currentUser.uid), view.id), view);
+  }
+
+  async function deleteSavedView(viewId) {
+    await deleteDoc(doc(savedViewsCollection(currentUser.uid), viewId));
+  }
+
+  async function refreshSavedViewsUI() {
+    const container = document.getElementById("savedViews");
+    container.innerHTML = "";
+    if (!currentUser) {
+      container.innerHTML = `<div class="panel saved-views-empty"><p class="desc">Google 계정으로 로그인하면 나만의 저장된 그래프를 조회하고 저장할 수 있습니다.</p></div>`;
+      return;
+    }
+    try {
+      const views = await loadSavedViews();
+      views.sort((a, b) => (a.savedAt || "").localeCompare(b.savedAt || ""));
+      views.forEach(renderSavedViewPanel);
+    } catch (e) {
+      console.error("저장된 그래프를 불러오지 못했습니다:", e);
+      container.innerHTML = `<div class="panel saved-views-empty"><p class="desc">저장된 그래프를 불러오는 중 오류가 발생했습니다.</p></div>`;
+    }
+  }
+
+  function seriesBadge(key) {
+    const s = ALL_SERIES_FOR_CORR.find((x) => x.key === key);
+    if (!s) return "";
+    return `<span class="mini-pill" style="background:${s.color};">${s.shortLabel || s.label}</span>`;
+  }
+
+  function renderSavedViewPanel(view) {
+    const container = document.getElementById("savedViews");
+    const panel = document.createElement("div");
+    panel.className = "panel";
+    panel.dataset.viewId = view.id;
+
+    const globalOn = GLOBAL_KEYS.filter((k) => view.seriesEnabled[k]);
+    const koreaOn = KOREA_KEYS.filter((k) => view.seriesEnabled[k]);
+    const corrText =
+      view.corrChecked && view.corrChecked.length === 2
+        ? `${corrLabel(view.corrChecked[0])} ↔ ${corrLabel(view.corrChecked[1])}`
+        : "미선택";
+
+    panel.innerHTML = `
+      <div class="saved-view-header">
+        <div class="saved-view-meta">
+          <h2>저장된 그래프</h2>
+          <div class="saved-view-badges">
+            <span class="mini-group-label">기간</span>
+            <span class="mini-pill mini-pill-period">${PERIOD_LABELS[view.periodKey] || view.periodKey}</span>
+          </div>
+          <div class="saved-view-badges">
+            <span class="mini-group-label">글로벌</span>
+            ${globalOn.length ? globalOn.map(seriesBadge).join("") : '<span class="mini-pill-empty">선택 없음</span>'}
+          </div>
+          <div class="saved-view-badges">
+            <span class="mini-group-label">한국</span>
+            ${koreaOn.length ? koreaOn.map(seriesBadge).join("") : '<span class="mini-pill-empty">선택 없음</span>'}
+          </div>
+          <p class="desc">상관계수 비교 대상: ${corrText} · 저장 시각: ${new Date(view.savedAt).toLocaleString("ko-KR")}</p>
+        </div>
+        <div class="saved-view-actions">
+          <button class="export-btn sheets-btn" type="button">구글시트로 저장</button>
+          <button class="export-btn" type="button">엑셀로 저장</button>
+          <button class="delete-btn" type="button">삭제</button>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas></canvas></div>
+    `;
+    container.appendChild(panel);
+
+    const rangeStart = periodStartDate(view.periodKey);
+    const datasets = buildDatasets(view.seriesEnabled, view.corrChecked, rangeStart, rangeStart);
+    new Chart(panel.querySelector("canvas"), {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { type: "time", time: { unit: timeUnitForPeriod(view.periodKey) }, grid: { display: false } },
+          y: { title: { display: true, text: "가격·지수 (시작일=100)" } },
+          y1: {
+            position: "right",
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "통화량 지수 (시작일=100, 자체 축)" },
+          },
+          yCorr: {
+            position: "right",
+            min: -1,
+            max: 1,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: "상관계수 (-1~1)" },
+          },
+        },
+        plugins: { legend: { position: "top" } },
+      },
+    });
+
+    panel.querySelector(".delete-btn").addEventListener("click", async () => {
+      try {
+        await deleteSavedView(view.id);
+        panel.remove();
+      } catch (e) {
+        console.error("저장된 그래프를 삭제하지 못했습니다:", e);
+        alert("삭제에 실패했습니다. 다시 로그인 후 시도해 주세요.");
+      }
+    });
+
+    panel.querySelector(".export-btn:not(.sheets-btn)").addEventListener("click", () => {
+      exportViewToExcel(view, datasets);
+    });
+
+    const sheetsBtn = panel.querySelector(".sheets-btn");
+    sheetsBtn.addEventListener("click", async () => {
+      sheetsBtn.disabled = true;
+      const originalText = sheetsBtn.textContent;
+      sheetsBtn.textContent = "생성 중...";
+      try {
+        await exportViewToGoogleSheets(view, datasets);
+      } finally {
+        sheetsBtn.disabled = false;
+        sheetsBtn.textContent = originalText;
+      }
+    });
+  }
+
+  // 서로 다른 발표 주기(일/월/연)를 가진 시리즈들을 날짜 합집합 기준 하나의 표로 합침.
+  // 각 시리즈는 실제 데이터가 있는 날짜에만 값을 채우고 나머지는 빈 칸으로 둠(임의 보간 없음).
+  function buildExportRows(datasets) {
+    const valueMaps = datasets.map((ds) => new Map(ds.data.map((d) => [d.x, d.y])));
+    const dateSet = new Set();
+    datasets.forEach((ds) => ds.data.forEach((d) => dateSet.add(d.x)));
+    const dates = Array.from(dateSet).sort();
+    const headers = ["날짜", ...datasets.map((ds) => ds.label)];
+    const rows = dates.map((date) => [date, ...valueMaps.map((m) => (m.has(date) ? m.get(date) : ""))]);
+    return { headers, rows };
+  }
+
+  function exportFileTitle(view) {
+    return `buja-map_${PERIOD_LABELS[view.periodKey] || view.periodKey}_${view.savedAt.slice(0, 10)}`;
+  }
+
+  // 저장된 그래프의 모든 지표를 날짜 기준 하나의 시트로 합쳐 .xlsx로 내보냄.
+  function exportViewToExcel(view, datasets) {
+    const { headers, rows } = buildExportRows(datasets);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "데이터");
+    XLSX.writeFile(wb, `${exportFileTitle(view)}.xlsx`);
+  }
+
+  // Google Sheets API로 사용자 본인의 구글 드라이브에 새 스프레드시트를 만들고 데이터를 채운 뒤 엶.
+  async function createGoogleSheet(view, datasets, token) {
+    const { headers, rows } = buildExportRows(datasets);
+    const title = exportFileTitle(view);
+
+    const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ properties: { title }, sheets: [{ properties: { title: "데이터" } }] }),
+    });
+    if (!createRes.ok) throw Object.assign(new Error(`스프레드시트 생성 실패 (${createRes.status})`), { status: createRes.status });
+    const created = await createRes.json();
+
+    const updateRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${created.spreadsheetId}/values/${encodeURIComponent("데이터!A1")}?valueInputOption=RAW`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ values: [headers, ...rows] }),
+      }
+    );
+    if (!updateRes.ok) throw Object.assign(new Error(`데이터 입력 실패 (${updateRes.status})`), { status: updateRes.status });
+
+    return created.spreadsheetUrl;
+  }
+
+  async function exportViewToGoogleSheets(view, datasets) {
+    if (!currentUser) {
+      alert("먼저 오른쪽 위에서 Google 계정으로 로그인하세요.");
+      return;
+    }
+    try {
+      const token = await ensureGoogleAccessToken();
+      let url;
+      try {
+        url = await createGoogleSheet(view, datasets, token);
+      } catch (e) {
+        // 토큰 만료(401) 시 한 번만 재로그인 후 재시도
+        if (e.status === 401) {
+          googleAccessToken = null;
+          const freshToken = await ensureGoogleAccessToken();
+          url = await createGoogleSheet(view, datasets, freshToken);
+        } else {
+          throw e;
+        }
+      }
+      window.open(url, "_blank");
+    } catch (e) {
+      console.error("구글 스프레드시트 생성에 실패했습니다:", e);
+      alert("구글 스프레드시트 생성에 실패했습니다: " + e.message);
+    }
+  }
+
+  async function saveCurrentView() {
+    if (!currentUser) {
+      alert("저장하려면 먼저 오른쪽 위에서 Google 계정으로 로그인하세요.");
+      return;
+    }
+    const view = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      periodKey: activePeriodKey,
+      seriesEnabled: { ...seriesEnabled },
+      corrChecked: [...corrChecked],
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      await persistNewView(view);
+      renderSavedViewPanel(view);
+    } catch (e) {
+      console.error("저장된 그래프를 저장하지 못했습니다:", e);
+      alert("저장에 실패했습니다. 다시 로그인 후 시도해 주세요.");
+    }
+  }
+
+  document.getElementById("saveViewBtn").addEventListener("click", saveCurrentView);
+  onAuthChangedHook = refreshSavedViewsUI;
+  await refreshSavedViewsUI();
 
   document.getElementById("footerNote").innerHTML = `
-    데이터 소스: 나스닥·스페이스X = Yahoo Finance(QQQ, SPCX 일별 종가) · M2 유동성 = FRED(M2SL, 월간, 계단식 표시)<br/>
+    데이터 소스: 나스닥·스페이스X·코스피200 현물지수·VIX = Yahoo Finance(QQQ, SPCX, ^KS200, ^VIX 일별 종가) · 미국 M1·M2 유동성 = FRED(M1SL, M2SL, 월간, 계단식 표시) · 한국 M1·M2 유동성 = 한국은행 ECOS(161Y001/161Y005, 평잔·계절조정계열, 월간, 계단식 표시) · M1/M2 비율 = 같은 시점의 M1÷M2 값을 정규화하여 표시 · 서울 아파트 매매가격지수 = KB부동산 데이터허브(data-api.kbland.kr 주택가격동향조사, 월간, 계단식 표시) · 서울 주택 인허가실적 = 한국은행 ECOS(901Y105, 아파트 전용 통계가 없어 단독·연립·다세대 등 서울 전체 주택 유형 합계, 연간 합산, 계단식 표시)<br/>
     SPCX는 최근 상장으로 데이터 기간이 짧아(${spacex.length}거래일) 상관계수·정규화 결과의 통계적 신뢰도가 낮습니다. 참고용으로만 활용하세요.<br/>
+    서울 주택 인허가실적의 가장 최근 연도는 해당 연도가 아직 끝나지 않아 월 데이터가 일부만 집계되어 낮게 표시될 수 있습니다.<br/>
     갱신 방법: <code>node scripts/fetch-data.js</code> 실행 후 새로고침 (매일 1회 cron/스케줄러 등록 권장)
   `;
 }
 
-function fmtWon(v) {
-  if (v == null) return "–";
-  return v >= 100000000 ? (v / 100000000).toFixed(1) + "억" : fmtNum(v / 10000, 0) + "만";
-}
+main();
+document.getElementById("refreshBtn").addEventListener("click", () => location.reload());
 
-async function renderNaverLand() {
-  let data;
+// ---- 상단 탭 (거시경제 / 네이버 부동산) ----
+// 네이버 탭은 처음 열릴 때 한 번만 데이터를 불러온다.
+let naverLoaded = false;
+document.querySelectorAll("#tabBar .tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll("#tabBar .tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".tab-panel").forEach((p) => {
+      p.hidden = p.id !== `tabPanel-${tab}`;
+    });
+    if (tab === "naver" && !naverLoaded) {
+      naverLoaded = true;
+      initNaverTab();
+    }
+  });
+});
+
+// ---- 네이버 부동산 탭 ----
+// data/naver-land.json은 scripts/fetch-naver-land.js가 매일 GitHub Actions에서 생성한다.
+// (네이버 API는 브라우저에서 직접 호출하면 CORS로 막히므로 빌드 시점에 수집해 정적 파일로 제공)
+async function initNaverTab() {
+  const tbody = document.getElementById("naverTableBody");
+  const updatedEl = document.getElementById("naverUpdatedAt");
+  const topBadge = document.getElementById("naverTopBadge");
+  let payload;
   try {
     const res = await fetch("./data/naver-land.json");
-    if (!res.ok) return;
-    data = await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    payload = await res.json();
   } catch (e) {
+    console.error("네이버 부동산 데이터를 불러오지 못했습니다:", e);
+    updatedEl.textContent = "";
+    topBadge.textContent = "";
+    tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
     return;
   }
-  if (!data.listings || data.listings.length === 0) return;
 
-  const panel = document.getElementById("naverLandPanel");
-  panel.style.display = "";
+  const regionSelect = document.getElementById("naverRegionSelect");
+  const tradeSelect = document.getElementById("naverTradeSelect");
+  const regions = payload.regions || [];
+  regionSelect.innerHTML = regions.map((r) => `<option value="${r.cortarNo}">${r.name}</option>`).join("");
 
-  document.getElementById("naverLandDesc").textContent =
-    `${data.region} 아파트 매물 ${data.count}건 · 마지막 수집: ${new Date(data.updatedAt).toLocaleString("ko-KR")}`;
+  const totalCount = regions.reduce((s, r) => s + r.complexes.reduce((s2, c) => s2 + c.count, 0), 0);
+  topBadge.textContent = payload.updatedAt
+    ? `마지막 수집: ${new Date(payload.updatedAt).toLocaleString("ko-KR")} · 총 ${totalCount.toLocaleString("ko-KR")}건`
+    : "";
 
-  const byTrade = {};
-  for (const l of data.listings) {
-    (byTrade[l.tradeTypeLabel] ??= []).push(l);
+  updatedEl.textContent = payload.updatedAt
+    ? `마지막 갱신: ${new Date(payload.updatedAt).toLocaleString("ko-KR")} · 출처: 네이버 부동산`
+    : "출처: 네이버 부동산";
+
+  let sortKey = "count";
+  let sortDir = "desc";
+
+  const fmtManwon = (v) => (v == null ? "–" : v >= 10000 ? `${(v / 10000).toFixed(2)}억` : `${Math.round(v).toLocaleString("ko-KR")}만`);
+
+  function currentRows() {
+    const region = regions.find((r) => r.cortarNo === regionSelect.value);
+    if (!region) return [];
+    return (region.complexes || []).filter((c) => c.tradeType === tradeSelect.value);
   }
-  const cards = Object.entries(byTrade).map(([label, items]) => {
-    const prices = items.map((l) => l.dealPrice || l.warrantyPrice).filter((p) => p > 0);
-    const avg = prices.length ? prices.reduce((s, p) => s + p, 0) / prices.length : null;
-    return `
-    <div class="card">
-      <div class="label">${label}</div>
-      <div class="value">${items.length}건</div>
-      <div class="sub">평균 ${fmtWon(avg)}</div>
-    </div>`;
+
+  function renderSummary(rows) {
+    const totalListings = rows.reduce((s, r) => s + r.count, 0);
+    const pyeongPrices = rows.map((r) => r.avgPyeongPrice).filter((v) => v != null);
+    const avgPyeong = pyeongPrices.length ? pyeongPrices.reduce((s, v) => s + v, 0) / pyeongPrices.length : null;
+    const items = [
+      { name: "단지 수", value: `${rows.length.toLocaleString("ko-KR")}곳` },
+      { name: "총 매물 수", value: `${totalListings.toLocaleString("ko-KR")}건` },
+      { name: "평균 평당가", value: avgPyeong == null ? "–" : `${Math.round(avgPyeong).toLocaleString("ko-KR")}만원` },
+    ];
+    document.getElementById("naverSummaryBar").innerHTML = items
+      .map((i) => `<div class="summary-pill"><span class="name">${i.name}</span><span class="chg">${i.value}</span></div>`)
+      .join("");
+  }
+
+  function render() {
+    const rows = currentRows().slice().sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    renderSummary(rows);
+
+    document.querySelectorAll("#naverTable th.sortable").forEach((th) => {
+      th.classList.remove("sorted-asc", "sorted-desc");
+      if (th.dataset.sort === sortKey) th.classList.add(sortDir === "asc" ? "sorted-asc" : "sorted-desc");
+    });
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows
+      .map(
+        (r) => `
+      <tr>
+        <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${r.complexName}</a>` : r.complexName}</td>
+        <td class="num">${r.count.toLocaleString("ko-KR")}</td>
+        <td class="num">${fmtManwon(r.minPrice)}</td>
+        <td class="num">${fmtManwon(r.medianPrice)}</td>
+        <td class="num">${fmtManwon(r.maxPrice)}</td>
+        <td class="num">${r.avgPyeongPrice == null ? "–" : Math.round(r.avgPyeongPrice).toLocaleString("ko-KR")}</td>
+        <td class="num">${r.avgArea == null ? "–" : r.avgArea.toFixed(1) + "㎡"}</td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  document.querySelectorAll("#naverTable th.sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (sortKey === key) {
+        sortDir = sortDir === "asc" ? "desc" : "asc";
+      } else {
+        sortKey = key;
+        sortDir = key === "complexName" ? "asc" : "desc";
+      }
+      render();
+    });
   });
-  document.getElementById("naverLandCards").innerHTML = cards.join("");
-
-  // 같은 매물이 여러 부동산에 중복 등록된 경우 표에서는 한 줄로 묶어서 보여준다.
-  const groups = new Map();
-  for (const l of data.listings) {
-    const key = [l.complexName, l.tradeTypeLabel, l.floorInfo, l.exclusiveSpace, l.dealPrice, l.warrantyPrice, l.rentPrice].join("|");
-    if (!groups.has(key)) groups.set(key, { ...l, brokerCount: 0, exposureStartDate: l.exposureStartDate });
-    const g = groups.get(key);
-    g.brokerCount += 1;
-    if ((l.exposureStartDate || "") > (g.exposureStartDate || "")) g.exposureStartDate = l.exposureStartDate;
-  }
-  const sorted = [...groups.values()].sort((a, b) =>
-    (b.exposureStartDate || "").localeCompare(a.exposureStartDate || "")
-  );
-  const rows = sorted
-    .slice(0, 50)
-    .map(
-      (l) => `
-    <tr>
-      <td>${l.complexName ?? "–"}</td>
-      <td>${l.tradeTypeLabel}</td>
-      <td>${l.exclusiveSpace ? l.exclusiveSpace.toFixed(1) + "㎡" : "–"}</td>
-      <td>${l.floorInfo ?? "–"}</td>
-      <td>${fmtWon(l.dealPrice || l.warrantyPrice)}${l.rentPrice ? " / " + fmtWon(l.rentPrice) : ""}</td>
-      <td>${l.exposureStartDate ?? "–"}${l.brokerCount > 1 ? ` (${l.brokerCount}개 중개사)` : ""}</td>
-    </tr>`
-    )
-    .join("");
-  document.getElementById("naverLandTable").innerHTML = `
-    <thead><tr><th>단지</th><th>거래유형</th><th>전용면적</th><th>층</th><th>가격</th><th>등록일</th></tr></thead>
-    <tbody>${rows}</tbody>
-  `;
+  regionSelect.addEventListener("change", render);
+  tradeSelect.addEventListener("change", render);
+  render();
 }
-
-main();
-renderNaverLand();
 </script>
 </body>
 </html>

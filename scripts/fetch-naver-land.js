@@ -1,42 +1,33 @@
-// 매일 실행: 네이버 부동산에서 동작구 흑석동 아파트 매물을 수집해 ../data/naver-land.json 생성
+// 네이버 부동산에서 지역별 아파트 매물을 단지 단위로 집계해 ../data/naver-land.json 생성
 //
-// 네이버 부동산(fin.land.naver.com)은 Next.js 기반이며 일반 fetch로는 접근이 막혀 있어
-// (요청 즉시 429 TOO_MANY_REQUESTS) 실제 브라우저(Playwright)로 페이지를 띄운 뒤
-// 그 브라우저 컨텍스트 안에서 내부 API(front-api)를 호출하는 방식으로 우회한다.
-// 그럼에도 네이버가 이 트래픽 패턴을 재탐지해 차단할 수 있으므로, 실패 시 재시도 후
-// 기존 데이터 파일을 그대로 보존한다(빈 데이터로 덮어쓰지 않음).
+// m.land.naver.com의 구형 AJAX API(cluster/ajax/articleList)는 더 이상 실데이터를
+// 반환하지 않는다(호출은 200을 반환하지만 매물 0건). 네이버 부동산은 fin.land.naver.com
+// (Next.js) 로 전면 개편되었고, 이 도메인은 일반 fetch로 호출하면 즉시 429가 뜬다.
+// 대신 Playwright로 실제 브라우저를 띄운 뒤 그 페이지 컨텍스트 안에서 내부 API
+// (front-api)를 호출하면 정상적으로 데이터를 받아올 수 있다(브라우저 실행 환경/TLS
+// 지문이 필요한 것으로 보임). 그래도 네이버가 이 패턴을 재탐지해 막을 수 있으므로
+// 재시도 후 실패하면 기존 데이터 파일을 그대로 둔다(빈 데이터로 덮어쓰지 않음).
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
-const REGION = {
-  name: "서울시 동작구 흑석동",
-  legalDivisionNumber: "1159010500",
-  // 흑석동 중심 좌표 기준 바운딩 박스(약 1.3km 반경). 인접 동 매물은 sector로 걸러낸다.
-  boundingBox: { left: 126.9495, right: 126.9765, top: 37.5117, bottom: 37.4987 },
-};
+// 집계 대상 지역. cortarNo는 네이버 법정동 코드(front-api/v1/legalDivision 기준).
+// 구 단위 5곳은 기존 범위를 유지하고, 흑석동은 개별 요청으로 흑석동만 정밀하게 집계한다.
+const REGIONS = [
+  { cortarNo: "1168000000", name: "서울 강남구", legalDivisionLevelType: "GUN" },
+  { cortarNo: "1171000000", name: "서울 송파구", legalDivisionLevelType: "GUN" },
+  { cortarNo: "1165000000", name: "서울 서초구", legalDivisionLevelType: "GUN" },
+  { cortarNo: "1144000000", name: "서울 마포구", legalDivisionLevelType: "GUN" },
+  { cortarNo: "1120000000", name: "서울 성동구", legalDivisionLevelType: "GUN" },
+  { cortarNo: "1159010500", name: "서울 동작구 흑석동", legalDivisionLevelType: "EUP" },
+];
 
-const FILTER = {
-  tradeTypes: ["A1", "B1", "B2"], // A1=매매, B1=전세, B2=월세
-  realEstateTypes: ["A01"], // A01=아파트
-  roomCount: [],
-  bathRoomCount: [],
-  optionTypes: [],
-  oneRoomShapeTypes: [],
-  moveInTypes: [],
-  filtersExclusiveSpace: false,
-  floorTypes: [],
-  directionTypes: [],
-  hasArticlePhoto: false,
-  isAuthorizedByOwner: false,
-  parkingTypes: [],
-  entranceTypes: [],
-  hasArticle: false,
-};
+const TRADE_TYPES = ["A1"]; // A1=매매
+const REAL_ESTATE_TYPES = ["A01"]; // A01=아파트
+const PYEONG_M2 = 3.305785;
 
-const TRADE_TYPE_LABEL = { A1: "매매", B1: "전세", B2: "월세" };
 const PAGE_SIZE = 20; // 네이버 API가 20 초과 시 400을 반환함
-const MAX_PAGES = 60;
+const MAX_PAGES_PER_QUERY = 25;
 const MAX_ATTEMPTS = 3;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -59,94 +50,175 @@ async function newStealthPage(browser) {
   return { context, page };
 }
 
-async function callApi(page, path, body) {
+async function callApi(page, apiPath, body) {
   return page.evaluate(
-    async ({ path, body }) => {
-      const res = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(body),
-      });
+    async ({ apiPath, body }) => {
+      const options = { headers: { Accept: "application/json, text/plain, */*" } };
+      if (body) {
+        options.method = "POST";
+        options.headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(body);
+      }
+      const res = await fetch(apiPath, options);
       const text = await res.text();
       return { status: res.status, text };
     },
-    { path, body }
+    { apiPath, body }
   );
 }
 
-function flattenGroup(group) {
-  const out = [];
-  const rep = group.representativeArticleInfo;
-  const dupList = group.duplicatedArticleInfo?.articleInfoList || [rep];
-  for (const a of dupList) {
-    if (a.address?.sector !== "흑석동") continue;
-    out.push({
-      articleNumber: a.articleNumber,
-      complexName: a.complexName,
-      complexNumber: a.complexNumber,
-      dongName: a.dongName,
-      tradeType: a.tradeType,
-      tradeTypeLabel: TRADE_TYPE_LABEL[a.tradeType] || a.tradeType,
-      supplySpace: a.spaceInfo?.supplySpace ?? null,
-      exclusiveSpace: a.spaceInfo?.exclusiveSpace ?? null,
-      floorInfo: a.articleDetail?.floorInfo ?? null,
-      direction: a.articleDetail?.direction ?? null,
-      description: a.articleDetail?.articleFeatureDescription ?? null,
-      dealPrice: a.priceInfo?.dealPrice ?? null,
-      warrantyPrice: a.priceInfo?.warrantyPrice ?? null,
-      rentPrice: a.priceInfo?.rentPrice ?? null,
-      managementFeeAmount: a.priceInfo?.managementFeeAmount ?? null,
-      brokerName: a.brokerInfo?.brokerName ?? null,
-      brokerageName: a.brokerInfo?.brokerageName ?? null,
-      exposureStartDate: a.verificationInfo?.exposureStartDate ?? null,
-      imageUrl: a.articleMediaDto?.imageUrl ?? a.articleMedia?.photos?.[0]?.imagePath ?? null,
-    });
+async function getRegionCoordinates(page, region) {
+  const res = await callApi(
+    page,
+    `/front-api/v1/legalDivision/subInfoList?legalDivisionLevelType=SI&legalDivisionNumber=1100000000`
+  );
+  const json = JSON.parse(res.text);
+  const guList = json.result || [];
+  if (region.legalDivisionLevelType === "GUN") {
+    const match = guList.find((g) => region.name.endsWith(g.legalDivisionName));
+    if (match) return match.coordinates;
   }
-  return out;
+  // 동(흑석동) 단위는 소속 구를 먼저 찾은 뒤 하위 동 목록에서 조회한다.
+  for (const gu of guList) {
+    const dongRes = await callApi(
+      page,
+      `/front-api/v1/legalDivision/subInfoList?legalDivisionLevelType=GUN&legalDivisionNumber=${gu.legalDivisionNumber}`
+    );
+    const dongJson = JSON.parse(dongRes.text);
+    const dongMatch = (dongJson.result || []).find((d) => d.legalDivisionNumber === region.cortarNo);
+    if (dongMatch) return dongMatch.coordinates;
+  }
+  throw new Error(`지역 좌표를 찾을 수 없음: ${region.name}`);
 }
 
-async function fetchAllListings(page) {
+function boundingBoxFor(region, coords) {
+  const delta = region.legalDivisionLevelType === "EUP" ? { lat: 0.013, lon: 0.016 } : { lat: 0.035, lon: 0.045 };
+  return {
+    left: coords.xCoordinate - delta.lon,
+    right: coords.xCoordinate + delta.lon,
+    top: coords.yCoordinate + delta.lat,
+    bottom: coords.yCoordinate - delta.lat,
+  };
+}
+
+async function fetchArticlesForRegion(page, boundingBox, tradeType) {
   const collected = [];
-  const seenArticleNumbers = new Set();
   let cursor = { seed: undefined, lastInfo: undefined };
 
-  for (let pageIndex = 0; pageIndex < MAX_PAGES; pageIndex++) {
+  for (let pageIndex = 0; pageIndex < MAX_PAGES_PER_QUERY; pageIndex++) {
     const articlePagingRequest = { size: PAGE_SIZE };
     if (cursor.seed) articlePagingRequest.seed = cursor.seed;
     if (cursor.lastInfo) articlePagingRequest.lastInfo = cursor.lastInfo;
 
     const body = {
-      filter: FILTER,
-      boundingBox: REGION.boundingBox,
+      filter: {
+        tradeTypes: [tradeType],
+        realEstateTypes: REAL_ESTATE_TYPES,
+        roomCount: [],
+        bathRoomCount: [],
+        optionTypes: [],
+        oneRoomShapeTypes: [],
+        moveInTypes: [],
+        filtersExclusiveSpace: false,
+        floorTypes: [],
+        directionTypes: [],
+        hasArticlePhoto: false,
+        isAuthorizedByOwner: false,
+        parkingTypes: [],
+        entranceTypes: [],
+        hasArticle: false,
+      },
+      boundingBox,
       precision: 15,
       userChannelType: "PC",
       articlePagingRequest,
     };
 
     const res = await callApi(page, "/front-api/v1/article/boundedArticles", body);
-    if (res.status !== 200) {
-      throw new Error(`boundedArticles HTTP ${res.status}: ${res.text.slice(0, 200)}`);
-    }
+    if (res.status !== 200) throw new Error(`boundedArticles HTTP ${res.status}: ${res.text.slice(0, 200)}`);
     const json = JSON.parse(res.text);
-    if (!json.isSuccess) {
-      throw new Error(`boundedArticles API error: ${res.text.slice(0, 200)}`);
-    }
+    if (!json.isSuccess) throw new Error(`boundedArticles API error: ${res.text.slice(0, 200)}`);
 
-    const groups = json.result?.list || [];
-    for (const group of groups) {
-      for (const listing of flattenGroup(group)) {
-        if (seenArticleNumbers.has(listing.articleNumber)) continue;
-        seenArticleNumbers.add(listing.articleNumber);
-        collected.push(listing);
-      }
+    for (const group of json.result?.list || []) {
+      const rep = group.representativeArticleInfo;
+      if (!rep) continue;
+      collected.push(rep);
     }
 
     if (!json.result?.hasNextPage) break;
     cursor = { seed: json.result.seed, lastInfo: json.result.lastInfo };
-    await sleep(jitter(1200));
+    await sleep(jitter(1000));
   }
 
   return collected;
+}
+
+function median(sortedNums) {
+  const n = sortedNums.length;
+  if (n === 0) return null;
+  const mid = Math.floor(n / 2);
+  return n % 2 === 0 ? (sortedNums[mid - 1] + sortedNums[mid]) / 2 : sortedNums[mid];
+}
+
+function aggregateComplexes(articles, tradeType) {
+  const byComplex = new Map();
+  for (const a of articles) {
+    const key = a.complexNumber ?? a.complexName;
+    if (!byComplex.has(key)) {
+      byComplex.set(key, { complexNo: a.complexNumber ?? null, complexName: a.complexName, tradeType, prices: [], areas: [] });
+    }
+    const bucket = byComplex.get(key);
+    const rawPrice = tradeType === "A1" ? a.priceInfo?.dealPrice : a.priceInfo?.warrantyPrice;
+    if (rawPrice > 0) bucket.prices.push(rawPrice / 10000); // 원 -> 만원
+    if (a.spaceInfo?.supplySpace > 0) bucket.areas.push(a.spaceInfo.supplySpace);
+  }
+
+  const complexes = [];
+  for (const bucket of byComplex.values()) {
+    const prices = bucket.prices.slice().sort((x, y) => x - y);
+    const areas = bucket.areas;
+    const avgArea = areas.length ? areas.reduce((s, v) => s + v, 0) / areas.length : null;
+    const pyeongPrices = bucket.prices
+      .map((p, i) => (areas[i] ? p / (areas[i] / PYEONG_M2) : null))
+      .filter((v) => v != null);
+    complexes.push({
+      complexNo: bucket.complexNo,
+      complexName: bucket.complexName,
+      tradeType: bucket.tradeType,
+      count: bucket.prices.length,
+      minPrice: prices.length ? prices[0] : null,
+      medianPrice: median(prices),
+      maxPrice: prices.length ? prices[prices.length - 1] : null,
+      avgPyeongPrice: pyeongPrices.length ? pyeongPrices.reduce((s, v) => s + v, 0) / pyeongPrices.length : null,
+      avgArea,
+    });
+  }
+  return complexes;
+}
+
+async function fetchAllRegions(page) {
+  const regions = [];
+  for (const region of REGIONS) {
+    console.log(`[${region.name}] 좌표 조회 중...`);
+    const coords = await getRegionCoordinates(page, region);
+    const boundingBox = boundingBoxFor(region, coords);
+
+    // 동(EUP) 단위 지역은 바운딩 박스가 인접 동까지 걸치므로 실제 소재지로 한 번 더 거른다.
+    const dongName = region.legalDivisionLevelType === "EUP" ? region.name.split(" ").pop() : null;
+
+    const complexes = [];
+    for (const tradeType of TRADE_TYPES) {
+      console.log(`[${region.name}] ${tradeType} 매물 수집 중...`);
+      let articles = await fetchArticlesForRegion(page, boundingBox, tradeType);
+      if (dongName) articles = articles.filter((a) => a.address?.sector === dongName);
+      console.log(`  ${articles.length}건 원자료 → ${new Set(articles.map((a) => a.complexNumber)).size}개 단지`);
+      complexes.push(...aggregateComplexes(articles, tradeType));
+      await sleep(jitter(1500));
+    }
+
+    regions.push({ cortarNo: region.cortarNo, name: region.name, complexes });
+  }
+  return regions;
 }
 
 async function attemptFetch() {
@@ -157,8 +229,7 @@ async function attemptFetch() {
   try {
     const { context, page } = await newStealthPage(browser);
     try {
-      const listings = await fetchAllListings(page);
-      return listings;
+      return await fetchAllRegions(page);
     } finally {
       await context.close();
     }
@@ -169,14 +240,15 @@ async function attemptFetch() {
 
 async function main() {
   const outPath = path.join(__dirname, "..", "data", "naver-land.json");
-  let listings = [];
+  let regions = [];
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      console.log(`[시도 ${attempt}/${MAX_ATTEMPTS}] ${REGION.name} 매물 수집 중...`);
-      listings = await attemptFetch();
-      if (listings.length > 0) break;
+      console.log(`[시도 ${attempt}/${MAX_ATTEMPTS}] 네이버 부동산 매물 수집 중...`);
+      regions = await attemptFetch();
+      const totalComplexes = regions.reduce((s, r) => s + r.complexes.length, 0);
+      if (totalComplexes > 0) break;
       console.log("  0건 수집됨, 재시도 전 대기...");
     } catch (err) {
       lastError = err;
@@ -185,7 +257,8 @@ async function main() {
     if (attempt < MAX_ATTEMPTS) await sleep(jitter(5000 * attempt));
   }
 
-  if (listings.length === 0) {
+  const totalComplexes = regions.reduce((s, r) => s + r.complexes.length, 0);
+  if (totalComplexes === 0) {
     console.error(
       "[실패] 수집된 매물이 한 건도 없습니다. 네이버 차단 여부를 확인하세요. 기존 파일을 유지합니다."
     );
@@ -193,16 +266,10 @@ async function main() {
     process.exit(1);
   }
 
-  const data = {
-    updatedAt: new Date().toISOString(),
-    region: REGION.name,
-    count: listings.length,
-    listings,
-  };
-
+  const data = { updatedAt: new Date().toISOString(), regions };
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(data, null, 2));
-  console.log(`[성공] ${listings.length}건 수집 → ${outPath}`);
+  console.log(`[성공] ${regions.length}개 지역, ${totalComplexes}개 단지×거래유형 조합 → ${outPath}`);
 }
 
 main().catch((err) => {
