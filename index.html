@@ -134,6 +134,17 @@
     padding: 6px 10px;
   }
   .chip-row:empty::before { content: "선택된 지역 없음"; color: var(--muted); font-size: 0.78rem; }
+  .region-filter-note {
+    font-size: 0.76rem;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    line-height: 1.5;
+  }
+  .region-filter-note[hidden] { display: none; }
+  .region-chip-box.chips-inactive .chip-row { opacity: 0.45; }
   .region-chip {
     display: inline-flex;
     align-items: center;
@@ -608,6 +619,7 @@
             <button class="region-btn exclude" id="addExcludeRegionBtn" type="button">지역제외</button>
           </div>
           <div class="region-chip-box">
+            <div class="region-filter-note" id="regionFilterNote" hidden></div>
             <div class="chip-row" id="includeChipRow"></div>
             <div class="chip-row" id="excludeChipRow"></div>
           </div>
@@ -1829,7 +1841,34 @@ async function initNaverTab() {
     dongSelect.disabled = dongList.length === 0;
   }
   refreshDongOptions();
-  gugunSelect.addEventListener("change", refreshDongOptions);
+  // 드롭다운에서 구/동을 고르면 곧바로 그 지역만 표시한다(지역추가 버튼을 누르지 않아도 됨).
+  // 구가 "전체"면 아래 포함/제외 칩 설정이 적용된다.
+  gugunSelect.addEventListener("change", () => {
+    refreshDongOptions();
+    render();
+  });
+  dongSelect.addEventListener("change", render);
+  sidoSelect.addEventListener("change", () => {
+    refreshDongOptions();
+    render();
+  });
+
+  // 드롭다운 선택이 활성일 때 칩이 무시된다는 것을 화면에 알린다.
+  function refreshRegionFilterNote() {
+    const note = document.getElementById("regionFilterNote");
+    const box = document.querySelector(".region-chip-box");
+    if (gugunSelect.value) {
+      const label = dongSelect.value
+        ? `${sidoSelect.value} ${gugunSelect.value} ${dongSelect.value}`
+        : `${sidoSelect.value} ${gugunSelect.value}`;
+      note.textContent = `위 드롭다운 선택(${label})만 표시 중입니다. 아래 포함·제외 지역을 쓰려면 지역(군,구)을 '전체'로 되돌리세요.`;
+      note.hidden = false;
+      box.classList.add("chips-inactive");
+    } else {
+      note.hidden = true;
+      box.classList.remove("chips-inactive");
+    }
+  }
 
   let includeChips = [{ level: "si", si: "서울", label: "서울시" }];
   let excludeChips = [];
@@ -1941,9 +1980,15 @@ async function initNaverTab() {
   }
 
   function currentRows() {
+    // 드롭다운에서 구를 고르면 그 지역만 보여준다(칩 설정은 무시). 구가 "전체"면 칩 설정을 따른다.
+    const pickedGugun = gugunSelect.value;
+    const pickedDong = dongSelect.value;
     const seen = new Map();
     for (const region of regions) {
-      if (!regionIncluded(region)) continue;
+      if (pickedGugun) {
+        if (region.gugun !== pickedGugun) continue;
+        if (pickedDong && region.dong !== pickedDong) continue;
+      } else if (!regionIncluded(region)) continue;
       for (const c of region.complexes) {
         if (c.tradeType !== tradeSelect.value) continue;
         if (!passesUnitFilters(c)) continue;
@@ -1969,6 +2014,7 @@ async function initNaverTab() {
   }
 
   function render() {
+    refreshRegionFilterNote();
     const rows = currentRows().slice().sort((a, b) => {
       const va = a[sortKey], vb = b[sortKey];
       if (va == null) return 1;
