@@ -5,6 +5,10 @@
   "description": "SpaceX(SPCX) x 미국 M2 유동성 x 나스닥 상관관계 대시보드",
   "scripts": {
     "update": "node scripts/fetch-data.js",
+    "update:naver-land": "node scripts/fetch-naver-land.js",
     "serve": "node server.js"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
   }
 }

@@ -24,10 +24,18 @@ jobs:
           node-version: "20"
       - name: Fetch latest data
         run: node scripts/fetch-data.js
+      - name: Install dependencies for Naver Land scraper
+        run: npm install --no-save playwright && npx playwright install --with-deps chromium
+      - name: Fetch Naver Land listings (동작구 흑석동)
+        # GitHub Actions의 클라우드 IP는 네이버 부동산에 차단될 가능성이 높음.
+        # 실패해도 나머지 대시보드 데이터 갱신/커밋은 계속 진행한다.
+        run: node scripts/fetch-naver-land.js
+        continue-on-error: true
       - name: Commit updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/data.json
+          [ -f data/naver-land.json ] && git add data/naver-land.json
           git diff --cached --quiet && echo "no changes" || git commit -m "chore: daily data update"
           git push

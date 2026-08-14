@@ -79,6 +79,11 @@
   .legend-note { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .err { color: var(--bad); padding: 40px; text-align: center; }
+  .table-wrap { overflow-x: auto; }
+  .listing-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+  .listing-table th, .listing-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--panel-border); }
+  .listing-table th { color: var(--muted); font-weight: 500; }
+  .listing-table tbody tr:hover { background: rgba(128, 128, 128, 0.08); }
 </style>
 </head>
 <body>
@@ -99,6 +104,13 @@
     <h2>롤링 상관계수 (QQQ ↔ SPCX, 10거래일 수익률 기준)</h2>
     <p class="desc">두 자산의 일간 수익률 간 10일 롤링 상관계수. +1에 가까울수록 동조화, -1에 가까울수록 역행.</p>
     <div class="chart-wrap small"><canvas id="corrChart"></canvas></div>
+  </div>
+
+  <div class="panel" id="naverLandPanel" style="display:none">
+    <h2>네이버 부동산 · 동작구 흑석동 아파트 매물</h2>
+    <p class="desc" id="naverLandDesc"></p>
+    <div class="cards" id="naverLandCards"></div>
+    <div class="table-wrap"><table class="listing-table" id="naverLandTable"></table></div>
   </div>
 
   <footer id="footerNote"></footer>
@@ -299,7 +311,78 @@ async function main() {
   `;
 }
 
+function fmtWon(v) {
+  if (v == null) return "–";
+  return v >= 100000000 ? (v / 100000000).toFixed(1) + "억" : fmtNum(v / 10000, 0) + "만";
+}
+
+async function renderNaverLand() {
+  let data;
+  try {
+    const res = await fetch("./data/naver-land.json");
+    if (!res.ok) return;
+    data = await res.json();
+  } catch (e) {
+    return;
+  }
+  if (!data.listings || data.listings.length === 0) return;
+
+  const panel = document.getElementById("naverLandPanel");
+  panel.style.display = "";
+
+  document.getElementById("naverLandDesc").textContent =
+    `${data.region} 아파트 매물 ${data.count}건 · 마지막 수집: ${new Date(data.updatedAt).toLocaleString("ko-KR")}`;
+
+  const byTrade = {};
+  for (const l of data.listings) {
+    (byTrade[l.tradeTypeLabel] ??= []).push(l);
+  }
+  const cards = Object.entries(byTrade).map(([label, items]) => {
+    const prices = items.map((l) => l.dealPrice || l.warrantyPrice).filter((p) => p > 0);
+    const avg = prices.length ? prices.reduce((s, p) => s + p, 0) / prices.length : null;
+    return `
+    <div class="card">
+      <div class="label">${label}</div>
+      <div class="value">${items.length}건</div>
+      <div class="sub">평균 ${fmtWon(avg)}</div>
+    </div>`;
+  });
+  document.getElementById("naverLandCards").innerHTML = cards.join("");
+
+  // 같은 매물이 여러 부동산에 중복 등록된 경우 표에서는 한 줄로 묶어서 보여준다.
+  const groups = new Map();
+  for (const l of data.listings) {
+    const key = [l.complexName, l.tradeTypeLabel, l.floorInfo, l.exclusiveSpace, l.dealPrice, l.warrantyPrice, l.rentPrice].join("|");
+    if (!groups.has(key)) groups.set(key, { ...l, brokerCount: 0, exposureStartDate: l.exposureStartDate });
+    const g = groups.get(key);
+    g.brokerCount += 1;
+    if ((l.exposureStartDate || "") > (g.exposureStartDate || "")) g.exposureStartDate = l.exposureStartDate;
+  }
+  const sorted = [...groups.values()].sort((a, b) =>
+    (b.exposureStartDate || "").localeCompare(a.exposureStartDate || "")
+  );
+  const rows = sorted
+    .slice(0, 50)
+    .map(
+      (l) => `
+    <tr>
+      <td>${l.complexName ?? "–"}</td>
+      <td>${l.tradeTypeLabel}</td>
+      <td>${l.exclusiveSpace ? l.exclusiveSpace.toFixed(1) + "㎡" : "–"}</td>
+      <td>${l.floorInfo ?? "–"}</td>
+      <td>${fmtWon(l.dealPrice || l.warrantyPrice)}${l.rentPrice ? " / " + fmtWon(l.rentPrice) : ""}</td>
+      <td>${l.exposureStartDate ?? "–"}${l.brokerCount > 1 ? ` (${l.brokerCount}개 중개사)` : ""}</td>
+    </tr>`
+    )
+    .join("");
+  document.getElementById("naverLandTable").innerHTML = `
+    <thead><tr><th>단지</th><th>거래유형</th><th>전용면적</th><th>층</th><th>가격</th><th>등록일</th></tr></thead>
+    <tbody>${rows}</tbody>
+  `;
+}
+
 main();
+renderNaverLand();
 </script>
 </body>
 </html>
