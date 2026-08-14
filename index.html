@@ -1789,9 +1789,22 @@ async function initNaverTab() {
     ? `마지막 수집: ${new Date(payload.updatedAt).toLocaleString("ko-KR")} · 총 ${totalCount.toLocaleString("ko-KR")}건`
     : "";
 
-  updatedEl.textContent = payload.updatedAt
-    ? `마지막 갱신: ${new Date(payload.updatedAt).toLocaleString("ko-KR")} · 출처: 네이버 부동산`
-    : "출처: 네이버 부동산";
+  // 지역별로 수집 시점이 다를 수 있다(예: 강남구만 수시로 갱신하고 나머지는 정기 수집).
+  // 가장 최근 시각만 보여주면 오래된 지역까지 방금 갱신된 것처럼 보이므로 함께 표기한다.
+  const regionTimes = regions.map((r) => r.updatedAt).filter(Boolean).sort();
+  if (regionTimes.length) {
+    const newest = new Date(regionTimes[regionTimes.length - 1]);
+    const oldest = new Date(regionTimes[0]);
+    let text = `마지막 갱신: ${newest.toLocaleString("ko-KR")}`;
+    if (newest - oldest > 12 * 3600 * 1000) {
+      text += ` · 일부 지역은 ${oldest.toLocaleDateString("ko-KR")} 기준`;
+    }
+    updatedEl.textContent = `${text} · 출처: 네이버 부동산`;
+  } else {
+    updatedEl.textContent = payload.updatedAt
+      ? `마지막 갱신: ${new Date(payload.updatedAt).toLocaleString("ko-KR")} · 출처: 네이버 부동산`
+      : "출처: 네이버 부동산";
+  }
 
   let sortKey = "count";
   let sortDir = "desc";

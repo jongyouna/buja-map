@@ -9,13 +9,30 @@
 // 지문이 필요한 것으로 보임). 그래도 네이버가 이 패턴을 재탐지해 막을 수 있으므로,
 // 지역 하나가 실패해도 나머지는 계속 수집하고, 전체가 0건일 때만 기존 파일을 유지한다.
 //
-// 범위는 현재 "서울 전체"까지만 다룬다(경기도는 다음 단계에서 확장 예정 — REGION_SCOPE 참고).
+// 범위는 현재 "서울 전체"까지만 다룬다(경기도는 다음 단계에서 확장 예정 — NAVER_SCOPE 참고).
+//
+// 수집 범위는 환경변수 NAVER_SCOPE로 고른다:
+//   NAVER_SCOPE=gangnam  → 강남구만 (1~2분, 수시 실행용)
+//   NAVER_SCOPE=seoul    → 서울 전체 구 + 정밀 동 (기본값, 매일 새벽 정기 수집용)
+// 일부 지역만 수집해도 기존 data/naver-land.json의 나머지 지역은 그대로 보존된다
+// (mergeRegions 참고). 지역마다 updatedAt을 따로 기록해 어느 지역이 언제 갱신됐는지 남긴다.
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
 const SEOUL_SI_NUMBER = "1100000000";
 const SPOTLIGHT_DONGS = [{ gu: "동작구", dong: "흑석동" }]; // 구 전체 집계와 별개로 정밀 집계할 동
+
+const SCOPE = (process.env.NAVER_SCOPE || "seoul").toLowerCase();
+const SCOPE_PRESETS = {
+  gangnam: { onlyGu: ["강남구"], includeSpotlightDongs: false, label: "강남구만" },
+  seoul: { onlyGu: null, includeSpotlightDongs: true, label: "서울 전체 구 + 정밀 동" },
+};
+if (!SCOPE_PRESETS[SCOPE]) {
+  console.error(`알 수 없는 NAVER_SCOPE="${SCOPE}". 사용 가능: ${Object.keys(SCOPE_PRESETS).join(", ")}`);
+  process.exit(1);
+}
+const SCOPE_CONFIG = SCOPE_PRESETS[SCOPE];
 
 const TRADE_TYPES = ["A1"]; // A1=매매
 const REAL_ESTATE_TYPES = ["A01"]; // A01=아파트
@@ -82,7 +99,11 @@ async function subInfoList(page, legalDivisionLevelType, legalDivisionNumber) {
 
 // 수집 대상 지역 목록을 동적으로 구성한다: 서울 전체 구 + 지정된 정밀 동(흑석동 등).
 async function buildRegionList(page) {
-  const guList = await subInfoList(page, "SI", SEOUL_SI_NUMBER);
+  let guList = await subInfoList(page, "SI", SEOUL_SI_NUMBER);
+  if (SCOPE_CONFIG.onlyGu) {
+    guList = guList.filter((g) => SCOPE_CONFIG.onlyGu.includes(g.legalDivisionName));
+    if (guList.length === 0) throw new Error(`범위 ${SCOPE}에 해당하는 구를 찾지 못했습니다.`);
+  }
   const regions = guList.map((g) => ({
     cortarNo: g.legalDivisionNumber,
     name: `서울 ${g.legalDivisionName}`,
@@ -92,7 +113,7 @@ async function buildRegionList(page) {
     coordinates: g.coordinates,
   }));
 
-  for (const spot of SPOTLIGHT_DONGS) {
+  for (const spot of SCOPE_CONFIG.includeSpotlightDongs ? SPOTLIGHT_DONGS : []) {
     const gu = guList.find((g) => g.legalDivisionName === spot.gu);
     if (!gu) continue;
     const dongList = await subInfoList(page, "GUN", gu.legalDivisionNumber);
@@ -254,7 +275,7 @@ async function fetchAllRegions() {
   try {
     session = await newStealthPage(browser);
     const regionList = await buildRegionList(session.page);
-    console.log(`대상 지역 ${regionList.length}곳 (서울 전체 구 + 정밀 동)`);
+    console.log(`대상 지역 ${regionList.length}곳 (범위: ${SCOPE_CONFIG.label})`);
 
     for (let i = 0; i < regionList.length; i++) {
       const region = regionList[i];
@@ -270,7 +291,15 @@ async function fetchAllRegions() {
       console.log(`[${i + 1}/${regionList.length}] ${region.name} 수집 중...`);
       try {
         const complexes = await fetchOneRegion(session.page, region);
-        results.push({ cortarNo: region.cortarNo, name: region.name, si: region.si, gugun: region.gugun, dong: region.dong, complexes });
+        results.push({
+          cortarNo: region.cortarNo,
+          name: region.name,
+          si: region.si,
+          gugun: region.gugun,
+          dong: region.dong,
+          updatedAt: new Date().toISOString(),
+          complexes,
+        });
       } catch (err) {
         console.log(`  오류(건너뜀): ${err.message}`);
       }
@@ -282,8 +311,26 @@ async function fetchAllRegions() {
   return results;
 }
 
+function readExistingRegions(outPath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(outPath, "utf8"));
+    return Array.isArray(parsed.regions) ? parsed.regions : [];
+  } catch (e) {
+    return []; // 파일이 없거나 깨졌으면 이번 수집분만 저장
+  }
+}
+
+// 이번에 수집한 지역만 교체하고, 수집 대상이 아니었던 지역은 기존 데이터를 그대로 남긴다.
+// (강남구만 수집했다고 나머지 구가 파일에서 사라지면 안 되므로)
+function mergeRegions(existing, fresh) {
+  const byKey = new Map(existing.map((r) => [r.cortarNo, r]));
+  for (const r of fresh) byKey.set(r.cortarNo, r);
+  return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, "ko"));
+}
+
 async function main() {
   const outPath = path.join(__dirname, "..", "data", "naver-land.json");
+  console.log(`수집 범위: ${SCOPE} (${SCOPE_CONFIG.label})`);
   let regions = [];
   let lastError = null;
 
@@ -310,10 +357,17 @@ async function main() {
     process.exit(1);
   }
 
-  const data = { updatedAt: new Date().toISOString(), regions };
+  const merged = mergeRegions(readExistingRegions(outPath), regions);
+  const data = { updatedAt: new Date().toISOString(), scope: SCOPE, regions: merged };
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(data, null, 2));
-  console.log(`[성공] ${regions.length}개 지역, ${totalComplexes}개 단지×거래유형 조합 → ${outPath}`);
+
+  const keptCount = merged.length - regions.length;
+  console.log(
+    `[성공] 이번 수집 ${regions.length}개 지역(${totalComplexes}개 단지×거래유형)` +
+      (keptCount > 0 ? `, 기존 유지 ${keptCount}개 지역` : "") +
+      ` → 총 ${merged.length}개 지역 저장 (${outPath})`
+  );
 }
 
 main().catch((err) => {

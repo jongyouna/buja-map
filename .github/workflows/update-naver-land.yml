@@ -1,36 +1,60 @@
 name: Update Naver Land listings
 
+# 네이버는 클라우드/데이터센터 IP에서 land.naver.com 계열 접속을 끊어버린다.
+# (GitHub 호스팅 러너로 실행하면 fin.land.naver.com 접속 자체가 45초 타임아웃 → 3회 재시도 후 실패)
+# 그래서 이 워크플로는 국내 가정용 회선에 연결된 self-hosted 러너에서만 동작한다.
+# 러너 설치 방법은 README의 "네이버 부동산 수집 러너" 항목 참고.
 on:
   schedule:
-    - cron: "0 17 * * *" # 매일 UTC 17:00 = KST 익일 02:00
-  workflow_dispatch: {}
+    - cron: "0 17 * * *" # 매일 UTC 17:00 = KST 익일 02:00 (서울 전체 수집)
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "수집 범위"
+        type: choice
+        required: true
+        default: gangnam
+        options:
+          - gangnam # 강남구만 (1~2분)
+          - seoul # 서울 전체 구 + 정밀 동
 
 permissions:
   contents: write
 
 concurrency:
-  group: pages
+  group: naver-land
   cancel-in-progress: false
 
 jobs:
   update-naver-land:
-    runs-on: ubuntu-latest
+    # 집 회선에 붙은 러너에서 실행 (라벨은 러너 등록 시 지정한 값과 맞춰야 함)
+    runs-on: [self-hosted, naver-scraper]
+    defaults:
+      run:
+        # 윈도우 러너에서도 아래 git 스크립트가 그대로 동작하도록 Git Bash 사용
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Install dependencies
-        run: npm install --no-save playwright && npx playwright install --with-deps chromium
-      - name: Fetch Naver Land listings (서울 전체 구 + 정밀 동)
-        # GitHub Actions의 클라우드 IP는 네이버 부동산에 차단될 가능성이 높음.
-        # 실패 시 기존 data/naver-land.json을 그대로 두고 이 워크플로만 실패로 끝난다
-        # (거시경제 대시보드 갱신 워크플로와는 완전히 분리되어 있어 서로 영향 없음).
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Fetch Naver Land listings
+        # 스케줄 실행은 서울 전체, 수동 실행은 선택한 범위(기본 강남구만).
+        # 일부 지역만 수집해도 나머지 지역 데이터는 스크립트가 병합해 보존한다.
+        env:
+          NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
         run: node scripts/fetch-naver-land.js
       - name: Commit updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/naver-land.json
-          git diff --cached --quiet && echo "no changes" || git commit -m "chore: 네이버 부동산 매물 갱신"
+          git diff --cached --quiet && echo "no changes" || git commit -m "chore: 네이버 부동산 매물 갱신 (${NAVER_SCOPE})"
+          git pull --rebase origin main
           git push
+        env:
+          NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
