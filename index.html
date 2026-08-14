@@ -16,6 +16,8 @@
     --text: #101828;
     --muted: #667085;
     --accent-nasdaq: #101828;
+    --accent-include: #7c4dff;
+    --accent-exclude: #f0932b;
     --good: #067647;
     --good-bg: #ecfdf3;
     --bad: #b42318;
@@ -83,6 +85,95 @@
     background: var(--panel);
     color: var(--text);
     cursor: pointer;
+  }
+  .filter-section { margin-bottom: 20px; }
+  .filter-section:last-child { margin-bottom: 0; }
+  .filter-section-title { font-size: 0.85rem; font-weight: 700; margin: 0 0 10px; }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .filter-field { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+  .filter-field label { font-size: 0.72rem; color: var(--muted); }
+  .filter-field select, .filter-field input {
+    font-size: 0.82rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: var(--panel);
+    color: var(--text);
+  }
+  .filter-field select { cursor: pointer; }
+  .filter-field.disabled select, .filter-field.disabled input { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+  .region-btn {
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .region-btn.include { background: var(--accent-include); }
+  .region-btn.exclude { background: var(--accent-exclude); }
+  .region-btn:disabled { background: var(--panel-border); color: var(--muted); cursor: not-allowed; }
+  .region-btn-group { display: flex; flex-direction: column; gap: 6px; }
+  .region-chip-box {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 36px;
+    align-items: center;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 6px 10px;
+  }
+  .chip-row:empty::before { content: "선택된 지역 없음"; color: var(--muted); font-size: 0.78rem; }
+  .region-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px 5px 12px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .region-chip.include { background: var(--accent-include); }
+  .region-chip.exclude { background: var(--accent-exclude); }
+  .region-chip button {
+    background: rgba(255, 255, 255, 0.25);
+    border: none;
+    color: #fff;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.7rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .region-chip button:hover { background: rgba(255, 255, 255, 0.4); }
+  .filter-checkboxes { display: flex; flex-wrap: wrap; gap: 14px; width: 100%; margin-top: 4px; }
+  .filter-check { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text); }
+  .filter-check.disabled { color: var(--muted); cursor: not-allowed; }
+  .filter-check input { accent-color: var(--accent-nasdaq); }
+  .filter-check.disabled input { cursor: not-allowed; }
+  .filter-badge-soon {
+    font-size: 0.65rem;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 1px 7px;
+    margin-left: 4px;
   }
   .naver-table-scroll { overflow-x: auto; }
   .naver-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
@@ -489,13 +580,133 @@
       <div class="updated" id="naverTopBadge"></div>
     </div>
 
+    <div class="panel" id="naverFilterPanel">
+      <div class="filter-section">
+        <h3 class="filter-section-title">지역필터</h3>
+        <div class="filter-row">
+          <div class="filter-field">
+            <label>지역(도,시)</label>
+            <select id="filterSido">
+              <option value="서울">서울</option>
+              <option value="경기도" disabled>경기도 (준비 중)</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label>지역(군,구)</label>
+            <select id="filterGugun">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label>지역(동)</label>
+            <select id="filterDong">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div class="region-btn-group">
+            <button class="region-btn include" id="addIncludeRegionBtn" type="button">지역추가</button>
+            <button class="region-btn exclude" id="addExcludeRegionBtn" type="button">지역제외</button>
+          </div>
+          <div class="region-chip-box">
+            <div class="chip-row" id="includeChipRow"></div>
+            <div class="chip-row" id="excludeChipRow"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-section-title">단지필터</h3>
+        <div class="filter-row">
+          <div class="filter-field">
+            <label>평형타입</label>
+            <select id="filterPyeongType">
+              <option value="">전체</option>
+              <option value="20">20평대 이하</option>
+              <option value="30">30평대</option>
+              <option value="40">40평대</option>
+              <option value="50">50평대</option>
+              <option value="60">60평대 이상</option>
+            </select>
+          </div>
+          <div class="filter-field disabled">
+            <label>세대수 <span class="filter-badge-soon">준비 중</span></label>
+            <select disabled><option>—</option></select>
+          </div>
+          <div class="filter-field">
+            <label>연식</label>
+            <select id="filterAge">
+              <option value="">전체</option>
+              <option value="5">5년차 이하</option>
+              <option value="10">10년차 이하</option>
+              <option value="15">15년차 이하</option>
+              <option value="20">20년차 이하</option>
+              <option value="20+">20년차 초과</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label>매매건수</label>
+            <select id="filterDealCount">
+              <option value="">전체</option>
+              <option value="1">1건 이상</option>
+              <option value="3">3건 이상</option>
+              <option value="5">5건 이상</option>
+              <option value="10">10건 이상</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-section-title">매물필터</h3>
+        <div class="filter-row">
+          <div class="filter-field">
+            <label>가격대(최저, 만원)</label>
+            <input id="filterPriceMin" type="number" inputmode="numeric" placeholder="예: 50000" />
+          </div>
+          <div class="filter-field">
+            <label>가격대(최고, 만원)</label>
+            <input id="filterPriceMax" type="number" inputmode="numeric" placeholder="예: 150000" />
+          </div>
+          <div class="filter-field disabled">
+            <label>네이버호가(최저, 만원) <span class="filter-badge-soon">준비 중</span></label>
+            <input disabled placeholder="준비 중" />
+          </div>
+          <div class="filter-field disabled">
+            <label>네이버호가(최고, 만원) <span class="filter-badge-soon">준비 중</span></label>
+            <input disabled placeholder="준비 중" />
+          </div>
+          <div class="filter-field disabled">
+            <label>갭 <span class="filter-badge-soon">준비 중</span></label>
+            <select disabled><option>—</option></select>
+          </div>
+          <div class="filter-field disabled">
+            <label>전고점미만 <span class="filter-badge-soon">준비 중</span></label>
+            <select disabled><option>—</option></select>
+          </div>
+          <div class="filter-field disabled">
+            <label>하락율 <span class="filter-badge-soon">준비 중</span></label>
+            <select disabled><option>—</option></select>
+          </div>
+          <div class="filter-field disabled">
+            <label>전세가율 <span class="filter-badge-soon">준비 중</span></label>
+            <select disabled><option>—</option></select>
+          </div>
+          <div class="filter-checkboxes">
+            <label class="filter-check disabled"><input type="checkbox" disabled /> 저층 제외(1~3층) <span class="filter-badge-soon">준비 중</span></label>
+            <label class="filter-check disabled"><input type="checkbox" disabled /> KB 하한가 대비 급매(저층 포함) <span class="filter-badge-soon">준비 중</span></label>
+            <label class="filter-check disabled"><input type="checkbox" disabled /> KB 상한가 대비 급매(저층 제외) <span class="filter-badge-soon">준비 중</span></label>
+            <label class="filter-check disabled"><input type="checkbox" disabled /> 평형간 급매 <span class="filter-badge-soon">준비 중</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="summary-bar" id="naverSummaryBar"></div>
 
     <div class="panel">
       <div class="panel-header">
         <h2>단지별 매물 분석</h2>
         <div class="naver-controls">
-          <select id="naverRegionSelect" title="지역 선택"></select>
           <select id="naverTradeSelect" title="거래 유형">
             <option value="A1" selected>매매</option>
           </select>
@@ -1570,10 +1781,8 @@ async function initNaverTab() {
     return;
   }
 
-  const regionSelect = document.getElementById("naverRegionSelect");
   const tradeSelect = document.getElementById("naverTradeSelect");
   const regions = payload.regions || [];
-  regionSelect.innerHTML = regions.map((r) => `<option value="${r.cortarNo}">${r.name}</option>`).join("");
 
   const totalCount = regions.reduce((s, r) => s + r.complexes.reduce((s2, c) => s2 + c.count, 0), 0);
   topBadge.textContent = payload.updatedAt
@@ -1589,10 +1798,144 @@ async function initNaverTab() {
 
   const fmtManwon = (v) => (v == null ? "–" : v >= 10000 ? `${(v / 10000).toFixed(2)}억` : `${Math.round(v).toLocaleString("ko-KR")}만`);
 
+  // ---- 지역필터: 포함/제외 칩 ----
+  const sidoSelect = document.getElementById("filterSido");
+  const gugunSelect = document.getElementById("filterGugun");
+  const dongSelect = document.getElementById("filterDong");
+  const includeChipRow = document.getElementById("includeChipRow");
+  const excludeChipRow = document.getElementById("excludeChipRow");
+
+  const gugunList = [...new Set(regions.filter((r) => !r.dong).map((r) => r.gugun))].sort((a, b) => a.localeCompare(b, "ko"));
+  gugunSelect.innerHTML = `<option value="">전체</option>` + gugunList.map((g) => `<option value="${g}">${g}</option>`).join("");
+
+  function refreshDongOptions() {
+    const gugun = gugunSelect.value;
+    const dongList = regions.filter((r) => r.gugun === gugun && r.dong).map((r) => r.dong);
+    dongSelect.innerHTML = `<option value="">전체</option>` + dongList.map((d) => `<option value="${d}">${d}</option>`).join("");
+    dongSelect.disabled = dongList.length === 0;
+  }
+  refreshDongOptions();
+  gugunSelect.addEventListener("change", refreshDongOptions);
+
+  let includeChips = [{ level: "si", si: "서울", label: "서울시" }];
+  let excludeChips = [];
+
+  function currentSelection() {
+    const si = sidoSelect.value;
+    const gugun = gugunSelect.value;
+    const dong = dongSelect.value;
+    if (dong) return { level: "dong", si, gugun, dong, label: `${si} ${gugun} ${dong}` };
+    if (gugun) return { level: "gugun", si, gugun, label: `${si} ${gugun}` };
+    return { level: "si", si, label: `${si}시` };
+  }
+
+  function chipKey(c) {
+    return [c.level, c.si, c.gugun || "", c.dong || ""].join("|");
+  }
+
+  function renderChips() {
+    const renderRow = (row, chips, kind) => {
+      row.innerHTML = chips
+        .map(
+          (c) => `<span class="region-chip ${kind}" data-key="${chipKey(c)}">${c.label}<button type="button" data-remove="${kind}:${chipKey(c)}">×</button></span>`
+        )
+        .join("");
+    };
+    renderRow(includeChipRow, includeChips, "include");
+    renderRow(excludeChipRow, excludeChips, "exclude");
+  }
+
+  function regionMatchesChip(region, c) {
+    if (region.si !== c.si) return false;
+    if (c.level === "si") return true;
+    if (c.level === "gugun") return region.gugun === c.gugun && !region.dong;
+    return region.gugun === c.gugun && region.dong === c.dong;
+  }
+
+  function regionIncluded(region) {
+    const included = includeChips.length === 0 || includeChips.some((c) => regionMatchesChip(region, c));
+    const excluded = excludeChips.some((c) => regionMatchesChip(region, c));
+    return included && !excluded;
+  }
+
+  document.getElementById("addIncludeRegionBtn").addEventListener("click", () => {
+    const sel = currentSelection();
+    const key = chipKey(sel);
+    if (!includeChips.some((c) => chipKey(c) === key)) includeChips.push(sel);
+    excludeChips = excludeChips.filter((c) => chipKey(c) !== key);
+    renderChips();
+    render();
+  });
+  document.getElementById("addExcludeRegionBtn").addEventListener("click", () => {
+    const sel = currentSelection();
+    const key = chipKey(sel);
+    if (!excludeChips.some((c) => chipKey(c) === key)) excludeChips.push(sel);
+    includeChips = includeChips.filter((c) => chipKey(c) !== key);
+    renderChips();
+    render();
+  });
+  document.getElementById("naverFilterPanel").addEventListener("click", (e) => {
+    const removeKey = e.target.dataset.remove;
+    if (!removeKey) return;
+    const [kind, key] = [removeKey.slice(0, removeKey.indexOf(":")), removeKey.slice(removeKey.indexOf(":") + 1)];
+    if (kind === "include") includeChips = includeChips.filter((c) => chipKey(c) !== key);
+    else excludeChips = excludeChips.filter((c) => chipKey(c) !== key);
+    renderChips();
+    render();
+  });
+  renderChips();
+
+  // ---- 단지필터 / 매물필터 (구현 가능한 항목만) ----
+  const pyeongTypeSelect = document.getElementById("filterPyeongType");
+  const ageSelect = document.getElementById("filterAge");
+  const dealCountSelect = document.getElementById("filterDealCount");
+  const priceMinInput = document.getElementById("filterPriceMin");
+  const priceMaxInput = document.getElementById("filterPriceMax");
+
+  function passesUnitFilters(c) {
+    const pyeongType = pyeongTypeSelect.value;
+    if (pyeongType) {
+      const pyeong = c.avgArea == null ? null : c.avgArea / 3.305785;
+      if (pyeong == null) return false;
+      if (pyeongType === "60" ? pyeong < 60 : Math.floor(pyeong / 10) * 10 !== Number(pyeongType)) return false;
+    }
+    const age = ageSelect.value;
+    if (age) {
+      if (c.approvalElapsedYear == null) return false;
+      if (age === "20+" ? c.approvalElapsedYear <= 20 : c.approvalElapsedYear > Number(age)) return false;
+    }
+    const dealCount = dealCountSelect.value;
+    if (dealCount && c.count < Number(dealCount)) return false;
+    const priceMin = priceMinInput.value ? Number(priceMinInput.value) : null;
+    const priceMax = priceMaxInput.value ? Number(priceMaxInput.value) : null;
+    if (priceMin != null && (c.maxPrice == null || c.maxPrice < priceMin)) return false;
+    if (priceMax != null && (c.minPrice == null || c.minPrice > priceMax)) return false;
+    return true;
+  }
+
+  [pyeongTypeSelect, ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
+  [priceMinInput, priceMaxInput].forEach((el) => el.addEventListener("input", debounce(render, 300)));
+
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  }
+
   function currentRows() {
-    const region = regions.find((r) => r.cortarNo === regionSelect.value);
-    if (!region) return [];
-    return (region.complexes || []).filter((c) => c.tradeType === tradeSelect.value);
+    const seen = new Map();
+    for (const region of regions) {
+      if (!regionIncluded(region)) continue;
+      for (const c of region.complexes) {
+        if (c.tradeType !== tradeSelect.value) continue;
+        if (!passesUnitFilters(c)) continue;
+        const key = c.complexNo ?? c.complexName;
+        if (!seen.has(key)) seen.set(key, c);
+      }
+    }
+    return [...seen.values()];
   }
 
   function renderSummary(rows) {
@@ -1658,7 +2001,6 @@ async function initNaverTab() {
       render();
     });
   });
-  regionSelect.addEventListener("change", render);
   tradeSelect.addEventListener("change", render);
   render();
 }

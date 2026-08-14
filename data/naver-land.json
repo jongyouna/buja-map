@@ -2260,7 +2260,10 @@
           "avgPyeongPrice": 13530.245098039217,
           "avgArea": 105.06
         }
-      ]
+      ],
+      "si": "서울",
+      "gugun": "강남구",
+      "dong": null
     },
     {
       "cortarNo": "1171000000",
@@ -3795,7 +3798,10 @@
           "avgPyeongPrice": 9280.699045480069,
           "avgArea": 142.48
         }
-      ]
+      ],
+      "si": "서울",
+      "gugun": "송파구",
+      "dong": null
     },
     {
       "cortarNo": "1165000000",
@@ -5781,7 +5787,10 @@
           "avgPyeongPrice": 3492.9546451355664,
           "avgArea": 250.8
         }
-      ]
+      ],
+      "si": "서울",
+      "gugun": "서초구",
+      "dong": null
     },
     {
       "cortarNo": "1144000000",
@@ -7294,7 +7303,10 @@
           "avgPyeongPrice": 5786.453070299934,
           "avgArea": 105.69
         }
-      ]
+      ],
+      "si": "서울",
+      "gugun": "마포구",
+      "dong": null
     },
     {
       "cortarNo": "1120000000",
@@ -8895,7 +8907,10 @@
           "avgPyeongPrice": 3058.646373056995,
           "avgArea": 27.02
         }
-      ]
+      ],
+      "si": "서울",
+      "gugun": "성동구",
+      "dong": null
     },
     {
       "cortarNo": "1159010500",
@@ -9044,7 +9059,10 @@
           "avgPyeongPrice": 5308.202198616602,
           "avgArea": 80.96
         }
-      ]
+      ],
+      "si": "서울",
+      "gugun": "동작구",
+      "dong": "흑석동"
     }
   ]
 }

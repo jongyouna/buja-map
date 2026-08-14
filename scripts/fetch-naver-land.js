@@ -1,37 +1,40 @@
-// 네이버 부동산에서 지역별 아파트 매물을 단지 단위로 집계해 ../data/naver-land.json 생성
+// 네이버 부동산에서 서울 전체 구(區) + 흑석동(정밀 스팟)의 아파트 매매 매물을
+// 단지 단위로 집계해 ../data/naver-land.json 생성
 //
 // m.land.naver.com의 구형 AJAX API(cluster/ajax/articleList)는 더 이상 실데이터를
 // 반환하지 않는다(호출은 200을 반환하지만 매물 0건). 네이버 부동산은 fin.land.naver.com
 // (Next.js) 로 전면 개편되었고, 이 도메인은 일반 fetch로 호출하면 즉시 429가 뜬다.
 // 대신 Playwright로 실제 브라우저를 띄운 뒤 그 페이지 컨텍스트 안에서 내부 API
 // (front-api)를 호출하면 정상적으로 데이터를 받아올 수 있다(브라우저 실행 환경/TLS
-// 지문이 필요한 것으로 보임). 그래도 네이버가 이 패턴을 재탐지해 막을 수 있으므로
-// 재시도 후 실패하면 기존 데이터 파일을 그대로 둔다(빈 데이터로 덮어쓰지 않음).
+// 지문이 필요한 것으로 보임). 그래도 네이버가 이 패턴을 재탐지해 막을 수 있으므로,
+// 지역 하나가 실패해도 나머지는 계속 수집하고, 전체가 0건일 때만 기존 파일을 유지한다.
+//
+// 범위는 현재 "서울 전체"까지만 다룬다(경기도는 다음 단계에서 확장 예정 — REGION_SCOPE 참고).
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
-// 집계 대상 지역. cortarNo는 네이버 법정동 코드(front-api/v1/legalDivision 기준).
-// 구 단위 5곳은 기존 범위를 유지하고, 흑석동은 개별 요청으로 흑석동만 정밀하게 집계한다.
-const REGIONS = [
-  { cortarNo: "1168000000", name: "서울 강남구", legalDivisionLevelType: "GUN" },
-  { cortarNo: "1171000000", name: "서울 송파구", legalDivisionLevelType: "GUN" },
-  { cortarNo: "1165000000", name: "서울 서초구", legalDivisionLevelType: "GUN" },
-  { cortarNo: "1144000000", name: "서울 마포구", legalDivisionLevelType: "GUN" },
-  { cortarNo: "1120000000", name: "서울 성동구", legalDivisionLevelType: "GUN" },
-  { cortarNo: "1159010500", name: "서울 동작구 흑석동", legalDivisionLevelType: "EUP" },
-];
+const SEOUL_SI_NUMBER = "1100000000";
+const SPOTLIGHT_DONGS = [{ gu: "동작구", dong: "흑석동" }]; // 구 전체 집계와 별개로 정밀 집계할 동
 
 const TRADE_TYPES = ["A1"]; // A1=매매
 const REAL_ESTATE_TYPES = ["A01"]; // A01=아파트
 const PYEONG_M2 = 3.305785;
 
 const PAGE_SIZE = 20; // 네이버 API가 20 초과 시 400을 반환함
-const MAX_PAGES_PER_QUERY = 25;
-const MAX_ATTEMPTS = 3;
+const MAX_PAGES_PER_QUERY = 25; // 지역당 최대 500건(최신순)까지만 수집
+const MAX_ATTEMPTS = 3; // 브라우저 세션 자체가 죽는 등 전체 재시도
+const REGIONS_PER_BROWSER_SESSION = 8; // 이 개수마다 브라우저를 새로 띄워 세션을 신선하게 유지
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = (baseMs) => baseMs + Math.floor(Math.random() * baseMs * 0.5);
+
+async function launchStealthBrowser() {
+  return chromium.launch({
+    headless: true,
+    args: ["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
+  });
+}
 
 async function newStealthPage(browser) {
   const context = await browser.newContext({
@@ -67,37 +70,55 @@ async function callApi(page, apiPath, body) {
   );
 }
 
-async function getRegionCoordinates(page, region) {
+async function subInfoList(page, legalDivisionLevelType, legalDivisionNumber) {
   const res = await callApi(
     page,
-    `/front-api/v1/legalDivision/subInfoList?legalDivisionLevelType=SI&legalDivisionNumber=1100000000`
+    `/front-api/v1/legalDivision/subInfoList?legalDivisionLevelType=${legalDivisionLevelType}&legalDivisionNumber=${legalDivisionNumber}`
   );
   const json = JSON.parse(res.text);
-  const guList = json.result || [];
-  if (region.legalDivisionLevelType === "GUN") {
-    const match = guList.find((g) => region.name.endsWith(g.legalDivisionName));
-    if (match) return match.coordinates;
-  }
-  // 동(흑석동) 단위는 소속 구를 먼저 찾은 뒤 하위 동 목록에서 조회한다.
-  for (const gu of guList) {
-    const dongRes = await callApi(
-      page,
-      `/front-api/v1/legalDivision/subInfoList?legalDivisionLevelType=GUN&legalDivisionNumber=${gu.legalDivisionNumber}`
-    );
-    const dongJson = JSON.parse(dongRes.text);
-    const dongMatch = (dongJson.result || []).find((d) => d.legalDivisionNumber === region.cortarNo);
-    if (dongMatch) return dongMatch.coordinates;
-  }
-  throw new Error(`지역 좌표를 찾을 수 없음: ${region.name}`);
+  if (!json.isSuccess) throw new Error(`subInfoList API error: ${res.text.slice(0, 200)}`);
+  return json.result || [];
 }
 
-function boundingBoxFor(region, coords) {
-  const delta = region.legalDivisionLevelType === "EUP" ? { lat: 0.013, lon: 0.016 } : { lat: 0.035, lon: 0.045 };
+// 수집 대상 지역 목록을 동적으로 구성한다: 서울 전체 구 + 지정된 정밀 동(흑석동 등).
+async function buildRegionList(page) {
+  const guList = await subInfoList(page, "SI", SEOUL_SI_NUMBER);
+  const regions = guList.map((g) => ({
+    cortarNo: g.legalDivisionNumber,
+    name: `서울 ${g.legalDivisionName}`,
+    si: "서울",
+    gugun: g.legalDivisionName,
+    dong: null,
+    coordinates: g.coordinates,
+  }));
+
+  for (const spot of SPOTLIGHT_DONGS) {
+    const gu = guList.find((g) => g.legalDivisionName === spot.gu);
+    if (!gu) continue;
+    const dongList = await subInfoList(page, "GUN", gu.legalDivisionNumber);
+    const dong = dongList.find((d) => d.legalDivisionName === spot.dong);
+    if (!dong) continue;
+    regions.push({
+      cortarNo: dong.legalDivisionNumber,
+      name: `서울 ${spot.gu} ${spot.dong}`,
+      si: "서울",
+      gugun: spot.gu,
+      dong: spot.dong,
+      coordinates: dong.coordinates,
+      dongFilter: spot.dong, // 바운딩 박스가 인접 동까지 걸치므로 실제 소재지로 한 번 더 거름
+    });
+  }
+  return regions;
+}
+
+function boundingBoxFor(region) {
+  const delta = region.dong ? { lat: 0.013, lon: 0.016 } : { lat: 0.035, lon: 0.045 };
+  const { xCoordinate, yCoordinate } = region.coordinates;
   return {
-    left: coords.xCoordinate - delta.lon,
-    right: coords.xCoordinate + delta.lon,
-    top: coords.yCoordinate + delta.lat,
-    bottom: coords.yCoordinate - delta.lat,
+    left: xCoordinate - delta.lon,
+    right: xCoordinate + delta.lon,
+    top: yCoordinate + delta.lat,
+    bottom: yCoordinate - delta.lat,
   };
 }
 
@@ -165,12 +186,22 @@ function aggregateComplexes(articles, tradeType) {
   for (const a of articles) {
     const key = a.complexNumber ?? a.complexName;
     if (!byComplex.has(key)) {
-      byComplex.set(key, { complexNo: a.complexNumber ?? null, complexName: a.complexName, tradeType, prices: [], areas: [] });
+      byComplex.set(key, {
+        complexNo: a.complexNumber ?? null,
+        complexName: a.complexName,
+        tradeType,
+        prices: [],
+        areas: [],
+        approvalElapsedYears: [],
+      });
     }
     const bucket = byComplex.get(key);
     const rawPrice = tradeType === "A1" ? a.priceInfo?.dealPrice : a.priceInfo?.warrantyPrice;
     if (rawPrice > 0) bucket.prices.push(rawPrice / 10000); // 원 -> 만원
     if (a.spaceInfo?.supplySpace > 0) bucket.areas.push(a.spaceInfo.supplySpace);
+    if (typeof a.buildingInfo?.approvalElapsedYear === "number") {
+      bucket.approvalElapsedYears.push(a.buildingInfo.approvalElapsedYear);
+    }
   }
 
   const complexes = [];
@@ -181,6 +212,7 @@ function aggregateComplexes(articles, tradeType) {
     const pyeongPrices = bucket.prices
       .map((p, i) => (areas[i] ? p / (areas[i] / PYEONG_M2) : null))
       .filter((v) => v != null);
+    const years = bucket.approvalElapsedYears;
     complexes.push({
       complexNo: bucket.complexNo,
       complexName: bucket.complexName,
@@ -191,51 +223,58 @@ function aggregateComplexes(articles, tradeType) {
       maxPrice: prices.length ? prices[prices.length - 1] : null,
       avgPyeongPrice: pyeongPrices.length ? pyeongPrices.reduce((s, v) => s + v, 0) / pyeongPrices.length : null,
       avgArea,
+      approvalElapsedYear: years.length ? Math.round(years.reduce((s, v) => s + v, 0) / years.length) : null,
     });
   }
   return complexes;
 }
 
-async function fetchAllRegions(page) {
-  const regions = [];
-  for (const region of REGIONS) {
-    console.log(`[${region.name}] 좌표 조회 중...`);
-    const coords = await getRegionCoordinates(page, region);
-    const boundingBox = boundingBoxFor(region, coords);
-
-    // 동(EUP) 단위 지역은 바운딩 박스가 인접 동까지 걸치므로 실제 소재지로 한 번 더 거른다.
-    const dongName = region.legalDivisionLevelType === "EUP" ? region.name.split(" ").pop() : null;
-
-    const complexes = [];
-    for (const tradeType of TRADE_TYPES) {
-      console.log(`[${region.name}] ${tradeType} 매물 수집 중...`);
-      let articles = await fetchArticlesForRegion(page, boundingBox, tradeType);
-      if (dongName) articles = articles.filter((a) => a.address?.sector === dongName);
-      console.log(`  ${articles.length}건 원자료 → ${new Set(articles.map((a) => a.complexNumber)).size}개 단지`);
-      complexes.push(...aggregateComplexes(articles, tradeType));
-      await sleep(jitter(1500));
-    }
-
-    regions.push({ cortarNo: region.cortarNo, name: region.name, complexes });
+async function fetchOneRegion(page, region) {
+  const boundingBox = boundingBoxFor(region);
+  const complexes = [];
+  for (const tradeType of TRADE_TYPES) {
+    let articles = await fetchArticlesForRegion(page, boundingBox, tradeType);
+    if (region.dongFilter) articles = articles.filter((a) => a.address?.sector === region.dongFilter);
+    console.log(`  [${region.name}] ${tradeType}: ${articles.length}건 원자료 → ${new Set(articles.map((a) => a.complexNumber)).size}개 단지`);
+    complexes.push(...aggregateComplexes(articles, tradeType));
+    await sleep(jitter(1200));
   }
-  return regions;
+  return complexes;
 }
 
-async function attemptFetch() {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
-  });
+async function fetchAllRegions() {
+  const results = [];
+  let browser = await launchStealthBrowser();
+  let session;
   try {
-    const { context, page } = await newStealthPage(browser);
-    try {
-      return await fetchAllRegions(page);
-    } finally {
-      await context.close();
+    session = await newStealthPage(browser);
+    const regionList = await buildRegionList(session.page);
+    console.log(`대상 지역 ${regionList.length}곳 (서울 전체 구 + 정밀 동)`);
+
+    for (let i = 0; i < regionList.length; i++) {
+      const region = regionList[i];
+
+      if (i > 0 && i % REGIONS_PER_BROWSER_SESSION === 0) {
+        console.log("브라우저 세션 갱신...");
+        await session.context.close();
+        await browser.close();
+        browser = await launchStealthBrowser();
+        session = await newStealthPage(browser);
+      }
+
+      console.log(`[${i + 1}/${regionList.length}] ${region.name} 수집 중...`);
+      try {
+        const complexes = await fetchOneRegion(session.page, region);
+        results.push({ cortarNo: region.cortarNo, name: region.name, si: region.si, gugun: region.gugun, dong: region.dong, complexes });
+      } catch (err) {
+        console.log(`  오류(건너뜀): ${err.message}`);
+      }
     }
   } finally {
-    await browser.close();
+    if (session) await session.context.close().catch(() => {});
+    await browser.close().catch(() => {});
   }
+  return results;
 }
 
 async function main() {
@@ -246,7 +285,7 @@ async function main() {
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       console.log(`[시도 ${attempt}/${MAX_ATTEMPTS}] 네이버 부동산 매물 수집 중...`);
-      regions = await attemptFetch();
+      regions = await fetchAllRegions();
       const totalComplexes = regions.reduce((s, r) => s + r.complexes.length, 0);
       if (totalComplexes > 0) break;
       console.log("  0건 수집됨, 재시도 전 대기...");
