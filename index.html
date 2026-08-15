@@ -751,8 +751,8 @@
   .alloc-heat { font-weight: 600; }
   .alloc-num-up { color: var(--bad); }
   .alloc-num-down { color: #1849a9; }
-  .alloc-rebal-on { background: #d92d20 !important; color: #fff; font-weight: 700; text-align: center; }
-  .alloc-rebal-off { background: #f2f4f7; color: var(--muted); text-align: center; }
+  .alloc-rebal-on { color: var(--bad); background: var(--bad-bg); font-weight: 700; text-align: center; }
+  .alloc-rebal-off { color: var(--muted); background: none; text-align: center; }
 
   /* 종목 검색 드롭다운 */
   .alloc-name-cell { position: relative; display: flex; align-items: center; gap: 6px; }
@@ -978,8 +978,8 @@
     .alloc-table tbody tr[data-idx] td.alloc-rebal-on,
     .alloc-table tbody tr[data-idx] td.alloc-rebal-off {
       background: none !important;
-      color: inherit;
       justify-content: space-between;
+      text-align: right;
     }
     .alloc-table tbody tr[data-idx] td.alloc-rebal-on { color: var(--bad); font-weight: 700; }
     .alloc-table tbody tr[data-idx] td.alloc-rebal-off { color: var(--muted); }
@@ -1414,7 +1414,7 @@
         <div class="panel-header">
           <div>
             <h2>보유 종목</h2>
-            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱 칸이 켜집니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
+            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱 칸이 "필요"로 바뀝니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
           </div>
           <button class="toggle-btn" id="allocRefreshQuotesBtn" type="button">시세 새로고침</button>
         </div>
@@ -1427,7 +1427,7 @@
                 <th style="min-width:230px">종목</th>
                 <th class="num">목표<br />비중</th>
                 <th class="num">보유<br />비중</th>
-                <th style="width:58px">리밸<br />런싱</th>
+                <th style="width:72px">리밸<br />런싱</th>
                 <th class="num">전일대비<br />(%)</th>
                 <th class="num">현재가</th>
                 <th class="num">평균<br />매입가</th>
@@ -3422,7 +3422,7 @@ function initAllocationTab() {
           </td>
           <td class="num alloc-cell-input alloc-more" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
           <td class="num" data-cell="weight1" data-label="보유비중">–</td>
-          <td data-cell="rebal" class="alloc-rebal-off" data-label="리밸런싱">0</td>
+          <td data-cell="rebal" class="alloc-rebal-off" data-label="리밸런싱">불필요</td>
           <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
           <td class="num alloc-cell-price alloc-more" data-label="현재가"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
           <td class="num alloc-cell-input alloc-more" data-label="평균매입가"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
@@ -3479,7 +3479,8 @@ function initAllocationTab() {
       set("change", Number.isFinite(r.changeRate) ? r.changeRate.toFixed(2) : "–", `num ${signClass(r.changeRate)}`);
       set("profitRate", Number.isFinite(r.profitRate) ? r.profitRate.toFixed(2) : "–", `num alloc-heat ${signClass(r.profitRate)}`);
       set("profit", Number.isFinite(r.profit) ? fmtSignedWon(r.profit) : "–", `num ${signClass(r.profit)}`);
-      set("rebal", r.needRebal ? "1" : "0", r.needRebal ? "alloc-rebal-on" : "alloc-rebal-off");
+      // 0/1보다 "필요/불필요"가 무슨 뜻인지 바로 읽힌다.
+      set("rebal", r.needRebal ? "필요" : "불필요", r.needRebal ? "alloc-rebal-on" : "alloc-rebal-off");
       const codeEl = tr.querySelector('[data-cell="code"]');
       if (codeEl) codeEl.textContent = r.code || "";
     });
@@ -3506,7 +3507,7 @@ function initAllocationTab() {
           <td colspan="2">합계</td>
           <td class="num" data-label="목표비중">${Math.round(c.targetSum * 10) / 10}</td>
           <td class="num" data-label="보유비중">${c.nowTotal > 0 ? "100.0" : "–"}</td>
-          <td class="alloc-rebal-off" data-label="리밸런싱 대상">${c.rebalCount}</td>
+          <td class="${c.rebalCount > 0 ? "alloc-rebal-on" : "alloc-rebal-off"}" data-label="리밸런싱 대상">${c.rebalCount}종목</td>
           <td colspan="5"></td>
           <td class="num" data-label="보유비중(%)">${c.nowTotal > 0 ? "100.00" : "–"}</td>
           <td colspan="2"></td>
