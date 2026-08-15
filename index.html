@@ -535,6 +535,97 @@
   .legend-note { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .err { color: var(--bad); padding: 40px; text-align: center; }
+
+  /* ---- 로그인 안내 팝업 ---- */
+  /* 로그인이 필요한 탭(자산 배분)을 로그인 없이 눌렀을 때 뜬다. */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 24, 40, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 12px 40px rgba(16, 24, 40, 0.18);
+    text-align: center;
+  }
+  .modal-card h2 { font-size: 1.1rem; margin: 0 0 10px; font-weight: 700; }
+  .modal-card .desc { color: var(--muted); font-size: 0.85rem; line-height: 1.6; margin: 0 0 20px; }
+  .modal-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+  .modal-actions .google-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
+  .modal-actions .toggle-btn { padding: 8px 14px; }
+  .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; }
+  .modal-error[hidden] { display: none; }
+
+  /* ---- 자산 배분 탭 ---- */
+  .alloc-layout { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .alloc-layout > .panel { flex: 1 1 560px; min-width: 0; }
+  .alloc-layout > .panel.alloc-chart-panel { flex: 0 1 340px; align-self: stretch; }
+  .alloc-donut-wrap { position: relative; height: 260px; }
+  .alloc-total { text-align: center; margin-top: 14px; }
+  .alloc-total .label { color: var(--muted); font-size: 0.78rem; }
+  .alloc-total .value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
+  /* 좁은 화면에서 입력칸이 뭉개지지 않도록 표만 가로로 스크롤시킨다. */
+  .alloc-table-scroll { overflow-x: auto; }
+  .alloc-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 520px; }
+  .alloc-table th, .alloc-table td { padding: 8px 10px; border-bottom: 1px solid var(--panel-border); text-align: left; white-space: nowrap; }
+  .alloc-table th.num, .alloc-table td.num { text-align: right; }
+  .alloc-table thead th { color: var(--muted); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; }
+  .alloc-table tfoot td { font-weight: 700; border-bottom: none; }
+  .alloc-name-cell { display: flex; align-items: center; gap: 8px; }
+  .alloc-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .alloc-table input {
+    font-size: 0.82rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    background: var(--panel);
+    color: var(--text);
+    width: 100%;
+    min-width: 0;
+  }
+  .alloc-table input.num { text-align: right; }
+  .alloc-table input:focus { outline: none; border-color: var(--text); }
+  .alloc-col-name { width: 30%; }
+  .alloc-col-amount { width: 20%; }
+  .alloc-col-target { width: 14%; }
+  .alloc-row-remove {
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 6px;
+  }
+  .alloc-row-remove:hover { color: var(--bad); background: var(--bad-bg); }
+  .alloc-gap.over { color: var(--bad); }
+  .alloc-gap.under { color: var(--good); }
+  .alloc-gap.flat { color: var(--muted); }
+  .alloc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .alloc-empty { text-align: center; color: var(--muted); padding: 24px 8px; }
+  .alloc-note { font-size: 0.74rem; color: var(--muted); margin: 14px 0 0; line-height: 1.6; }
+  .alloc-note.error { color: var(--bad); }
+  .alloc-warn {
+    font-size: 0.78rem;
+    color: var(--bad);
+    background: var(--bad-bg);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 12px 0 0;
+  }
+  .alloc-warn[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -552,6 +643,8 @@
   <nav class="tabbar" id="tabBar">
     <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
     <button class="tab-btn" data-tab="naver" type="button">급매 Now!</button>
+    <!-- 자산 배분 탭은 항상 보이지만 로그인해야 열린다. 로그인하지 않고 누르면 로그인 안내 팝업이 뜬다. -->
+    <button class="tab-btn" data-tab="allocation" type="button" id="allocationTabBtn">자산 배분</button>
     <!-- 관리자 탭 버튼은 관리자로 로그인했을 때만 나타난다. 다만 이 hidden은 화면 정리일 뿐이고,
          실제 데이터 접근 차단은 Firestore 보안 규칙(firestore.rules)이 담당한다. -->
     <button class="tab-btn" data-tab="admin" type="button" id="adminTabBtn" hidden>관리자</button>
@@ -868,6 +961,55 @@
     </div>
   </section>
 
+  <!-- 자산 배분: 로그인한 사용자만 열 수 있고, 입력한 내용은 그 구글 계정에 저장된다. -->
+  <section class="tab-panel" id="tabPanel-allocation" hidden>
+    <div class="panel-header">
+      <p class="intro">보유 자산을 자산군별로 적어 넣으면 현재 비중과 목표 비중의 차이, 그리고 목표에 맞추기 위해 자산군마다 얼마를 사고팔아야 하는지를 계산합니다. 입력한 값은 로그인한 구글 계정에 저장되어 다른 기기에서도 그대로 열립니다.</p>
+      <div class="updated" id="allocTopBadge"></div>
+    </div>
+
+    <div class="alloc-layout">
+      <div class="panel">
+        <h2>보유 자산</h2>
+        <p class="desc">금액은 만원 단위로 입력합니다. 목표 비중을 비워 두면 리밸런싱 계산에서 0%로 봅니다.</p>
+        <div class="alloc-table-scroll">
+        <table class="alloc-table" id="allocTable">
+          <thead>
+            <tr>
+              <th class="alloc-col-name">자산군</th>
+              <th class="alloc-col-amount num">평가금액(만원)</th>
+              <th class="num">현재 비중</th>
+              <th class="alloc-col-target num">목표 비중(%)</th>
+              <th class="num" title="목표 비중에 맞추려면 사야 할(+) 또는 팔아야 할(−) 금액">리밸런싱(만원)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="allocTableBody"></tbody>
+          <tfoot id="allocTableFoot"></tfoot>
+        </table>
+        </div>
+        <p class="alloc-warn" id="allocTargetWarn" hidden></p>
+        <div class="alloc-actions">
+          <button class="region-btn include" id="allocAddRowBtn" type="button">자산군 추가</button>
+          <button class="toggle-btn" id="allocResetBtn" type="button">기본값으로 되돌리기</button>
+        </div>
+        <p class="alloc-note" id="allocSyncNote"></p>
+      </div>
+
+      <div class="panel alloc-chart-panel">
+        <h2>현재 배분</h2>
+        <p class="desc">자산군별 평가금액 비중입니다.</p>
+        <div class="alloc-donut-wrap">
+          <canvas id="allocDonut"></canvas>
+        </div>
+        <div class="alloc-total">
+          <div class="label">총 자산</div>
+          <div class="value" id="allocTotalValue">–</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="tab-panel" id="tabPanel-admin" hidden>
     <div class="panel-header">
       <p class="intro">구글 로그인으로 접속한 사용자 목록입니다. 관리자 권한을 주거나 회수하고, 접속을 차단하고, 사용자가 저장한 그래프를 지울 수 있습니다.</p>
@@ -911,6 +1053,19 @@
       </div>
     </div>
   </section>
+  </div>
+
+  <!-- 로그인이 필요한 탭을 로그인 없이 눌렀을 때 뜨는 안내 팝업 -->
+  <div class="modal-backdrop" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle" hidden>
+    <div class="modal-card">
+      <h2 id="loginModalTitle">사용을 위해서 반드시 로그인해주세요</h2>
+      <p class="desc" id="loginModalDesc">자산 배분 탭은 로그인한 사용자만 이용할 수 있습니다. 구글 계정으로 로그인하면 입력한 자산 배분이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있습니다.</p>
+      <div class="modal-actions">
+        <button class="google-btn" id="loginModalSignInBtn" type="button">Google로 로그인</button>
+        <button class="toggle-btn" id="loginModalCloseBtn" type="button">나중에 하기</button>
+      </div>
+      <p class="modal-error" id="loginModalError" hidden></p>
+    </div>
   </div>
 
 <script type="module">
@@ -975,6 +1130,16 @@ let onAuthChangedHook = null;
 // 새 토큰을 받아온다(ensureGoogleAccessToken 참고).
 let googleAccessToken = null;
 
+// 상단 버튼과 로그인 안내 팝업이 같은 로그인 절차를 쓰도록 한 곳에 모아 둔다.
+// 실패는 호출한 쪽에서 화면에 표시할 수 있게 그대로 다시 던진다.
+function signInWithGoogle() {
+  return signInWithPopup(auth, googleProvider).then((result) => {
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential) googleAccessToken = credential.accessToken;
+    return result;
+  });
+}
+
 function renderAuthArea() {
   const el = document.getElementById("authArea");
   if (currentUser) {
@@ -990,19 +1155,78 @@ function renderAuthArea() {
   } else {
     el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button>`;
     document.getElementById("signInBtn").addEventListener("click", () => {
-      signInWithPopup(auth, googleProvider)
-        .then((result) => {
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          if (credential) googleAccessToken = credential.accessToken;
-        })
-        .catch((err) => {
-          console.error("로그인 실패:", err);
-          alert("로그인에 실패했습니다: " + err.message);
-        });
+      signInWithGoogle().catch((err) => {
+        console.error("로그인 실패:", err);
+        alert("로그인에 실패했습니다: " + err.message);
+      });
     });
   }
 }
 renderAuthArea();
+
+// ---- 로그인이 필요한 탭 ----
+// 화면에서 막는 것은 안내일 뿐이고, 자산 배분 내용 자체는 users/{uid} 문서에 들어가므로
+// 실제 접근 제어는 Firestore 보안 규칙(본인 문서만 읽기·쓰기)이 담당한다.
+const LOGIN_REQUIRED_TABS = new Set(["allocation"]);
+// 로그인 팝업에서 로그인에 성공하면 열어 줄 탭. 새로고침 직후처럼 로그인 상태가 아직
+// 확정되지 않았을 때 눌린 탭도 여기에 담아 두었다가 확정된 뒤에 다시 판단한다.
+let pendingGatedTab = null;
+
+function openLoginModal(tab) {
+  pendingGatedTab = tab;
+  const modal = document.getElementById("loginModal");
+  document.getElementById("loginModalError").hidden = true;
+  modal.hidden = false;
+  document.getElementById("loginModalSignInBtn").focus();
+}
+
+function closeLoginModal() {
+  document.getElementById("loginModal").hidden = true;
+  pendingGatedTab = null;
+}
+
+document.getElementById("loginModalCloseBtn").addEventListener("click", closeLoginModal);
+document.getElementById("loginModal").addEventListener("click", (e) => {
+  // 카드 바깥(어두운 배경)을 누르면 닫는다.
+  if (e.target.id === "loginModal") closeLoginModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !document.getElementById("loginModal").hidden) closeLoginModal();
+});
+document.getElementById("loginModalSignInBtn").addEventListener("click", () => {
+  const btn = document.getElementById("loginModalSignInBtn");
+  const errEl = document.getElementById("loginModalError");
+  btn.disabled = true;
+  errEl.hidden = true;
+  // 로그인에 성공하면 onAuthStateChanged가 팝업을 닫고 원래 누른 탭을 열어 준다.
+  signInWithGoogle()
+    .catch((err) => {
+      console.error("로그인 실패:", err);
+      errEl.textContent = `로그인에 실패했습니다: ${err.message}`;
+      errEl.hidden = false;
+    })
+    .finally(() => {
+      btn.disabled = false;
+    });
+});
+
+// 로그인 상태가 바뀔 때마다 호출된다. 로그아웃하면 로그인이 필요한 탭에서 빠져나오고,
+// 로그인하면 팝업을 닫고 아까 누른 탭을 열어 준다.
+function syncGatedTabAccess() {
+  if (!currentUser) {
+    const open = [...LOGIN_REQUIRED_TABS].find((t) => {
+      const panel = document.getElementById(`tabPanel-${t}`);
+      return panel && !panel.hidden;
+    });
+    if (open) activateTab("macro");
+    // 로그인 상태가 확정되기 전에 눌러 둔 탭이 있으면(새로고침 직후) 이제 안내 팝업을 띄운다.
+    if (pendingGatedTab && document.getElementById("loginModal").hidden) openLoginModal(pendingGatedTab);
+    return;
+  }
+  const target = pendingGatedTab;
+  closeLoginModal();
+  if (target) activateTab(target);
+}
 
 // 로그인할 때마다 users/{uid}에 접속 기록을 남긴다. 관리자 탭은 이 컬렉션을 읽어 목록을 만든다.
 // 보안 규칙상 본인은 role/blocked를 바꿀 수 없고(최초 생성 시 user/false 고정), 관리자만 바꿀 수 있다.
@@ -1044,6 +1268,7 @@ async function upsertUserRecord(user) {
 const NAVER_PREFS_KEY = "buja-map.naverFilters";
 let naverPrefsHook = null; // initNaverTab이 등록. 로그인 상태가 바뀌면 설정을 다시 적용한다.
 let prefsStatusHook = null; // 저장 성공/실패를 화면 안내 문구에 반영하기 위한 훅
+let allocPrefsHook = null; // initAllocationTab이 등록. 로그인 상태가 바뀌면 자산 배분을 다시 적용한다.
 
 // Firebase가 로그인 상태를 알려주기 전까지는 계정 저장을 하지 않는다.
 // 이 시점에 저장하면 아직 불러오지 못한 계정 설정 위에 기본값을 덮어써 버린다.
@@ -1130,6 +1355,10 @@ onAuthStateChanged(auth, async (user) => {
   authSettled = true;
   // 로그인/로그아웃 직후 그 계정에 저장해 둔 지역필터·핀·가격대를 다시 적용한다.
   if (naverPrefsHook) naverPrefsHook();
+  // 자산 배분도 마찬가지. 로그아웃하면 화면에 남아 있던 남의 자산 내역이 지워진다.
+  if (allocPrefsHook) allocPrefsHook();
+  // 로그인이 필요한 탭을 열어 주거나(로그인 성공) 닫는다(로그아웃).
+  syncGatedTabAccess();
   if (onAuthChangedHook) await onAuthChangedHook();
 });
 
@@ -2064,7 +2293,20 @@ document.getElementById("refreshBtn").addEventListener("click", () => location.r
 // ---- 상단 탭 (거시경제 / 네이버 부동산 / 관리자) ----
 // 네이버 탭은 처음 열릴 때 한 번만 데이터를 불러온다.
 let naverLoaded = false;
+let allocLoaded = false;
 function activateTab(tab) {
+  // 로그인이 필요한 탭은 로그인 상태를 확인하고 나서 연다.
+  if (LOGIN_REQUIRED_TABS.has(tab) && !currentUser) {
+    // 새로고침 직후에는 Firebase가 아직 로그인 여부를 알려주지 않았을 수 있다. 이때
+    // 팝업부터 띄우면 이미 로그인한 사람에게도 로그인하라고 하게 되므로, 확정될 때까지
+    // 기다렸다가(syncGatedTabAccess) 다시 판단한다.
+    if (!authSettled) {
+      pendingGatedTab = tab;
+      return;
+    }
+    openLoginModal(tab);
+    return;
+  }
   document.querySelectorAll("#tabBar .tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   document.querySelectorAll(".tab-panel").forEach((p) => {
     p.hidden = p.id !== `tabPanel-${tab}`;
@@ -2073,12 +2315,303 @@ function activateTab(tab) {
     naverLoaded = true;
     initNaverTab();
   }
+  // 자산 배분 탭은 처음 열릴 때 한 번만 만든다. 이후 로그인 상태가 바뀌면
+  // allocPrefsHook이 그 계정의 값으로 갈아끼운다.
+  if (tab === "allocation" && !allocLoaded) {
+    allocLoaded = true;
+    initAllocationTab();
+  }
   // 관리자 탭은 열 때마다 최신 목록을 다시 읽는다(사용자가 그 사이 늘었을 수 있으므로).
   if (tab === "admin") loadAdminUsers();
 }
 document.querySelectorAll("#tabBar .tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => activateTab(btn.dataset.tab));
 });
+
+// ---- 자산 배분 탭 ----
+// 로그인한 사용자만 열 수 있는 탭이다(LOGIN_REQUIRED_TABS). 자산 내역은 남에게 보여도
+// 되는 값이 아니므로 브라우저(localStorage)에는 남기지 않고 본인 계정 문서에만 저장한다.
+// 실제 접근 제어는 Firestore 보안 규칙(users/{uid}은 본인과 관리자만)이 담당한다.
+const ALLOC_COLORS = ["#101828", "#7c4dff", "#f0932b", "#067647", "#0ea5e9", "#b42318", "#a16207", "#64748b", "#c026d3", "#0d9488"];
+const ALLOC_MAX_ROWS = 20;
+const ALLOC_DEFAULT_ROWS = [
+  { name: "현금·예금", amount: 0, target: 10 },
+  { name: "채권", amount: 0, target: 10 },
+  { name: "국내주식", amount: 0, target: 20 },
+  { name: "해외주식", amount: 0, target: 30 },
+  { name: "부동산", amount: 0, target: 25 },
+  { name: "대체자산(금·코인)", amount: 0, target: 5 },
+];
+
+// 자산 배분 저장 상태. 네이버 탭의 prefsSync와 같은 이유로, 실패를 조용히 넘기지 않는다.
+let allocSync = { state: "idle", error: null, at: null };
+let allocSyncStatusHook = null;
+
+function setAllocSync(next) {
+  allocSync = { ...allocSync, ...next };
+  if (allocSyncStatusHook) allocSyncStatusHook();
+}
+
+function defaultAllocRows() {
+  return ALLOC_DEFAULT_ROWS.map((r) => ({ ...r }));
+}
+
+// 계정 문서에서 읽은 값은 다른 기기의 옛 버전이 썼을 수도 있으므로 형태를 믿지 않고 손질한다.
+function normalizeAllocRows(raw) {
+  if (!Array.isArray(raw)) return null;
+  const rows = raw.slice(0, ALLOC_MAX_ROWS).map((r) => {
+    const amount = Number(r?.amount);
+    const target = Number(r?.target);
+    return {
+      name: typeof r?.name === "string" ? r.name.slice(0, 40) : "",
+      amount: Number.isFinite(amount) ? Math.max(0, amount) : 0,
+      target: Number.isFinite(target) ? Math.min(100, Math.max(0, target)) : 0,
+    };
+  });
+  return rows.length ? rows : null;
+}
+
+function currentAllocRows() {
+  if (currentUser) {
+    const saved = normalizeAllocRows(currentUserDoc?.assetAllocation?.rows);
+    if (saved) return saved;
+  }
+  return defaultAllocRows();
+}
+
+function persistAllocRows(rows) {
+  // 로그인 상태가 확정되기 전에 쓰면 계정에 저장해 둔 자산 내역을 기본값으로 덮어쓴다.
+  if (!authSettled || !currentUser) return;
+  const payload = { rows, updatedAt: new Date().toISOString() };
+  if (currentUserDoc) currentUserDoc.assetAllocation = payload;
+  setAllocSync({ state: "saving", error: null });
+  setDoc(doc(db, "users", currentUser.uid), { assetAllocation: payload }, { merge: true })
+    .then(() => setAllocSync({ state: "saved", error: null, at: new Date() }))
+    .catch((err) => {
+      console.error("자산 배분을 계정에 저장하지 못했습니다:", err);
+      setAllocSync({ state: "error", error: err });
+    });
+}
+
+// 만원 단위 숫자를 "1억 2,000만원"처럼 읽기 쉬운 문자열로 바꾼다.
+function fmtManwon(v) {
+  const n = Math.round(v);
+  const sign = n < 0 ? "−" : "";
+  const abs = Math.abs(n);
+  if (abs >= 10000) {
+    const eok = Math.floor(abs / 10000);
+    const man = abs % 10000;
+    return man ? `${sign}${eok}억 ${man.toLocaleString("ko-KR")}만원` : `${sign}${eok}억원`;
+  }
+  return `${sign}${abs.toLocaleString("ko-KR")}만원`;
+}
+
+function initAllocationTab() {
+  const tbody = document.getElementById("allocTableBody");
+  const tfoot = document.getElementById("allocTableFoot");
+  const warnEl = document.getElementById("allocTargetWarn");
+  const totalEl = document.getElementById("allocTotalValue");
+  const badgeEl = document.getElementById("allocTopBadge");
+  const noteEl = document.getElementById("allocSyncNote");
+
+  let rows = currentAllocRows();
+  let donut = null;
+  let saveTimer = null;
+
+  function persistSoon() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => persistAllocRows(rows), 700);
+  }
+
+  const totalAmount = () => rows.reduce((s, r) => s + (r.amount || 0), 0);
+  const totalTarget = () => rows.reduce((s, r) => s + (r.target || 0), 0);
+
+  // 이름과 금액 입력칸은 사용자가 타이핑하는 중이므로 다시 그리지 않는다.
+  // 계산 결과 칸만 값을 갈아끼워야 커서와 조합 중인 한글이 날아가지 않는다.
+  function renderRows() {
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td class="alloc-empty" colspan="6">자산군을 추가해 주세요.</td></tr>`;
+      tfoot.innerHTML = "";
+      return;
+    }
+    tbody.innerHTML = rows
+      .map(
+        (r, i) => `
+      <tr data-idx="${i}">
+        <td>
+          <div class="alloc-name-cell">
+            <span class="alloc-swatch" style="background:${ALLOC_COLORS[i % ALLOC_COLORS.length]}"></span>
+            <input type="text" data-field="name" value="${escapeHtml(r.name)}" placeholder="자산군 이름" maxlength="40" />
+          </div>
+        </td>
+        <td class="num"><input class="num" type="number" data-field="amount" value="${r.amount || ""}" min="0" step="100" placeholder="0" /></td>
+        <td class="num" data-cell="weight">–</td>
+        <td class="num"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="1" placeholder="0" /></td>
+        <td class="num" data-cell="rebalance">–</td>
+        <td><button class="alloc-row-remove" type="button" data-action="remove" title="이 자산군 삭제" aria-label="이 자산군 삭제">×</button></td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  function renderComputed() {
+    const total = totalAmount();
+    const targetSum = totalTarget();
+
+    tbody.querySelectorAll("tr[data-idx]").forEach((tr) => {
+      const r = rows[Number(tr.dataset.idx)];
+      if (!r) return;
+      const weightCell = tr.querySelector('[data-cell="weight"]');
+      const rebalanceCell = tr.querySelector('[data-cell="rebalance"]');
+      weightCell.textContent = total > 0 ? `${((r.amount / total) * 100).toFixed(1)}%` : "–";
+      // 목표 비중에 맞추려면 얼마를 더 사야(+) 하는지, 팔아야(−) 하는지.
+      const diff = total > 0 ? (total * (r.target || 0)) / 100 - r.amount : 0;
+      rebalanceCell.className = `num alloc-gap ${Math.abs(diff) < 1 ? "flat" : diff > 0 ? "under" : "over"}`;
+      rebalanceCell.textContent = total > 0 ? (Math.abs(diff) < 1 ? "–" : `${diff > 0 ? "+" : "−"}${Math.abs(Math.round(diff)).toLocaleString("ko-KR")}`) : "–";
+    });
+
+    if (rows.length) {
+      tfoot.innerHTML = `
+        <tr>
+          <td>합계</td>
+          <td class="num">${Math.round(total).toLocaleString("ko-KR")}</td>
+          <td class="num">${total > 0 ? "100.0%" : "–"}</td>
+          <td class="num">${Math.round(targetSum * 10) / 10}%</td>
+          <td class="num"></td>
+          <td></td>
+        </tr>`;
+    }
+
+    // 목표 비중 합이 100%가 아니면 리밸런싱 금액이 총자산과 안 맞으므로 반드시 알린다.
+    const off = Math.abs(targetSum - 100) > 0.05;
+    warnEl.hidden = !off || !rows.length;
+    if (off) warnEl.textContent = `목표 비중 합계가 ${Math.round(targetSum * 10) / 10}%입니다. 100%가 되도록 맞춰야 리밸런싱 금액이 맞습니다.`;
+
+    totalEl.textContent = total > 0 ? fmtManwon(total) : "–";
+    renderDonut();
+  }
+
+  function renderDonut() {
+    const visible = rows.map((r, i) => ({ ...r, color: ALLOC_COLORS[i % ALLOC_COLORS.length] })).filter((r) => r.amount > 0);
+    const labels = visible.map((r) => r.name || "(이름 없음)");
+    const data = visible.map((r) => r.amount);
+    const colors = visible.map((r) => r.color);
+
+    if (!donut) {
+      donut = new Chart(document.getElementById("allocDonut"), {
+        type: "doughnut",
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: "#fff", borderWidth: 2 }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "62%",
+          plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 12 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const sum = ctx.dataset.data.reduce((s, v) => s + v, 0);
+                  const pct = sum > 0 ? ((ctx.parsed / sum) * 100).toFixed(1) : "0.0";
+                  return `${ctx.label}: ${fmtManwon(ctx.parsed)} (${pct}%)`;
+                },
+              },
+            },
+          },
+        },
+      });
+      return;
+    }
+    donut.data.labels = labels;
+    donut.data.datasets[0].data = data;
+    donut.data.datasets[0].backgroundColor = colors;
+    donut.update();
+  }
+
+  function updateSyncNote() {
+    noteEl.classList.toggle("error", allocSync.state === "error");
+    if (!currentUser) {
+      noteEl.textContent = "로그인해야 자산 배분을 저장할 수 있습니다.";
+      badgeEl.textContent = "";
+      return;
+    }
+    const who = currentUser.email || currentUser.uid;
+    if (allocSync.state === "error") {
+      const code = allocSync.error?.code || allocSync.error?.message || "알 수 없는 오류";
+      noteEl.textContent = `${who} 계정에 저장하지 못했습니다 — ${code}. 이 화면을 벗어나면 입력한 내용이 사라집니다.`;
+      badgeEl.textContent = "저장 실패";
+      return;
+    }
+    const when = allocSync.at ? ` · 마지막 저장 ${allocSync.at.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}` : "";
+    noteEl.textContent = `입력한 자산 배분은 구글 계정(${who})에만 저장됩니다. 다른 기기에서 로그인해도 그대로 열립니다.${when}`;
+    badgeEl.textContent = allocSync.state === "saving" ? "저장 중..." : allocSync.at ? "저장됨" : "";
+  }
+  allocSyncStatusHook = updateSyncNote;
+
+  tbody.addEventListener("input", (e) => {
+    const tr = e.target.closest("tr[data-idx]");
+    if (!tr) return;
+    const r = rows[Number(tr.dataset.idx)];
+    if (!r) return;
+    const field = e.target.dataset.field;
+    if (field === "name") {
+      r.name = e.target.value.slice(0, 40);
+    } else if (field === "amount") {
+      const v = Number(e.target.value);
+      r.amount = Number.isFinite(v) ? Math.max(0, v) : 0;
+    } else if (field === "target") {
+      const v = Number(e.target.value);
+      r.target = Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 0;
+    } else {
+      return;
+    }
+    renderComputed();
+    persistSoon();
+  });
+
+  tbody.addEventListener("click", (e) => {
+    const btn = e.target.closest('[data-action="remove"]');
+    if (!btn) return;
+    const idx = Number(btn.closest("tr[data-idx]").dataset.idx);
+    rows.splice(idx, 1);
+    renderRows();
+    renderComputed();
+    persistAllocRows(rows);
+  });
+
+  document.getElementById("allocAddRowBtn").addEventListener("click", () => {
+    if (rows.length >= ALLOC_MAX_ROWS) return;
+    rows.push({ name: "", amount: 0, target: 0 });
+    renderRows();
+    renderComputed();
+    // 빈 줄이라 아직 저장할 내용은 없지만, 줄 자체는 남아 있어야 다른 기기에서도 같게 보인다.
+    persistAllocRows(rows);
+    const last = tbody.querySelector("tr:last-child input[data-field='name']");
+    if (last) last.focus();
+  });
+
+  document.getElementById("allocResetBtn").addEventListener("click", () => {
+    if (!confirm("입력한 자산 배분을 지우고 기본 자산군으로 되돌립니다. 계속할까요?")) return;
+    rows = defaultAllocRows();
+    renderRows();
+    renderComputed();
+    persistAllocRows(rows);
+  });
+
+  // 로그인 상태가 바뀌면 그 계정에 저장된 자산 배분으로 갈아끼운다.
+  // 로그아웃 시에는 기본값으로 돌아가므로 앞 사용자의 자산 내역이 화면에 남지 않는다.
+  allocPrefsHook = () => {
+    clearTimeout(saveTimer);
+    rows = currentAllocRows();
+    setAllocSync({ state: currentUser ? "ready" : "idle", error: null, at: null });
+    renderRows();
+    renderComputed();
+    updateSyncNote();
+  };
+
+  renderRows();
+  renderComputed();
+  updateSyncNote();
+}
 
 // ---- 관리자 탭 ----
 // 화면에서 버튼을 숨기는 것만으로는 접근 제어가 되지 않는다. users 컬렉션 전체 읽기와
