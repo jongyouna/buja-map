@@ -63,6 +63,9 @@
     border-bottom: 1px solid var(--panel-border);
   }
   .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
@@ -72,7 +75,9 @@
     padding: 12px 16px;
     cursor: pointer;
     margin-bottom: -1px;
+    white-space: nowrap;
   }
+  .tab-icon { width: 16px; height: 16px; flex-shrink: 0; }
   .tab-btn:hover { color: var(--text); }
   .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
   /* 급매 Now!: 매물이 매일 바뀌는 탭이라 눈에 먼저 들어오도록 빨간색으로 강조한다.
@@ -80,25 +85,16 @@
   .tab-btn.hot { color: var(--bad); }
   .tab-btn.hot:hover { color: #912018; }
   .tab-btn.hot.active { color: var(--bad); border-bottom-color: var(--bad); }
-  /* 글씨 왼쪽의 점. 선택했을 때만 천천히 깜빡여 "지금 보고 있는 실시간 탭"임을 알린다. */
-  .tab-btn.hot::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-right: 6px;
-    border-radius: 50%;
-    background: var(--bad);
-    vertical-align: 1px;
-  }
-  .tab-btn.hot.active::before { animation: hot-pulse 1.6s ease-in-out infinite; }
+  /* 급매 Now!는 아이콘이 곧 강조 표시다. 선택했을 때만 천천히 깜빡여
+     "지금 보고 있는 실시간 탭"임을 알린다. */
+  .tab-btn.hot.active .tab-icon { animation: hot-pulse 1.6s ease-in-out infinite; }
   @keyframes hot-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(180, 35, 24, 0.45); }
-    50% { opacity: 0.55; box-shadow: 0 0 0 4px rgba(180, 35, 24, 0); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
   }
   /* 깜빡임을 불편해하는 사용자도 있으므로 OS 설정을 따른다. */
   @media (prefers-reduced-motion: reduce) {
-    .tab-btn.hot.active::before { animation: none; }
+    .tab-btn.hot.active .tab-icon { animation: none; }
   }
   .tab-panel[hidden] { display: none; }
   .naver-controls { display: flex; gap: 8px; flex-shrink: 0; }
@@ -1044,10 +1040,33 @@
   </div>
 
   <nav class="tabbar" id="tabBar">
-    <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
-    <button class="tab-btn hot" data-tab="naver" type="button">급매 Now!</button>
+    <!-- 아이콘은 인라인 SVG다. 글자색(currentColor)을 따라가므로 탭이 활성/비활성으로
+         바뀔 때 색을 따로 맞출 필요가 없다. -->
+    <button class="tab-btn active" data-tab="macro" type="button">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2.7 6.9 8.4a7.2 7.2 0 1 0 10.2 0z" />
+        <path d="M9.4 14.6a3.4 3.4 0 0 0 3.4 3.1" />
+      </svg>
+      거시경제
+    </button>
+    <button class="tab-btn hot" data-tab="naver" type="button">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 10.7 12 3.5l9 7.2" />
+        <path d="M5.4 9.4V20.5h13.2V9.4" />
+        <path d="M9.8 20.5v-5.6h4.4v5.6" />
+      </svg>
+      급매 Now!
+    </button>
     <!-- 자산 배분 탭은 항상 보이지만 로그인해야 열린다. 로그인하지 않고 누르면 로그인 안내 팝업이 뜬다. -->
-    <button class="tab-btn" data-tab="allocation" type="button" id="allocationTabBtn">자산 배분</button>
+    <button class="tab-btn" data-tab="allocation" type="button" id="allocationTabBtn">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.5 3.5v17h17" />
+        <path d="M7.5 16.5v-4" />
+        <path d="M12 16.5V7.5" />
+        <path d="M16.5 16.5v-6.5" />
+      </svg>
+      자산 배분
+    </button>
     <!-- 관리자 탭 버튼은 관리자로 로그인했을 때만 나타난다. 다만 이 hidden은 화면 정리일 뿐이고,
          실제 데이터 접근 차단은 Firestore 보안 규칙(firestore.rules)이 담당한다. -->
     <button class="tab-btn" data-tab="admin" type="button" id="adminTabBtn" hidden>관리자</button>
