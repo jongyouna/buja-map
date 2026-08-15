@@ -568,6 +568,72 @@
   .modal-error[hidden] { display: none; }
 
   /* ---- 자산 배분 탭 ---- */
+  /* 계좌 탭 줄: 자산 배분 안에서 여러 계좌(연금저축·IRP·ISA…)를 오간다. */
+  .acct-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .acct-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 8px 6px 14px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 260px;
+  }
+  .acct-tab:hover { border-color: var(--text); color: var(--text); }
+  .acct-tab.active { background: var(--text); border-color: var(--text); color: #fff; }
+  .acct-tab .acct-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acct-tab .acct-total { font-weight: 500; font-size: 0.74rem; opacity: 0.75; white-space: nowrap; }
+  .acct-tab .acct-del {
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 50%;
+  }
+  .acct-tab .acct-del:hover { opacity: 1; background: rgba(255, 255, 255, 0.22); }
+  .acct-tab:not(.active) .acct-del:hover { background: var(--bad-bg); color: var(--bad); }
+  /* 이름 바꾸기: 탭 자리에 그대로 입력칸이 들어간다. */
+  .acct-tab-rename {
+    font-size: 0.84rem;
+    font-weight: 600;
+    border: 1px solid var(--text);
+    border-radius: 999px;
+    padding: 6px 14px;
+    background: var(--panel);
+    color: var(--text);
+    width: 150px;
+  }
+  .acct-tab-rename:focus { outline: none; }
+  .acct-add {
+    border: 1px dashed var(--panel-border);
+    background: none;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .acct-add:hover { border-color: var(--text); color: var(--text); }
+  .acct-hint { font-size: 0.72rem; color: var(--muted); margin-left: 2px; }
+
   /* 요약 줄: 수익률·총입금액·현재총자산·평가손익·리밸런싱 대상 수·Threshold */
   .alloc-summary {
     display: grid;
@@ -1064,11 +1130,10 @@
       <div class="updated" id="allocTopBadge"></div>
     </div>
 
+    <!-- 계좌 탭. 계좌마다 보유 종목·목표비중·총입금액이 따로 저장된다. -->
+    <div class="acct-tabs" id="allocAccountTabs"></div>
+
     <div class="alloc-summary" id="allocSummary">
-      <div class="cell">
-        <div class="label">계좌 이름</div>
-        <input type="text" id="allocAccountName" maxlength="20" placeholder="연금저축" />
-      </div>
       <div class="cell">
         <div class="label">수익률</div>
         <div class="value" id="sumReturnRate">–</div>
@@ -2542,52 +2607,93 @@ function defaultAllocRows() {
   return ALLOC_DEFAULT_ROWS.map((r) => ({ ...r, price: null, changeRate: null, priceSource: null, manualPrice: false }));
 }
 
-function defaultAllocDoc() {
-  return { accountName: "연금저축", deposit: 0, threshold: ALLOC_DEFAULT_THRESHOLD, rows: defaultAllocRows() };
+function newAccountId() {
+  // crypto.randomUUID는 최신 브라우저에만 있다. 없으면 시간+난수로 충분하다(한 계정 안에서만 구분하면 된다).
+  if (crypto?.randomUUID) return crypto.randomUUID();
+  return `a${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function defaultAccount(name = "연금저축", withRows = true) {
+  return {
+    id: newAccountId(),
+    name,
+    deposit: 0,
+    threshold: ALLOC_DEFAULT_THRESHOLD,
+    rows: withRows ? defaultAllocRows() : [],
+  };
+}
+
+// 계좌 여러 개를 담는 문서. activeId가 지금 보고 있는 계좌다.
+function defaultAllocBook() {
+  const acct = defaultAccount();
+  return { version: 2, activeId: acct.id, accounts: [acct] };
+}
+
+const ALLOC_MAX_ACCOUNTS = 12;
+
+function numOr(v, fallback, min, max) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
 }
 
 // 계정 문서에서 읽은 값은 다른 기기의 옛 버전이 썼을 수도 있으므로 형태를 믿지 않고 손질한다.
-function normalizeAllocDoc(raw) {
-  if (!raw || !Array.isArray(raw.rows)) return null;
-  const numOr = (v, fallback, min, max) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return fallback;
-    return Math.min(max, Math.max(min, n));
-  };
-  const rows = raw.rows.slice(0, ALLOC_MAX_ROWS).map((r) => ({
+function normalizeAccountRows(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, ALLOC_MAX_ROWS).map((r) => ({
     cat: ALLOC_CATEGORIES.includes(r?.cat) ? r.cat : ALLOC_CATEGORIES[0],
     name: typeof r?.name === "string" ? r.name.slice(0, 40) : "",
     code: typeof r?.code === "string" && /^\d{6}$/.test(r.code) ? r.code : "",
     target: numOr(r?.target, 0, 0, 100),
     avgPrice: numOr(r?.avgPrice, 0, 0, 1e12),
     qty: numOr(r?.qty, 0, 0, 1e12),
-    // 시세는 매번 새로 받아오지만, 받아오지 못할 때를 대비해 마지막 값도 함께 저장해 둔다.
+    // 시세는 열 때마다 새로 받지만, 못 받을 때를 대비해 마지막 값도 함께 저장해 둔다.
     price: Number.isFinite(Number(r?.price)) && Number(r.price) > 0 ? Number(r.price) : null,
     changeRate: Number.isFinite(Number(r?.changeRate)) ? Number(r.changeRate) : null,
     priceSource: typeof r?.priceSource === "string" ? r.priceSource : null,
     manualPrice: r?.manualPrice === true,
   }));
-  if (!rows.length) return null;
+}
+
+function normalizeAccount(raw, index) {
   return {
-    accountName: typeof raw.accountName === "string" ? raw.accountName.slice(0, 20) : "연금저축",
-    deposit: numOr(raw.deposit, 0, 0, 1e15),
-    threshold: numOr(raw.threshold, ALLOC_DEFAULT_THRESHOLD, 0, 100),
-    rows,
+    id: typeof raw?.id === "string" && raw.id ? raw.id : newAccountId(),
+    name: (typeof raw?.name === "string" && raw.name.trim() ? raw.name : `계좌 ${index + 1}`).slice(0, 20),
+    deposit: numOr(raw?.deposit, 0, 0, 1e15),
+    threshold: numOr(raw?.threshold, ALLOC_DEFAULT_THRESHOLD, 0, 100),
+    rows: normalizeAccountRows(raw?.rows),
   };
 }
 
-function currentAllocDoc() {
-  if (currentUser) {
-    const saved = normalizeAllocDoc(currentUserDoc?.assetAllocation);
-    if (saved) return saved;
+// 계좌가 하나뿐이던 예전 문서(version 없음, 최상위에 rows/accountName)도 그대로 열려야 한다.
+// 그러지 않으면 이미 입력해 둔 자산 내역이 조용히 사라진 것처럼 보인다.
+function normalizeAllocBook(raw) {
+  if (!raw) return null;
+  if (Array.isArray(raw.accounts)) {
+    const accounts = raw.accounts.slice(0, ALLOC_MAX_ACCOUNTS).map(normalizeAccount);
+    if (!accounts.length) return null;
+    const activeId = accounts.some((a) => a.id === raw.activeId) ? raw.activeId : accounts[0].id;
+    return { version: 2, activeId, accounts };
   }
-  return defaultAllocDoc();
+  if (Array.isArray(raw.rows)) {
+    const migrated = normalizeAccount({ ...raw, name: raw.accountName }, 0);
+    return { version: 2, activeId: migrated.id, accounts: [migrated] };
+  }
+  return null;
 }
 
-function persistAllocDoc(docData) {
+function currentAllocBook() {
+  if (currentUser) {
+    const saved = normalizeAllocBook(currentUserDoc?.assetAllocation);
+    if (saved) return saved;
+  }
+  return defaultAllocBook();
+}
+
+function persistAllocBook(book) {
   // 로그인 상태가 확정되기 전에 쓰면 계정에 저장해 둔 자산 내역을 기본값으로 덮어쓴다.
   if (!authSettled || !currentUser) return;
-  const payload = { ...docData, updatedAt: new Date().toISOString() };
+  const payload = { ...book, updatedAt: new Date().toISOString() };
   if (currentUserDoc) currentUserDoc.assetAllocation = payload;
   setAllocSync({ state: "saving", error: null });
   setDoc(doc(db, "users", currentUser.uid), { assetAllocation: payload }, { merge: true })
@@ -2717,11 +2823,12 @@ function initAllocationTab() {
   const badgeEl = document.getElementById("allocTopBadge");
   const noteEl = document.getElementById("allocSyncNote");
   const quoteStateEl = document.getElementById("allocQuoteState");
-  const nameInput = document.getElementById("allocAccountName");
   const depositInput = document.getElementById("allocDeposit");
   const thresholdInput = document.getElementById("allocThreshold");
 
-  let state = currentAllocDoc();
+  // book = 계좌 묶음, state = 지금 보고 있는 계좌. 아래 계산·렌더 코드는 전부 state만 본다.
+  let book = currentAllocBook();
+  let state = activeAccount();
   let donut = null;
   let catChart = null;
   let saveTimer = null;
@@ -2729,8 +2836,150 @@ function initAllocationTab() {
 
   function persistSoon() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => persistAllocDoc(state), 700);
+    saveTimer = setTimeout(() => persistAllocBook(book), 700);
   }
+
+  function activeAccount() {
+    return book.accounts.find((a) => a.id === book.activeId) || book.accounts[0];
+  }
+
+  // ---- 계좌 탭 ----
+  let renamingId = null; // 이름을 고치는 중인 계좌. 그 탭만 입력칸으로 바뀐다.
+
+  function accountTotal(acct) {
+    return acct.rows.reduce((sum, r) => sum + (Number.isFinite(r.price) ? r.price * r.qty : 0), 0);
+  }
+
+  function renderAccountTabs() {
+    const el = document.getElementById("allocAccountTabs");
+    const html = book.accounts.map((acct) => {
+      if (acct.id === renamingId) {
+        return `<input class="acct-tab-rename" data-rename="${acct.id}" type="text" maxlength="20" value="${escapeHtml(acct.name)}" />`;
+      }
+      const total = accountTotal(acct);
+      const active = acct.id === book.activeId;
+      return `<span class="acct-tab${active ? " active" : ""}" data-acct="${acct.id}" title="더블클릭하면 이름을 바꿉니다">
+          <span class="acct-name">${escapeHtml(acct.name)}</span>
+          ${total > 0 ? `<span class="acct-total">${fmtWon(total)}</span>` : ""}
+          <button class="acct-del" type="button" data-del="${acct.id}" title="이 계좌 삭제" aria-label="${escapeHtml(acct.name)} 삭제">×</button>
+        </span>`;
+    });
+    if (book.accounts.length < ALLOC_MAX_ACCOUNTS) {
+      html.push(`<button class="acct-add" type="button" id="allocAddAccountBtn">+ 계좌 추가</button>`);
+    }
+    html.push(`<span class="acct-hint">탭을 더블클릭하면 이름을 바꿀 수 있습니다</span>`);
+    el.innerHTML = html.join("");
+  }
+
+  // 계좌를 바꾸면 화면 전체(요약·표·차트)를 그 계좌 기준으로 다시 그린다.
+  function switchAccount(id) {
+    if (!book.accounts.some((a) => a.id === id) || id === book.activeId) return;
+    clearTimeout(saveTimer);
+    closeSuggest();
+    renamingId = null;
+    book.activeId = id;
+    state = activeAccount();
+    renderAccountTabs();
+    renderHeader();
+    renderRows();
+    renderComputed();
+    persistAllocBook(book);
+    refreshQuotes();
+  }
+
+  function addAccount() {
+    if (book.accounts.length >= ALLOC_MAX_ACCOUNTS) return;
+    // 새 계좌는 빈 표로 시작한다. 기본 종목을 넣으면 남의 구성을 지우는 일부터 하게 된다.
+    const acct = defaultAccount(`계좌 ${book.accounts.length + 1}`, false);
+    book.accounts.push(acct);
+    book.activeId = acct.id;
+    state = acct;
+    renamingId = acct.id; // 만들자마자 이름부터 정하게 한다
+    renderAccountTabs();
+    renderHeader();
+    renderRows();
+    renderComputed();
+    persistAllocBook(book);
+    focusRename();
+  }
+
+  function deleteAccount(id) {
+    const acct = book.accounts.find((a) => a.id === id);
+    if (!acct) return;
+    if (book.accounts.length === 1) {
+      alert("계좌가 하나뿐이라 삭제할 수 없습니다. 이름을 바꾸거나 종목을 지워 주세요.");
+      return;
+    }
+    const total = accountTotal(acct);
+    const detail = total > 0 ? `\n\n현재 이 계좌에 ${fmtWon(total)}원, ${acct.rows.length}종목이 들어 있습니다.` : "";
+    if (!confirm(`"${acct.name}" 계좌를 삭제합니다. 되돌릴 수 없습니다.${detail}\n\n계속할까요?`)) return;
+    book.accounts = book.accounts.filter((a) => a.id !== id);
+    if (book.activeId === id) book.activeId = book.accounts[0].id;
+    if (renamingId === id) renamingId = null;
+    state = activeAccount();
+    clearTimeout(saveTimer);
+    closeSuggest();
+    renderAccountTabs();
+    renderHeader();
+    renderRows();
+    renderComputed();
+    persistAllocBook(book);
+    refreshQuotes();
+  }
+
+  function focusRename() {
+    const input = document.querySelector(`[data-rename="${renamingId}"]`);
+    if (!input) return;
+    input.focus();
+    input.select();
+  }
+
+  function commitRename(save) {
+    const input = document.querySelector(`[data-rename="${renamingId}"]`);
+    const acct = book.accounts.find((a) => a.id === renamingId);
+    if (input && acct && save) {
+      const name = input.value.trim().slice(0, 20);
+      if (name) {
+        acct.name = name;
+        persistAllocBook(book);
+      }
+    }
+    renamingId = null;
+    renderAccountTabs();
+  }
+
+  document.getElementById("allocAccountTabs").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-del]");
+    if (del) {
+      e.stopPropagation();
+      deleteAccount(del.dataset.del);
+      return;
+    }
+    if (e.target.closest("#allocAddAccountBtn")) {
+      addAccount();
+      return;
+    }
+    const tab = e.target.closest("[data-acct]");
+    if (tab) switchAccount(tab.dataset.acct);
+  });
+
+  document.getElementById("allocAccountTabs").addEventListener("dblclick", (e) => {
+    const tab = e.target.closest("[data-acct]");
+    if (!tab) return;
+    renamingId = tab.dataset.acct;
+    renderAccountTabs();
+    focusRename();
+  });
+
+  document.getElementById("allocAccountTabs").addEventListener("keydown", (e) => {
+    if (!e.target.matches("[data-rename]")) return;
+    if (e.key === "Enter") commitRename(true);
+    else if (e.key === "Escape") commitRename(false);
+  });
+  document.getElementById("allocAccountTabs").addEventListener("focusout", (e) => {
+    // 다른 곳을 눌러 입력칸에서 빠져나가도 고친 이름은 살린다.
+    if (e.target.matches("[data-rename]") && renamingId) commitRename(true);
+  });
 
   // ---- 계산 ----
   // 이미지의 표와 같은 정의를 쓴다.
@@ -2986,7 +3235,6 @@ function initAllocationTab() {
   }
 
   function renderHeader() {
-    nameInput.value = state.accountName;
     depositInput.value = state.deposit || "";
     thresholdInput.value = state.threshold;
   }
@@ -3029,7 +3277,8 @@ function initAllocationTab() {
     // 현재가 입력칸의 값도 새로 그려야 하므로 행을 다시 만든다.
     renderRows();
     renderComputed();
-    if (applied || resolved) persistAllocDoc(state);
+    renderAccountTabs();
+    if (applied || resolved) persistAllocBook(book);
 
     const parts = [`${applied}종목 반영`];
     if (missing) parts.push(`목록에 없음 ${missing}종목`);
@@ -3098,7 +3347,7 @@ function initAllocationTab() {
     } else {
       setQuoteState(`${name}의 현재가가 시세 목록에 없습니다. 현재가 칸에 직접 입력해 주세요.`, true);
     }
-    persistAllocDoc(state);
+    persistAllocBook(book);
   }
 
   // ---- 이벤트 ----
@@ -3149,7 +3398,7 @@ function initAllocationTab() {
     row.cat = e.target.value;
     renderRows();
     renderComputed();
-    persistAllocDoc(state);
+    persistAllocBook(book);
   });
 
   tbody.addEventListener("click", (e) => {
@@ -3166,7 +3415,7 @@ function initAllocationTab() {
     closeSuggest();
     renderRows();
     renderComputed();
-    persistAllocDoc(state);
+    persistAllocBook(book);
   });
 
   // 검색창 밖을 누르면 드롭다운을 닫는다.
@@ -3179,10 +3428,6 @@ function initAllocationTab() {
     if (e.key === "Escape" && suggestRow !== null) closeSuggest();
   });
 
-  nameInput.addEventListener("input", () => {
-    state.accountName = nameInput.value.slice(0, 20);
-    persistSoon();
-  });
   depositInput.addEventListener("input", () => {
     const v = Number(depositInput.value);
     state.deposit = Number.isFinite(v) ? Math.max(0, v) : 0;
@@ -3201,18 +3446,22 @@ function initAllocationTab() {
     state.rows.push({ cat: ALLOC_CATEGORIES[0], name: "", code: "", target: 0, avgPrice: 0, qty: 0, price: null, changeRate: null, priceSource: null, manualPrice: false });
     renderRows();
     renderComputed();
-    persistAllocDoc(state);
+    persistAllocBook(book);
     const last = tbody.querySelector(`tr[data-idx="${state.rows.length - 1}"] input[data-field="name"]`);
     if (last) last.focus();
   });
 
   document.getElementById("allocResetBtn").addEventListener("click", () => {
-    if (!confirm("입력한 내용을 지우고 기본 구성으로 되돌립니다. 계속할까요?")) return;
-    state = defaultAllocDoc();
+    // 지금 보고 있는 계좌만 되돌린다. 다른 계좌는 건드리지 않는다.
+    if (!confirm(`"${state.name}" 계좌의 입력 내용을 지우고 기본 구성으로 되돌립니다. 계속할까요?`)) return;
+    state.deposit = 0;
+    state.threshold = ALLOC_DEFAULT_THRESHOLD;
+    state.rows = defaultAllocRows();
+    renderAccountTabs();
     renderHeader();
     renderRows();
     renderComputed();
-    persistAllocDoc(state);
+    persistAllocBook(book);
     refreshQuotes();
   });
 
@@ -3240,8 +3489,11 @@ function initAllocationTab() {
   allocPrefsHook = () => {
     clearTimeout(saveTimer);
     closeSuggest();
-    state = currentAllocDoc();
+    renamingId = null;
+    book = currentAllocBook();
+    state = activeAccount();
     setAllocSync({ state: currentUser ? "ready" : "idle", error: null, at: null });
+    renderAccountTabs();
     renderHeader();
     renderRows();
     renderComputed();
@@ -3249,6 +3501,7 @@ function initAllocationTab() {
     if (currentUser) refreshQuotes();
   };
 
+  renderAccountTabs();
   renderHeader();
   renderRows();
   renderComputed();
