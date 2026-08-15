@@ -243,14 +243,16 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
   return { articles: collected, hasMore: true };
 }
 
-// 같은 단지라도 공급면적이 다르면 사실상 다른 상품이라 가격대가 겹치지 않는다.
-// 그래서 (단지, 공급면적) 단위로 한 줄씩 만든다. 면적을 모르는 매물은 따로 모은다.
+// 같은 단지라도 전용면적이 다르면 사실상 다른 상품이라 가격대가 겹치지 않는다.
+// 그래서 (단지, 전용면적) 단위로 한 줄씩 만든다. 면적을 모르는 매물은 따로 모은다.
 function aggregateComplexes(articles, tradeType) {
   const byUnit = new Map();
   for (const a of articles) {
     const rawPrice = tradeType === "A1" ? a.priceInfo?.dealPrice : a.priceInfo?.warrantyPrice;
     const price = rawPrice > 0 ? rawPrice / 10000 : null; // 원 -> 만원
-    const area = a.spaceInfo?.supplySpace > 0 ? a.spaceInfo.supplySpace : null;
+    // 화면에 쓰는 기준 면적은 전용면적이다. 공급면적도 같이 남겨 둔다.
+    const area = a.spaceInfo?.exclusiveSpace > 0 ? a.spaceInfo.exclusiveSpace : null;
+    const supply = a.spaceInfo?.supplySpace > 0 ? a.spaceInfo.supplySpace : null;
     const complexKey = a.complexNumber ?? a.complexName;
     // 소수점 둘째 자리까지 같아야 같은 평형으로 본다. 84A/84B처럼 미세하게
     // 다른 타입은 실제로 다른 상품이므로 굳이 합치지 않는다.
@@ -260,7 +262,8 @@ function aggregateComplexes(articles, tradeType) {
         complexNo: a.complexNumber ?? null,
         complexName: a.complexName,
         tradeType,
-        supplyArea: area,
+        exclusiveArea: area,
+        supplyArea: supply,
         // 화면에 "서울시 강남구 역삼동"처럼 표시하려면 단지가 속한 동이 필요하다.
         // 구 단위로 집계한 지역은 지역 자체에 동 정보가 없으므로 매물 주소에서 가져온다.
         dong: a.address?.sector || null,
@@ -287,11 +290,13 @@ function aggregateComplexes(articles, tradeType) {
       complexName: bucket.complexName,
       tradeType: bucket.tradeType,
       dong: bucket.dong,
+      exclusiveArea: bucket.exclusiveArea,
       supplyArea: bucket.supplyArea,
       count: bucket.prices.length,
       minPrice: prices.length ? prices[0] : null,
       maxPrice: prices.length ? prices[prices.length - 1] : null,
       avgPrice,
+      // 평당가는 관례대로 공급면적 기준이다(전용면적으로 나누면 값이 30%쯤 부풀려진다).
       avgPyeongPrice:
         avgPrice != null && bucket.supplyArea != null ? avgPrice / (bucket.supplyArea / PYEONG_M2) : null,
       approvalElapsedYear: years.length ? Math.round(years.reduce((s, v) => s + v, 0) / years.length) : null,
@@ -518,9 +523,40 @@ async function probeOnce() {
     console.log(`받은 그룹 ${list.length}개`);
     console.log("=== RESULT KEYS ===");
     console.log(JSON.stringify(Object.keys(json.result || {})));
-    for (const [i, group] of list.slice(0, 2).entries()) {
+    for (const [i, group] of list.slice(0, 1).entries()) {
       console.log(`=== GROUP ${i} 전체 ===`);
       console.log(JSON.stringify(group, null, 2));
+    }
+
+    // 세대수·실거래가는 매물 목록 응답에 없다. 단지 상세 페이지가 어떤 API를 부르는지
+    // 실제로 열어보고 잡아낸다(엔드포인트 주소를 추측하지 않기 위해).
+    const complexNumber = list[0]?.representativeArticleInfo?.complexNumber;
+    if (!complexNumber) {
+      console.log("단지 번호를 찾지 못해 단지 상세 조사는 건너뜁니다.");
+      return;
+    }
+    console.log(`=== 단지 상세 페이지 네트워크 조사: complexNumber=${complexNumber} ===`);
+    const seen = [];
+    page.on("response", async (r) => {
+      const url = r.url();
+      if (!url.includes("/front-api/")) return;
+      let body = "";
+      try {
+        body = (await r.text()).slice(0, 1200);
+      } catch (e) {
+        body = `(본문 읽기 실패: ${e.message})`;
+      }
+      seen.push({ url, status: r.status(), body });
+    });
+    await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}`, {
+      waitUntil: "networkidle",
+      timeout: 45000,
+    });
+    await page.waitForTimeout(4000);
+    console.log(`front-api 호출 ${seen.length}건`);
+    for (const s of seen) {
+      console.log(`--- ${s.status} ${s.url}`);
+      console.log(s.body);
     }
   } finally {
     await context.close();

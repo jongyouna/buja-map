@@ -848,7 +848,7 @@
             <tr>
               <th data-sort="regionLabel" class="sortable">지역</th>
               <th data-sort="complexName" class="sortable">단지명</th>
-              <th data-sort="supplyArea" class="sortable num">공급면적</th>
+              <th data-sort="supplyArea" class="sortable num">전용면적</th>
               <th data-sort="count" class="sortable num">매물 수</th>
               <th data-sort="minPrice" class="sortable num">최저가</th>
               <th data-sort="maxPrice" class="sortable num">최고가</th>
@@ -2466,11 +2466,13 @@ async function initNaverTab() {
     schedulePriceRender();
   });
 
-  // 수집 스크립트는 이제 (단지 × 공급면적)마다 한 줄을 만들어 supplyArea를 넣는다.
-  // 아직 재수집되지 않은 지역은 단지 단위로 평균낸 avgArea만 갖고 있으므로 함께 받아준다.
+  // 표의 면적 기준은 전용면적이다. 아직 재수집되지 않은 지역은 전용면적이 없어
+  // 공급면적(예전 supplyArea/avgArea)밖에 없으므로, 그럴 때는 그 값을 쓰되 화면에
+  // "공" 표시를 붙여 기준이 다르다는 걸 숨기지 않는다.
   function rowArea(c) {
-    return c.supplyArea ?? c.avgArea ?? null;
+    return c.exclusiveArea ?? c.supplyArea ?? c.avgArea ?? null;
   }
+  const rowAreaIsSupply = (c) => c.exclusiveArea == null;
 
   // 가격대 슬라이더는 그 행의 "최저가"만 본다. 최저가가 범위 밖이면 행을 제외한다.
   // (최고가는 얼마든 걸러내지 않는다 — 급매를 찾는 화면이므로 기준은 가장 싼 매물이다.)
@@ -2588,7 +2590,14 @@ async function initNaverTab() {
     tbody.innerHTML = rows
       .map((r) => {
         const area = rowArea(r);
-        const areaCell = area == null ? "–" : `${area.toFixed(1)}㎡ <span class="naver-pyeong">${(area / 3.305785).toFixed(1)}평</span>`;
+        const areaCell =
+          area == null
+            ? "–"
+            : `${area.toFixed(1)}㎡ <span class="naver-pyeong">${(area / 3.305785).toFixed(1)}평</span>${
+                rowAreaIsSupply(r)
+                  ? `<span class="naver-pyeong" title="이 지역은 아직 재수집되지 않아 전용면적 대신 공급면적입니다.">공</span>`
+                  : ""
+              }`;
         return `
       <tr>
         <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
