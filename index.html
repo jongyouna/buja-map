@@ -3420,7 +3420,7 @@ function initAllocationTab() {
             </div>
             <button class="alloc-row-expand" type="button" data-action="expand" aria-expanded="false">✎ 수정</button>
           </td>
-          <td class="num alloc-cell-input alloc-more" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
+          <td class="num alloc-cell-input" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
           <td class="num" data-cell="weight1" data-label="보유비중">–</td>
           <td data-cell="rebal" class="alloc-rebal-off" data-label="리밸런싱">불필요</td>
           <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
@@ -3431,7 +3431,7 @@ function initAllocationTab() {
           <td class="num alloc-more" data-cell="weight2" data-label="보유비중(%)">–</td>
           <td class="num alloc-more" data-cell="gap" data-label="포트편차(%)">–</td>
           <td class="num alloc-more" data-cell="thresholdBase" data-label="Threshold 기준">–</td>
-          <td class="num" data-cell="profit" data-label="손익(원)">–</td>
+          <td class="num alloc-more" data-cell="profit" data-label="손익(원)">–</td>
           <td class="alloc-col-remove"><button class="alloc-row-remove" type="button" data-action="remove" title="이 종목 삭제" aria-label="${escapeHtml(r.name || "이름 없는 종목")} 삭제">×</button></td>
         </tr>`);
       });
