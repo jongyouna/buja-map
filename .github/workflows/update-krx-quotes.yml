@@ -1,0 +1,43 @@
+name: Update KRX quotes
+
+# 자산 배분 탭의 종목 검색 목록과 현재가 대체값(data/krx-quotes.json)을 갱신한다.
+#
+# 브라우저에서 실시간 시세를 직접 받아오는 것이 우선이고, 그 호출이 CORS 등으로 막힐 때
+# 쓰는 것이 이 스냅샷이다. 그래서 기본은 하루 한 번, 장 마감 뒤에만 돌린다.
+#
+# 장중에도 스냅샷을 자주 갱신하고 싶으면 아래 intraday cron의 주석을 풀면 된다.
+# 10분마다 커밋이 쌓이므로(장중 하루 약 40회) 필요할 때만 켜는 것을 권한다.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1-5" # 평일 UTC 07:00 = KST 16:00 (정규장 마감 후)
+    # - cron: "*/10 0-6 * * 1-5" # (선택) 장중 10분마다 = KST 09:00~15:50
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update-krx-quotes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Fetch KRX quotes
+        run: node scripts/fetch-krx-quotes.js
+      - name: Commit updated quotes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/krx-quotes.json
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "chore: KRX 시세 스냅샷 갱신"
+          # 다른 워크플로가 그 사이 push 했을 수 있으므로 rebase 후 올린다.
+          git pull --rebase origin main
+          git push
