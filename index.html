@@ -922,15 +922,35 @@
 
     /* 카드에는 핵심 값만 두고 나머지(입력칸 포함)는 "자세히"로 펼친다.
        14개를 다 펼쳐 두면 종목당 카드가 너무 길어져 세로 스크롤이 가로 스크롤만큼 괴로워진다. */
+    /* 터치 기기에는 hover가 없다. 데스크톱에서는 마우스를 올려야 입력칸 테두리가 보이는데,
+       휴대폰에서는 그 순간이 없어 값이 그냥 글자로만 보이고 고칠 수 있다는 것을 알 수 없다.
+       그래서 카드에서는 입력칸 테두리를 항상 보여 준다. */
+    .alloc-table tbody tr[data-idx] input,
+    .alloc-table tbody tr[data-idx] select {
+      border-color: var(--panel-border);
+      background: var(--panel);
+      min-height: 32px;
+    }
+    /* 표에서는 칸 전체를 노랗게 칠해 "입력하는 칸"임을 나타냈지만, 카드에서는 줄 전체가
+       노래져 오히려 지저분하다. 입력칸 자체만 칠한다. */
+    .alloc-table tbody tr[data-idx] td.alloc-cell-input,
+    .alloc-table tbody tr[data-idx] td.alloc-cell-price { background: none; }
+    .alloc-table tbody tr[data-idx] .alloc-cell-input input { background: #fffaeb; }
+
+    /* 무엇을 하는 버튼인지 이름과 모양에서 드러나야 한다. 손가락으로 누를 크기도 필요하다. */
     .alloc-row-expand {
       display: inline-flex;
-      border: none;
-      background: none;
-      color: var(--muted);
-      font-size: 0.74rem;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid var(--panel-border);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 0.76rem;
       font-weight: 600;
       cursor: pointer;
-      padding: 2px 0;
+      padding: 5px 12px;
+      min-height: 30px;
     }
     .alloc-table tbody tr[data-idx]:not(.expanded) .alloc-more { display: none; }
 
@@ -1394,7 +1414,7 @@
         <div class="panel-header">
           <div>
             <h2>보유 종목</h2>
-            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸 칸이 켜집니다.</p>
+            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱 칸이 켜집니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
           </div>
           <button class="toggle-btn" id="allocRefreshQuotesBtn" type="button">시세 새로고침</button>
         </div>
@@ -3398,7 +3418,7 @@ function initAllocationTab() {
               <span class="alloc-code" data-cell="code">${r.code ? escapeHtml(r.code) : ""}</span>
               <div class="alloc-suggest" data-suggest hidden></div>
             </div>
-            <button class="alloc-row-expand" type="button" data-action="expand" aria-expanded="false">자세히 ▾</button>
+            <button class="alloc-row-expand" type="button" data-action="expand" aria-expanded="false">✎ 수정</button>
           </td>
           <td class="num alloc-cell-input alloc-more" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
           <td class="num" data-cell="weight1" data-label="보유비중">–</td>
@@ -3406,7 +3426,7 @@ function initAllocationTab() {
           <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
           <td class="num alloc-cell-price alloc-more" data-label="현재가"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
           <td class="num alloc-cell-input alloc-more" data-label="평균매입가"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
-          <td class="num alloc-cell-input alloc-more" data-label="잔고수량"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
+          <td class="num alloc-cell-input" data-label="잔고수량"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
           <td class="num alloc-heat" data-cell="profitRate" data-label="수익률(%)">–</td>
           <td class="num alloc-more" data-cell="weight2" data-label="보유비중(%)">–</td>
           <td class="num alloc-more" data-cell="gap" data-label="포트편차(%)">–</td>
@@ -3774,7 +3794,7 @@ function initAllocationTab() {
       const tr = expand.closest("tr[data-idx]");
       const open = tr.classList.toggle("expanded");
       expand.setAttribute("aria-expanded", String(open));
-      expand.textContent = open ? "접기 ▴" : "자세히 ▾";
+      expand.textContent = open ? "접기 ▴" : "✎ 수정";
       return;
     }
     const btn = e.target.closest('[data-action="remove"]');
