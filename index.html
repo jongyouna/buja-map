@@ -196,6 +196,7 @@
   .naver-table tbody tr:hover { background: var(--bg); }
   .naver-table .naver-empty { text-align: center; color: var(--muted); padding: 28px 8px; }
   .naver-complex-link { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .naver-pyeong { color: var(--muted); font-size: 11px; margin-left: 2px; }
   .naver-complex-link:hover { border-bottom-style: solid; }
   .topbar-actions { display: flex; align-items: center; gap: 10px; }
   .auth-area { display: flex; align-items: center; gap: 8px; min-height: 36px; }
@@ -719,12 +720,11 @@
           <thead>
             <tr>
               <th data-sort="complexName" class="sortable">단지명</th>
+              <th data-sort="supplyArea" class="sortable num">공급면적</th>
               <th data-sort="count" class="sortable num">매물 수</th>
               <th data-sort="minPrice" class="sortable num">최저가</th>
-              <th data-sort="medianPrice" class="sortable num">중위가</th>
               <th data-sort="maxPrice" class="sortable num">최고가</th>
               <th data-sort="avgPyeongPrice" class="sortable num">평당가(만원)</th>
-              <th data-sort="avgArea" class="sortable num">평균 공급면적</th>
             </tr>
           </thead>
           <tbody id="naverTableBody"></tbody>
@@ -1777,7 +1777,7 @@ async function initNaverTab() {
     console.error("네이버 부동산 데이터를 불러오지 못했습니다:", e);
     updatedEl.textContent = "";
     topBadge.textContent = "";
-    tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
     return;
   }
 
@@ -1911,10 +1911,17 @@ async function initNaverTab() {
   const priceMinInput = document.getElementById("filterPriceMin");
   const priceMaxInput = document.getElementById("filterPriceMax");
 
+  // 수집 스크립트는 이제 (단지 × 공급면적)마다 한 줄을 만들어 supplyArea를 넣는다.
+  // 아직 재수집되지 않은 지역은 단지 단위로 평균낸 avgArea만 갖고 있으므로 함께 받아준다.
+  function rowArea(c) {
+    return c.supplyArea ?? c.avgArea ?? null;
+  }
+
   function passesUnitFilters(c) {
     const pyeongType = pyeongTypeSelect.value;
     if (pyeongType) {
-      const pyeong = c.avgArea == null ? null : c.avgArea / 3.305785;
+      const area = rowArea(c);
+      const pyeong = area == null ? null : area / 3.305785;
       if (pyeong == null) return false;
       if (pyeongType === "60" ? pyeong < 60 : Math.floor(pyeong / 10) * 10 !== Number(pyeongType)) return false;
     }
@@ -1950,7 +1957,9 @@ async function initNaverTab() {
       for (const c of region.complexes) {
         if (c.tradeType !== tradeSelect.value) continue;
         if (!passesUnitFilters(c)) continue;
-        const key = c.complexNo ?? c.complexName;
+        // 같은 단지라도 공급면적이 다르면 별개의 행으로 남긴다.
+        const area = rowArea(c);
+        const key = `${c.complexNo ?? c.complexName}|${area == null ? "" : area.toFixed(2)}`;
         if (!seen.has(key)) seen.set(key, c);
       }
     }
@@ -1959,10 +1968,20 @@ async function initNaverTab() {
 
   function renderSummary(rows) {
     const totalListings = rows.reduce((s, r) => s + r.count, 0);
-    const pyeongPrices = rows.map((r) => r.avgPyeongPrice).filter((v) => v != null);
-    const avgPyeong = pyeongPrices.length ? pyeongPrices.reduce((s, v) => s + v, 0) / pyeongPrices.length : null;
+    const complexCount = new Set(rows.map((r) => r.complexNo ?? r.complexName)).size;
+    // 행이 면적별로 쪼개진 뒤로는 행마다 매물 수 차이가 커서, 단순 평균 대신
+    // 매물 수로 가중해야 "이 조건의 평균 평당가"라는 말이 맞는다.
+    let pw = 0;
+    let pn = 0;
+    for (const r of rows) {
+      if (r.avgPyeongPrice == null || !r.count) continue;
+      pw += r.avgPyeongPrice * r.count;
+      pn += r.count;
+    }
+    const avgPyeong = pn ? pw / pn : null;
     const items = [
-      { name: "단지 수", value: `${rows.length.toLocaleString("ko-KR")}곳` },
+      { name: "단지 수", value: `${complexCount.toLocaleString("ko-KR")}곳` },
+      { name: "면적별 항목", value: `${rows.length.toLocaleString("ko-KR")}개` },
       { name: "총 매물 수", value: `${totalListings.toLocaleString("ko-KR")}건` },
       { name: "평균 평당가", value: avgPyeong == null ? "–" : `${Math.round(avgPyeong).toLocaleString("ko-KR")}만원` },
     ];
@@ -1972,8 +1991,9 @@ async function initNaverTab() {
   }
 
   function render() {
+    const sortValue = (r) => (sortKey === "supplyArea" ? rowArea(r) : r[sortKey]);
     const rows = currentRows().slice().sort((a, b) => {
-      const va = a[sortKey], vb = b[sortKey];
+      const va = sortValue(a), vb = sortValue(b);
       if (va == null) return 1;
       if (vb == null) return -1;
       const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb;
@@ -1989,24 +2009,25 @@ async function initNaverTab() {
 
     if (rows.length === 0) {
       tbody.innerHTML = includeChips.length
-        ? `<tr><td colspan="7" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.</td></tr>`
-        : `<tr><td colspan="7" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
+        ? `<tr><td colspan="6" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.</td></tr>`
+        : `<tr><td colspan="6" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = rows
-      .map(
-        (r) => `
+      .map((r) => {
+        const area = rowArea(r);
+        const areaCell = area == null ? "–" : `${area.toFixed(1)}㎡ <span class="naver-pyeong">${(area / 3.305785).toFixed(1)}평</span>`;
+        return `
       <tr>
         <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${r.complexName}</a>` : r.complexName}</td>
+        <td class="num">${areaCell}</td>
         <td class="num">${r.count.toLocaleString("ko-KR")}</td>
         <td class="num">${fmtManwon(r.minPrice)}</td>
-        <td class="num">${fmtManwon(r.medianPrice)}</td>
         <td class="num">${fmtManwon(r.maxPrice)}</td>
         <td class="num">${r.avgPyeongPrice == null ? "–" : Math.round(r.avgPyeongPrice).toLocaleString("ko-KR")}</td>
-        <td class="num">${r.avgArea == null ? "–" : r.avgArea.toFixed(1) + "㎡"}</td>
-      </tr>`
-      )
+      </tr>`;
+      })
       .join("");
   }
 

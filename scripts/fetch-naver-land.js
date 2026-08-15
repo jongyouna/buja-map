@@ -240,60 +240,52 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
   return { articles: collected, hasMore: true };
 }
 
-function median(sortedNums) {
-  const n = sortedNums.length;
-  if (n === 0) return null;
-  const mid = Math.floor(n / 2);
-  return n % 2 === 0 ? (sortedNums[mid - 1] + sortedNums[mid]) / 2 : sortedNums[mid];
-}
-
+// 같은 단지라도 공급면적이 다르면 사실상 다른 상품이라 가격대가 겹치지 않는다.
+// 그래서 (단지, 공급면적) 단위로 한 줄씩 만든다. 면적을 모르는 매물은 따로 모은다.
 function aggregateComplexes(articles, tradeType) {
-  const byComplex = new Map();
+  const byUnit = new Map();
   for (const a of articles) {
-    const key = a.complexNumber ?? a.complexName;
-    if (!byComplex.has(key)) {
-      byComplex.set(key, {
-        complexNo: a.complexNumber ?? null,
-        complexName: a.complexName,
-        tradeType,
-        prices: [],
-        areas: [],
-        pyeongPrices: [],
-        approvalElapsedYears: [],
-      });
-    }
-    const bucket = byComplex.get(key);
     const rawPrice = tradeType === "A1" ? a.priceInfo?.dealPrice : a.priceInfo?.warrantyPrice;
     const price = rawPrice > 0 ? rawPrice / 10000 : null; // 원 -> 만원
     const area = a.spaceInfo?.supplySpace > 0 ? a.spaceInfo.supplySpace : null;
+    const complexKey = a.complexNumber ?? a.complexName;
+    // 소수점 둘째 자리까지 같아야 같은 평형으로 본다. 84A/84B처럼 미세하게
+    // 다른 타입은 실제로 다른 상품이므로 굳이 합치지 않는다.
+    const key = `${complexKey}|${area == null ? "" : area.toFixed(2)}`;
+    if (!byUnit.has(key)) {
+      byUnit.set(key, {
+        complexNo: a.complexNumber ?? null,
+        complexName: a.complexName,
+        tradeType,
+        supplyArea: area,
+        prices: [],
+        approvalElapsedYears: [],
+      });
+    }
+    const bucket = byUnit.get(key);
     if (price != null) bucket.prices.push(price);
-    if (area != null) bucket.areas.push(area);
-    // 평당가는 같은 매물의 가격과 면적이 둘 다 있을 때만 그 자리에서 계산해 쌓는다.
-    // prices/areas 배열을 인덱스로 짝지으면, 가격만 있고 면적이 없는 매물이 하나라도
-    // 섞이는 순간 이후 항목들이 다른 매물의 면적과 잘못 짝지어진다.
-    if (price != null && area != null) bucket.pyeongPrices.push(price / (area / PYEONG_M2));
     if (typeof a.buildingInfo?.approvalElapsedYear === "number") {
       bucket.approvalElapsedYears.push(a.buildingInfo.approvalElapsedYear);
     }
   }
 
   const complexes = [];
-  for (const bucket of byComplex.values()) {
+  for (const bucket of byUnit.values()) {
     const prices = bucket.prices.slice().sort((x, y) => x - y);
-    const areas = bucket.areas;
-    const avgArea = areas.length ? areas.reduce((s, v) => s + v, 0) / areas.length : null;
-    const pyeongPrices = bucket.pyeongPrices;
     const years = bucket.approvalElapsedYears;
+    // 한 줄 안의 매물은 면적이 모두 같으므로 평당가는 평균가에서 바로 나온다.
+    const avgPrice = prices.length ? prices.reduce((s, v) => s + v, 0) / prices.length : null;
     complexes.push({
       complexNo: bucket.complexNo,
       complexName: bucket.complexName,
       tradeType: bucket.tradeType,
+      supplyArea: bucket.supplyArea,
       count: bucket.prices.length,
       minPrice: prices.length ? prices[0] : null,
-      medianPrice: median(prices),
       maxPrice: prices.length ? prices[prices.length - 1] : null,
-      avgPyeongPrice: pyeongPrices.length ? pyeongPrices.reduce((s, v) => s + v, 0) / pyeongPrices.length : null,
-      avgArea,
+      avgPrice,
+      avgPyeongPrice:
+        avgPrice != null && bucket.supplyArea != null ? avgPrice / (bucket.supplyArea / PYEONG_M2) : null,
       approvalElapsedYear: years.length ? Math.round(years.reduce((s, v) => s + v, 0) / years.length) : null,
     });
   }
@@ -430,7 +422,10 @@ async function fetchAllRegions() {
       complexes.push(...aggregateComplexes(list, tradeType));
     }
     if (complexes.length === 0) continue; // 전부 실패한 구는 기존 데이터를 남겨둔다
-    console.log(`[집계] 서울 ${gu.legalDivisionName}: 매물 ${total}건 → 단지 ${complexes.length}곳`);
+    const complexCount = new Set(complexes.map((c) => c.complexNo ?? c.complexName)).size;
+    console.log(
+      `[집계] 서울 ${gu.legalDivisionName}: 매물 ${total}건 → 단지 ${complexCount}곳 / 면적별 ${complexes.length}행`
+    );
     results.push({
       cortarNo: gu.legalDivisionNumber,
       name: `서울 ${gu.legalDivisionName}`,
@@ -514,7 +509,7 @@ async function main() {
 
   const keptCount = merged.length - regions.length;
   console.log(
-    `[성공] 이번 수집 ${regions.length}개 지역(${totalComplexes}개 단지×거래유형)` +
+    `[성공] 이번 수집 ${regions.length}개 지역(${totalComplexes}개 단지×면적×거래유형)` +
       (keptCount > 0 ? `, 기존 유지 ${keptCount}개 지역` : "") +
       ` → 총 ${merged.length}개 지역 저장 (${outPath})`
   );
