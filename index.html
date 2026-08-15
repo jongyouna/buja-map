@@ -1696,13 +1696,67 @@ document.getElementById("loginModalSignInBtn").addEventListener("click", () => {
 
 // 로그인 상태가 바뀔 때마다 호출된다. 로그아웃하면 로그인이 필요한 탭에서 빠져나오고,
 // 로그인하면 팝업을 닫고 아까 누른 탭을 열어 준다.
+// ---- 마지막으로 보던 탭 기억 ----
+// 새로고침하거나 다시 로그인했을 때 보던 화면이 그대로 열리게 한다.
+// 이 브라우저에는 항상 남기고(로그인 전에도 바로 복원되도록), 로그인했으면 계정에도
+// 저장해 다른 기기에서 로그인해도 같은 탭이 열리게 한다.
+const LAST_TAB_KEY = "buja-map.lastTab";
+const ALL_TABS = new Set(["macro", "naver", "allocation", "admin"]);
+// 사용자가 탭을 직접 누른 뒤에는 복원이 끼어들지 않는다.
+let userPickedTab = false;
+
+function readLocalLastTab() {
+  try {
+    const v = localStorage.getItem(LAST_TAB_KEY);
+    return ALL_TABS.has(v) ? v : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function persistLastTab(tab) {
+  if (!ALL_TABS.has(tab)) return;
+  try {
+    localStorage.setItem(LAST_TAB_KEY, tab);
+  } catch (e) {
+    /* 시크릿 모드 등에서 저장이 막혀도 화면은 그대로 동작해야 한다 */
+  }
+  if (!authSettled || !currentUser) return;
+  if (currentUserDoc?.lastTab === tab) return; // 같은 값이면 쓰지 않는다
+  if (currentUserDoc) currentUserDoc.lastTab = tab;
+  setDoc(doc(db, "users", currentUser.uid), { lastTab: tab }, { merge: true }).catch((err) => {
+    // 탭 기억은 실패해도 대시보드 사용에 지장이 없으므로 조용히 넘긴다.
+    console.error("마지막 탭을 계정에 저장하지 못했습니다:", err);
+  });
+}
+
+// 계정에 저장된 값이 있으면 그쪽이 이긴다(다른 기기에서 보던 탭을 이어서 보기 위함).
+function lastTabToRestore() {
+  if (currentUser && ALL_TABS.has(currentUserDoc?.lastTab)) return currentUserDoc.lastTab;
+  return readLocalLastTab();
+}
+
+function restoreLastTab() {
+  if (userPickedTab) return;
+  const tab = lastTabToRestore();
+  if (!tab || tab === "macro") return;
+  // 아직 열 수 없는 탭이면 여기서는 아무것도 하지 않는다. 로그인 여부와 권한이 확정된 뒤
+  // 다시 불리므로, 그때 열 수 있게 되면 열린다. 열 수 없더라도 로그인 팝업을 띄우지는
+  // 않는다 — 들어올 때마다 로그인하라는 창이 뜨는 건 성가시다.
+  if (LOGIN_REQUIRED_TABS.has(tab) && !currentUser) return;
+  if (tab === "admin" && !isAdminUser()) return;
+  const panel = document.getElementById(`tabPanel-${tab}`);
+  if (panel && !panel.hidden) return; // 이미 보고 있으면 그대로 둔다
+  activateTab(tab, { remember: false });
+}
+
 function syncGatedTabAccess() {
   if (!currentUser) {
     const open = [...LOGIN_REQUIRED_TABS].find((t) => {
       const panel = document.getElementById(`tabPanel-${t}`);
       return panel && !panel.hidden;
     });
-    if (open) activateTab("macro");
+    if (open) activateTab("macro", { remember: false });
     // 로그인 상태가 확정되기 전에 눌러 둔 탭이 있으면(새로고침 직후) 이제 안내 팝업을 띄운다.
     if (pendingGatedTab && document.getElementById("loginModal").hidden) openLoginModal(pendingGatedTab);
     return;
@@ -1806,13 +1860,18 @@ function updateAdminTabVisibility() {
   const allowed = isAdminUser();
   btn.hidden = !allowed;
   // 관리자 탭을 보던 중에 로그아웃/권한 회수가 일어나면 거시경제 탭으로 되돌린다.
-  if (!allowed && !document.getElementById("tabPanel-admin").hidden) activateTab("macro");
+  if (!allowed && !document.getElementById("tabPanel-admin").hidden) activateTab("macro", { remember: false });
 }
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   currentUserDoc = null;
-  if (!user) googleAccessToken = null;
+  if (!user) {
+    googleAccessToken = null;
+    // 로그아웃하면 "사용자가 직접 고른 탭" 표시를 지운다. 그러지 않으면 같은 화면에서
+    // 다시 로그인했을 때 보던 탭으로 되돌아가지 못하고 거시경제에 머문다.
+    userPickedTab = false;
+  }
   renderAuthArea();
   updateAdminTabVisibility();
   if (user) {
@@ -1843,6 +1902,8 @@ onAuthStateChanged(auth, async (user) => {
   if (allocPrefsHook) allocPrefsHook();
   // 로그인이 필요한 탭을 열어 주거나(로그인 성공) 닫는다(로그아웃).
   syncGatedTabAccess();
+  // 로그인 상태와 권한이 확정된 지금, 저장해 둔 탭을 열 수 있는지 다시 본다.
+  restoreLastTab();
   if (onAuthChangedHook) await onAuthChangedHook();
 });
 
@@ -2778,7 +2839,10 @@ document.getElementById("refreshBtn").addEventListener("click", () => location.r
 // 네이버 탭은 처음 열릴 때 한 번만 데이터를 불러온다.
 let naverLoaded = false;
 let allocLoaded = false;
-function activateTab(tab) {
+// remember=false 는 "사용자가 고른 게 아니라 시스템이 되돌린 것"이라는 뜻이다.
+// 로그아웃 때문에 거시경제로 밀려난 것까지 기억해 버리면, 다시 로그인했을 때
+// 원래 보던 탭이 아니라 거시경제가 열린다.
+function activateTab(tab, { remember = true } = {}) {
   // 로그인이 필요한 탭은 로그인 상태를 확인하고 나서 연다.
   if (LOGIN_REQUIRED_TABS.has(tab) && !currentUser) {
     // 새로고침 직후에는 Firebase가 아직 로그인 여부를 알려주지 않았을 수 있다. 이때
@@ -2807,10 +2871,20 @@ function activateTab(tab) {
   }
   // 관리자 탭은 열 때마다 최신 목록을 다시 읽는다(사용자가 그 사이 늘었을 수 있으므로).
   if (tab === "admin") loadAdminUsers();
+  if (remember) persistLastTab(tab);
 }
 document.querySelectorAll("#tabBar .tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+  btn.addEventListener("click", () => {
+    // 사용자가 직접 고른 뒤에는 저장해 둔 탭으로 되돌리지 않는다.
+    // 로그인 처리가 늦게 끝나면서 보고 있던 화면을 빼앗는 일이 없어야 한다.
+    userPickedTab = true;
+    activateTab(btn.dataset.tab);
+  });
 });
+
+// 이 브라우저에 기억된 탭이 있으면 바로 연다. 로그인해야 하는 탭이면 여기서는 열리지
+// 않고, 로그인 여부가 확정된 뒤 restoreLastTab()이 다시 시도한다.
+restoreLastTab();
 
 // ---- 자산 배분 탭 ----
 // 로그인한 사용자만 열 수 있는 탭이다(LOGIN_REQUIRED_TABS). 자산 내역은 남에게 보여도
