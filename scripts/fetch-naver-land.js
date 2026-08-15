@@ -761,6 +761,37 @@ async function probeOnce() {
       console.log(s.body);
     }
 
+    // 링크를 눌렀을 때 거래유형·면적 필터가 실제로 걸리는지는 화면에 찍힌 글자로만
+    // 확인할 수 있다. 후보 주소를 열고 필터 영역 텍스트를 그대로 찍는다.
+    console.log(`=== 링크 후보별 필터 UI 상태 ===`);
+    const types2 = (await fetchPyeongList(page, complexNumber)) || [];
+    const t2 = types2[types2.length - 1];
+    const P = 3.3058;
+    const py = t2 ? t2.exclusiveArea / P : 34;
+    const snapped = `${(Math.floor(py) * P).toFixed(4)}-${(Math.ceil(py) * P).toFixed(4)}`;
+    const raw = t2 ? `${(t2.exclusiveArea - 0.5).toFixed(4)}-${(t2.exclusiveArea + 0.5).toFixed(4)}` : "";
+    console.log(`대상 평형: ${t2 ? `${t2.name} 전용 ${t2.exclusiveArea}㎡ (${py.toFixed(2)}평)` : "없음"}`);
+    const urls = [
+      [`평 경계 space`, `https://fin.land.naver.com/complexes/${complexNumber}?tab=article&tradeTypes=A1&exclusiveSpaceMode=true&space=${snapped}`],
+      [`임의 ㎡ space`, `https://fin.land.naver.com/complexes/${complexNumber}?tab=article&tradeTypes=A1&exclusiveSpaceMode=true&space=${raw}`],
+      [`필터 없음`, `https://fin.land.naver.com/complexes/${complexNumber}?tab=article`],
+    ];
+    for (const [label, url] of urls) {
+      try {
+        await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
+        await page.waitForTimeout(3000);
+        const chips = await page.evaluate(() =>
+          Array.from(document.querySelectorAll("button,span,div"))
+            .map((el) => (el.childElementCount === 0 ? (el.textContent || "").trim() : ""))
+            .filter((t) => t && t.length < 20 && /(거래유형|매매|전세|월세|면적|평|㎡)/.test(t))
+        );
+        console.log(`  [${label}] ${url}`);
+        console.log(`     필터 텍스트: ${JSON.stringify([...new Set(chips)].slice(0, 25))}`);
+      } catch (e) {
+        console.log(`  [${label}] 실패: ${e.message.split("\n")[0]}`);
+      }
+    }
+
     // [확인 완료] 표의 단지명 링크 형식.
     //   https://fin.land.naver.com/complexes/{번호}?tab=article&tradeTypes=A1
     //     &exclusiveSpaceMode=true&space={전용-0.5}-{전용+0.5}

@@ -3762,13 +3762,24 @@ async function initNaverTab() {
   // complexes/{번호}?tab=article 이라 그걸 그대로 쓴다. 이 주소는 지도 화면으로
   // 리다이렉트되면서 해당 단지의 매물 목록을 연다.
   // 전용면적 범위를 함께 넘겨 그 평형만 보이게 한다(exclusiveSpaceMode=true).
+  // 네이버 면적 슬라이더는 "평" 단위로만 움직인다. space 파라미터는 그 눈금을 ㎡로
+  // 환산한 값이라 정수 평 × 3.3058 형태여야 하고, 임의의 ㎡ 값을 넣으면 슬라이더가
+  // 그 위치를 찾지 못해 "전체면적"으로 되돌아간다.
+  //   예) 주신 URL의 46.2812-76.0334 = 14평 ~ 23평
+  const NAVER_PYEONG = 3.3058;
+  function spaceParamFor(exclusiveArea) {
+    const py = exclusiveArea / NAVER_PYEONG;
+    const lo = Math.floor(py);
+    const hi = Math.ceil(py);
+    return `${(lo * NAVER_PYEONG).toFixed(4)}-${((hi > lo ? hi : lo + 1) * NAVER_PYEONG).toFixed(4)}`;
+  }
+
   function complexUrl(c) {
     const params = new URLSearchParams({ tab: "article", tradeTypes: tradeSelect.value });
     const ex = c.exclusiveArea;
     if (ex > 0) {
-      // 같은 평형이라도 타입별로 소수점이 조금씩 다르므로 좁은 범위로 감싼다.
       params.set("exclusiveSpaceMode", "true");
-      params.set("space", `${(ex - 0.5).toFixed(4)}-${(ex + 0.5).toFixed(4)}`);
+      params.set("space", spaceParamFor(ex));
     }
     return `https://fin.land.naver.com/complexes/${c.complexNo}?${params}`;
   }
