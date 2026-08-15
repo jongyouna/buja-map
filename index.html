@@ -1120,7 +1120,7 @@
               <input type="range" id="priceRangeMax" min="0" max="50" step="1" value="50" aria-label="최고 가격" />
             </div>
             <div class="range-ticks">
-              <span>0</span><span>1,000,000,000</span><span>2,000,000,000</span><span>3,000,000,000</span><span>4,000,000,000</span><span>최대</span>
+              <span>0</span><span>10억</span><span>20억</span><span>30억</span><span>40억</span><span>최대</span>
             </div>
           </div>
           <div class="filter-field disabled">
@@ -4093,8 +4093,19 @@ async function initNaverTab() {
   let sortKey = "count";
   let sortDir = "desc";
 
-  // 표의 가격은 만원 단위로 들어오므로 원으로 바꿔서 사이트의 다른 금액과 같은 형식으로 낸다.
-  const fmtManwon = fmtManwonAsWon;
+  // 급매 Now! 탭의 금액 표기는 다른 화면과 다르게 둔다.
+  // 여기 값은 수십억 단위라 원 단위로 적으면 자릿수가 열 자리를 넘어 한눈에 안 읽히고,
+  // 평당가는 반대로 만원 단위가 시장에서 쓰는 말이다.
+  //   매매가  → 15.1억
+  //   평당가  → 5,789만원
+  // 데이터는 만원 단위로 들어온다.
+  const fmtEok = (manwon) =>
+    manwon == null || !Number.isFinite(Number(manwon)) ? "–" : `${(Number(manwon) / 10000).toFixed(1)}억`;
+  const fmtManwonUnit = (manwon) =>
+    manwon == null || !Number.isFinite(Number(manwon))
+      ? "–"
+      : `${Math.round(Number(manwon)).toLocaleString("ko-KR")}만원`;
+  const fmtManwon = fmtEok;
 
   // ---- 지역필터: 포함/제외 칩 ----
   const sidoSelect = document.getElementById("filterSido");
@@ -4220,9 +4231,9 @@ async function initNaverTab() {
     const pct = (v) => (v / PRICE_MAX_STEP) * 100;
     priceRangeFill.style.left = `${pct(b.loStep)}%`;
     priceRangeFill.style.right = `${100 - pct(b.hiStep)}%`;
-    // 슬라이더 눈금은 억 단위지만, 화면에 적는 금액은 다른 곳과 같은 원 단위로 맞춘다.
-    const lo = fmtWon(b.loStep * 100000000);
-    const hi = b.max === Infinity ? "최대" : fmtWon(b.hiStep * 100000000);
+    // 눈금이 1억 단위라 라벨도 표의 금액과 같은 억 표기로 적는다.
+    const lo = `${b.loStep.toFixed(1)}억`;
+    const hi = b.max === Infinity ? "최대" : `${b.hiStep.toFixed(1)}억`;
     priceRangeLabel.textContent = b.isAll
       ? "전체"
       : b.max === Infinity
@@ -4290,14 +4301,14 @@ async function initNaverTab() {
   function pyeongAskCell(c) {
     const v = pyeongAskMin(c);
     if (v == null) return "–";
-    const main = fmtManwonAsWon(v);
+    const main = fmtManwonUnit(v);
     const prev = c.prevPyeongAskMin;
     if (!(prev > 0)) return main;
     const pct = ((v - prev) / prev) * 100;
     // 0.05% 미만은 보합으로 본다(반올림해서 0.0%로 찍히는 구간).
     if (Math.abs(pct) < 0.05) return `${main} <span class="chg-flat">보합</span>`;
     const up = pct > 0;
-    const title = `일주일 전(${c.prevDate ?? "?"}) ${fmtManwonAsWon(prev)}원 대비`;
+    const title = `일주일 전(${c.prevDate ?? "?"}) ${fmtManwonUnit(prev)} 대비`;
     return `${main} <span class="${up ? "chg-up" : "chg-down"}" title="${title}">(${Math.abs(pct).toFixed(
       1
     )}% ${up ? "↑" : "↓"})</span>`;
@@ -4384,7 +4395,7 @@ async function initNaverTab() {
       { name: "총 매물 수", value: `${totalListings.toLocaleString("ko-KR")}건` },
       {
         name: "평균 평당호가최저가",
-        value: fmtManwonAsWon(avgPyeong),
+        value: fmtManwonUnit(avgPyeong),
       },
     ];
     document.getElementById("naverSummaryBar").innerHTML = items
