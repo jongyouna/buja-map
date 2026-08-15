@@ -946,13 +946,13 @@
             <tr>
               <th data-sort="regionLabel" class="sortable">지역</th>
               <th data-sort="complexName" class="sortable">단지명</th>
+              <th data-sort="minPrice" class="sortable num">최저가</th>
+              <th data-sort="maxPrice" class="sortable num">최고가</th>
               <th data-sort="householdCount" class="sortable num">세대수</th>
               <th data-sort="supplyArea" class="sortable num">전용면적</th>
               <th data-sort="realMaxPrice" class="sortable num" title="최근 3년 실거래가 중 최고가">실거래 최고가</th>
               <th data-sort="count" class="sortable num">매물 수</th>
               <th data-sort="pyeongAskMin" class="sortable num" title="가장 싼 호가를 공급면적 평당으로 환산한 값 · 괄호는 일주일 전 대비 변화율">평당호가최저가</th>
-              <th data-sort="minPrice" class="sortable num">최저가</th>
-              <th data-sort="maxPrice" class="sortable num">최고가</th>
             </tr>
           </thead>
           <tbody id="naverTableBody"></tbody>
@@ -3232,6 +3232,8 @@ async function initNaverTab() {
             ? `<a class="naver-complex-link" href="${complexUrl(r)}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>`
             : escapeHtml(r.complexName)
         }</td>
+        <td class="num">${fmtManwon(r.minPrice)}</td>
+        <td class="num">${fmtManwon(r.maxPrice)}</td>
         <td class="num">${
           r.householdCount == null
             ? "–"
@@ -3251,8 +3253,6 @@ async function initNaverTab() {
         }</td>
         <td class="num">${r.count.toLocaleString("ko-KR")}</td>
         <td class="num">${pyeongAskCell(r)}</td>
-        <td class="num">${fmtManwon(r.minPrice)}</td>
-        <td class="num">${fmtManwon(r.maxPrice)}</td>
       </tr>`;
       })
       .join("");
