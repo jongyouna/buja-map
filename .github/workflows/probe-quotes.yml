@@ -1,0 +1,15 @@
+name: Probe quote sources
+
+# 어느 시세 소스가 실제로 동작하는지 확인하는 임시 워크플로. 확인이 끝나면 지운다.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: node scripts/probe-quotes.js
