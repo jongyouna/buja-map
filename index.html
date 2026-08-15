@@ -546,7 +546,7 @@
 
   <nav class="tabbar" id="tabBar">
     <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
-    <button class="tab-btn" data-tab="naver" type="button">네이버 부동산</button>
+    <button class="tab-btn" data-tab="naver" type="button">급매 Now!</button>
     <!-- 관리자 탭 버튼은 관리자로 로그인했을 때만 나타난다. 다만 이 hidden은 화면 정리일 뿐이고,
          실제 데이터 접근 차단은 Firestore 보안 규칙(firestore.rules)이 담당한다. -->
     <button class="tab-btn" data-tab="admin" type="button" id="adminTabBtn" hidden>관리자</button>
@@ -846,6 +846,7 @@
         <table class="naver-table" id="naverTable">
           <thead>
             <tr>
+              <th data-sort="regionLabel" class="sortable">지역</th>
               <th data-sort="complexName" class="sortable">단지명</th>
               <th data-sort="supplyArea" class="sortable num">공급면적</th>
               <th data-sort="count" class="sortable num">매물 수</th>
@@ -2284,7 +2285,7 @@ async function initNaverTab() {
     console.error("네이버 부동산 데이터를 불러오지 못했습니다:", e);
     updatedEl.textContent = "";
     topBadge.textContent = "";
-    tbody.innerHTML = `<tr><td colspan="6" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
     return;
   }
 
@@ -2471,31 +2472,13 @@ async function initNaverTab() {
     return c.supplyArea ?? c.avgArea ?? null;
   }
 
-  // 가격대 안에 드는 매물만 남긴 행을 만든다. 한 건도 남지 않으면 null(표에서 제외).
-  // 매물 수·최저가·최고가·평당가를 남은 매물로 다시 계산해서, 표에 보이는 숫자가
-  // 항상 설정한 가격대 안의 매물만 가리키도록 한다.
-  function applyPriceRange(c) {
+  // 가격대 슬라이더는 그 행의 "최저가"만 본다. 최저가가 범위 밖이면 행을 제외한다.
+  // (최고가는 얼마든 걸러내지 않는다 — 급매를 찾는 화면이므로 기준은 가장 싼 매물이다.)
+  function passesPriceRange(c) {
     const b = priceBounds();
-    if (b.isAll) return c;
-    if (Array.isArray(c.prices) && c.prices.length) {
-      const kept = c.prices.filter((p) => p >= b.min && p <= b.max);
-      if (kept.length === 0) return null;
-      const area = rowArea(c);
-      const avg = kept.reduce((s, v) => s + v, 0) / kept.length;
-      return {
-        ...c,
-        count: kept.length,
-        minPrice: kept[0],
-        maxPrice: kept[kept.length - 1],
-        avgPrice: avg,
-        avgPyeongPrice: area == null ? null : avg / (area / 3.305785),
-        partial: kept.length !== c.prices.length,
-      };
-    }
-    // 개별 가격이 없는 옛 데이터는 단지의 최저~최고가가 범위와 겹치는지로만 판단한다.
-    if (c.minPrice == null || c.maxPrice == null) return null;
-    if (c.maxPrice < b.min || c.minPrice > b.max) return null;
-    return { ...c, approx: true };
+    if (b.isAll) return true;
+    if (c.minPrice == null) return false;
+    return c.minPrice >= b.min && c.minPrice <= b.max;
   }
 
   function passesUnitFilters(c) {
@@ -2525,6 +2508,11 @@ async function initNaverTab() {
     };
   }
 
+  // "서울시 강남구 역삼동". 동은 매물 주소에서 온 값을 먼저 쓰고, 없으면 지역 자체의 동을 쓴다.
+  function regionLabelFor(region, c) {
+    return [region.si ? `${region.si}시` : null, region.gugun, c.dong || region.dong].filter(Boolean).join(" ");
+  }
+
   function currentRows() {
     const minDeals = dealCountSelect.value ? Number(dealCountSelect.value) : null;
     const seen = new Map();
@@ -2533,14 +2521,13 @@ async function initNaverTab() {
       for (const c of region.complexes) {
         if (c.tradeType !== tradeSelect.value) continue;
         if (!passesUnitFilters(c)) continue;
-        // 가격대를 먼저 적용해 범위 밖 매물을 덜어낸 뒤, 매매건수는 남은 매물 기준으로 센다.
-        const row = applyPriceRange(c);
-        if (!row) continue;
-        if (minDeals != null && row.count < minDeals) continue;
+        if (!passesPriceRange(c)) continue;
+        if (minDeals != null && c.count < minDeals) continue;
         // 같은 단지라도 공급면적이 다르면 별개의 행으로 남긴다.
-        const area = rowArea(row);
-        const key = `${row.complexNo ?? row.complexName}|${area == null ? "" : area.toFixed(2)}`;
-        if (!seen.has(key)) seen.set(key, row);
+        const area = rowArea(c);
+        const key = `${c.complexNo ?? c.complexName}|${area == null ? "" : area.toFixed(2)}`;
+        // 지역명은 지역(구/동) + 매물 주소의 동을 합쳐 만든다.
+        if (!seen.has(key)) seen.set(key, { ...c, regionLabel: regionLabelFor(region, c) });
       }
     }
     return [...seen.values()];
@@ -2593,8 +2580,8 @@ async function initNaverTab() {
       const b = priceBounds();
       const priceHint = b.isAll ? "" : `<br/>가격대 <b>${priceRangeLabel.textContent}</b> 범위를 넓혀보세요.`;
       tbody.innerHTML = includeChips.length
-        ? `<tr><td colspan="6" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.${priceHint}</td></tr>`
-        : `<tr><td colspan="6" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
+        ? `<tr><td colspan="7" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.${priceHint}</td></tr>`
+        : `<tr><td colspan="7" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
       return;
     }
 
@@ -2604,11 +2591,10 @@ async function initNaverTab() {
         const areaCell = area == null ? "–" : `${area.toFixed(1)}㎡ <span class="naver-pyeong">${(area / 3.305785).toFixed(1)}평</span>`;
         return `
       <tr>
-        <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${r.complexName}</a>` : r.complexName}</td>
+        <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
+        <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>` : escapeHtml(r.complexName)}</td>
         <td class="num">${areaCell}</td>
-        <td class="num">${r.count.toLocaleString("ko-KR")}${
-          r.approx ? `<span class="naver-pyeong" title="이 지역은 아직 개별 매물 가격을 수집하지 않아, 단지 최저~최고가가 가격대와 겹치는지로만 걸러집니다.">≈</span>` : ""
-        }</td>
+        <td class="num">${r.count.toLocaleString("ko-KR")}</td>
         <td class="num">${fmtManwon(r.minPrice)}</td>
         <td class="num">${fmtManwon(r.maxPrice)}</td>
         <td class="num">${r.avgPyeongPrice == null ? "–" : Math.round(r.avgPyeongPrice).toLocaleString("ko-KR")}</td>

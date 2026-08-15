@@ -261,11 +261,15 @@ function aggregateComplexes(articles, tradeType) {
         complexName: a.complexName,
         tradeType,
         supplyArea: area,
+        // 화면에 "서울시 강남구 역삼동"처럼 표시하려면 단지가 속한 동이 필요하다.
+        // 구 단위로 집계한 지역은 지역 자체에 동 정보가 없으므로 매물 주소에서 가져온다.
+        dong: a.address?.sector || null,
         prices: [],
         approvalElapsedYears: [],
       });
     }
     const bucket = byUnit.get(key);
+    if (!bucket.dong && a.address?.sector) bucket.dong = a.address.sector;
     if (price != null) bucket.prices.push(price);
     if (typeof a.buildingInfo?.approvalElapsedYear === "number") {
       bucket.approvalElapsedYears.push(a.buildingInfo.approvalElapsedYear);
@@ -282,11 +286,9 @@ function aggregateComplexes(articles, tradeType) {
       complexNo: bucket.complexNo,
       complexName: bucket.complexName,
       tradeType: bucket.tradeType,
+      dong: bucket.dong,
       supplyArea: bucket.supplyArea,
       count: bucket.prices.length,
-      // 개별 매물 가격(오름차순, 만원). 화면의 가격대 슬라이더가 범위에 드는 매물만
-      // 세고 최저/최고/평당가를 다시 계산하려면 집계값만으로는 부족하다.
-      prices: prices.map((p) => Math.round(p)),
       minPrice: prices.length ? prices[0] : null,
       maxPrice: prices.length ? prices[prices.length - 1] : null,
       avgPrice,
