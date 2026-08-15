@@ -761,49 +761,16 @@ async function probeOnce() {
       console.log(s.body);
     }
 
-    // 표의 단지명 링크에 "해당 평형"까지 실어 보내려면, 단지 페이지가 어떤 쿼리
-    // 파라미터로 평형을 고르는지 확인해야 한다. 후보 주소를 실제로 열고, 페이지가
-    // 어떤 pyeongTypeNumber로 API를 부르는지 보면 먹혔는지 알 수 있다.
-    console.log(`=== 단지 페이지 평형 지정 방법 조사 ===`);
-    const types = (await fetchPyeongList(page, complexNumber)) || [];
-    console.log(
-      `평형타입: ${JSON.stringify(types.map((t) => ({ n: t.number, name: t.name, ex: t.exclusiveArea })))}`
-    );
-    // 기본 선택이 아닌 평형을 골라야 "먹혔는지"를 구분할 수 있다.
-    const target = types[types.length - 1];
-    if (!target) {
-      console.log("평형타입이 없어 조사 중단");
-      return;
-    }
-    const ex = target.exclusiveArea;
-    const candidates = [
-      `?tab=article`,
-      `?tab=article&pyeongTypeNumber=${target.number}`,
-      `?tab=article&exclusiveSpaceMode=true&space=${(ex - 0.5).toFixed(4)}-${(ex + 0.5).toFixed(4)}`,
-      `?tab=article&tradeTypes=A1&exclusiveSpaceMode=true&space=${(ex - 0.5).toFixed(4)}-${(ex + 0.5).toFixed(4)}`,
-    ];
-    for (const q of candidates) {
-      const hits = [];
-      const listener = (r) => {
-        const m = /pyeongTypeNumber=(\d+)/.exec(r.url());
-        if (m && r.url().includes("/complex/")) hits.push(m[1]);
-      };
-      page.on("response", listener);
-      try {
-        await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}${q}`, {
-          waitUntil: "networkidle",
-          timeout: 45000,
-        });
-        await page.waitForTimeout(2500);
-      } catch (e) {
-        console.log(`  ${q} -> 이동 실패: ${e.message.split("\n")[0]}`);
-      }
-      page.off("response", listener);
-      const uniq = [...new Set(hits)];
-      console.log(`  ${q}`);
-      console.log(`     최종 URL: ${page.url()}`);
-      console.log(`     조회된 pyeongTypeNumber: ${JSON.stringify(uniq)} (기대 ${target.number})`);
-    }
+    // [확인 완료] 표의 단지명 링크 형식.
+    //   https://fin.land.naver.com/complexes/{번호}?tab=article&tradeTypes=A1
+    //     &exclusiveSpaceMode=true&space={전용-0.5}-{전용+0.5}
+    // 이 주소는 /map 으로 리다이렉트되는데, 네 파라미터가 모두 layer 상태로 넘어간다:
+    //   [{"id":"complex_detail","params":{"complexId":109227},
+    //     "searchParams":{"tab":"article","tradeTypes":"A1",
+    //                     "exclusiveSpaceMode":"true","space":"114.0900-115.0900"}}]
+    // layer는 lz-string Base64 압축이지만, 우리가 직접 만들 필요 없이 위 주소만 쓰면 된다.
+    // tab=article 이라는 값은 네이버 자신의 recentView 응답이 알려준 것이다.
+
   } finally {
     await context.close();
     await browser.close();
