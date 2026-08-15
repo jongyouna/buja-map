@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-14T22:39:42.216Z",
+  "updatedAt": "2026-08-15T00:22:52.663Z",
   "scope": "gangnam",
   "regions": [
     {
@@ -8,7 +8,7 @@
       "si": "서울",
       "gugun": "강남구",
       "dong": null,
-      "updatedAt": "2026-08-14T22:39:42.197Z",
+      "updatedAt": "2026-08-15T00:22:52.645Z",
       "complexes": [
         {
           "complexNo": 103252,
@@ -55,7 +55,7 @@
           "medianPrice": 195000,
           "maxPrice": 230000,
           "avgPyeongPrice": 6537.587335649296,
-          "avgArea": 99.7241379310345,
+          "avgArea": 99.72413793103448,
           "approvalElapsedYear": 14
         },
         {
@@ -306,7 +306,7 @@
           "minPrice": 319000,
           "medianPrice": 360000,
           "maxPrice": 440000,
-          "avgPyeongPrice": 8503.361928174954,
+          "avgPyeongPrice": 8503.361928174956,
           "avgArea": 145.84057803468178,
           "approvalElapsedYear": 41
         },
@@ -378,7 +378,7 @@
           "minPrice": 293000,
           "medianPrice": 350000,
           "maxPrice": 450000,
-          "avgPyeongPrice": 7978.12742216702,
+          "avgPyeongPrice": 7978.127422167022,
           "avgArea": 148.78849462365542,
           "approvalElapsedYear": 42
         },
@@ -391,7 +391,7 @@
           "medianPrice": 310000,
           "maxPrice": 350000,
           "avgPyeongPrice": 7830.763146073137,
-          "avgArea": 133.8506896551724,
+          "avgArea": 133.85068965517243,
           "approvalElapsedYear": 5
         },
         {
@@ -402,8 +402,8 @@
           "minPrice": 240000,
           "medianPrice": 340000,
           "maxPrice": 550000,
-          "avgPyeongPrice": 10635.200434459412,
-          "avgArea": 109.38283495145599,
+          "avgPyeongPrice": 10633.508849779162,
+          "avgArea": 109.382834951456,
           "approvalElapsedYear": 8
         },
         {
@@ -438,7 +438,7 @@
           "minPrice": 299000,
           "medianPrice": 355000,
           "maxPrice": 630000,
-          "avgPyeongPrice": 11347.7637239958,
+          "avgPyeongPrice": 11347.763723995802,
           "avgArea": 112.55707070707084,
           "approvalElapsedYear": 7
         },
@@ -450,7 +450,7 @@
           "minPrice": 200000,
           "medianPrice": 370000,
           "maxPrice": 540000,
-          "avgPyeongPrice": 11302.342227147681,
+          "avgPyeongPrice": 11302.34222714768,
           "avgArea": 111.09795180722891,
           "approvalElapsedYear": 4
         },
@@ -475,7 +475,7 @@
           "medianPrice": 162000,
           "maxPrice": 230000,
           "avgPyeongPrice": 10005.935226388885,
-          "avgArea": 58.19823529411779,
+          "avgArea": 58.19823529411777,
           "approvalElapsedYear": 33
         },
         {
@@ -690,21 +690,9 @@
           "minPrice": 35000,
           "medianPrice": 40000,
           "maxPrice": 55000,
-          "avgPyeongPrice": 3183.872816425858,
+          "avgPyeongPrice": 3183.8728164258573,
           "avgArea": 43.56285714285714,
           "approvalElapsedYear": 30
-        },
-        {
-          "complexNo": 26744,
-          "complexName": "도곡조이너스",
-          "tradeType": "A1",
-          "count": 4,
-          "minPrice": 190000,
-          "medianPrice": 190000,
-          "maxPrice": 195000,
-          "avgPyeongPrice": 5787.014931350115,
-          "avgArea": 109.25,
-          "approvalElapsedYear": 19
         },
         {
           "complexNo": 163697,
@@ -719,16 +707,16 @@
           "approvalElapsedYear": 3
         },
         {
-          "complexNo": 424,
-          "complexName": "현대(도곡현대)",
+          "complexNo": 26744,
+          "complexName": "도곡조이너스",
           "tradeType": "A1",
-          "count": 9,
-          "minPrice": 250000,
-          "medianPrice": 250000,
-          "maxPrice": 260000,
-          "avgPyeongPrice": 8167.208243937325,
-          "avgArea": 102.53999999999999,
-          "approvalElapsedYear": 32
+          "count": 4,
+          "minPrice": 190000,
+          "medianPrice": 190000,
+          "maxPrice": 195000,
+          "avgPyeongPrice": 5787.014931350115,
+          "avgArea": 109.25,
+          "approvalElapsedYear": 19
         },
         {
           "complexNo": 19635,
@@ -741,6 +729,18 @@
           "avgPyeongPrice": 5884.127285106314,
           "avgArea": 209.502,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 424,
+          "complexName": "현대(도곡현대)",
+          "tradeType": "A1",
+          "count": 9,
+          "minPrice": 250000,
+          "medianPrice": 250000,
+          "maxPrice": 260000,
+          "avgPyeongPrice": 8167.208243937325,
+          "avgArea": 102.53999999999999,
+          "approvalElapsedYear": 32
         },
         {
           "complexNo": 104408,
@@ -799,7 +799,7 @@
           "medianPrice": 87000,
           "maxPrice": 100000,
           "avgPyeongPrice": 4452.603243682113,
-          "avgArea": 65.84615384615384,
+          "avgArea": 65.84615384615385,
           "approvalElapsedYear": 5
         },
         {
@@ -983,18 +983,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 102212,
-          "complexName": "리치아르떼빌",
-          "tradeType": "A1",
-          "count": 1,
-          "minPrice": 280000,
-          "medianPrice": 280000,
-          "maxPrice": 280000,
-          "avgPyeongPrice": 4647.385650449365,
-          "avgArea": 199.17,
-          "approvalElapsedYear": 23
-        },
-        {
           "complexNo": 837,
           "complexName": "래미안그레이튼2차",
           "tradeType": "A1",
@@ -1007,16 +995,16 @@
           "approvalElapsedYear": 17
         },
         {
-          "complexNo": 11698,
-          "complexName": "도곡렉슬",
+          "complexNo": 102212,
+          "complexName": "리치아르떼빌",
           "tradeType": "A1",
-          "count": 314,
-          "minPrice": 265000,
-          "medianPrice": 385000,
-          "maxPrice": 650000,
-          "avgPyeongPrice": 10687.582379856056,
-          "avgArea": 120.53796178343946,
-          "approvalElapsedYear": 21
+          "count": 1,
+          "minPrice": 280000,
+          "medianPrice": 280000,
+          "maxPrice": 280000,
+          "avgPyeongPrice": 4647.385650449365,
+          "avgArea": 199.17,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 3311,
@@ -1031,6 +1019,30 @@
           "approvalElapsedYear": 25
         },
         {
+          "complexNo": 11698,
+          "complexName": "도곡렉슬",
+          "tradeType": "A1",
+          "count": 314,
+          "minPrice": 265000,
+          "medianPrice": 385000,
+          "maxPrice": 650000,
+          "avgPyeongPrice": 10687.582379856054,
+          "avgArea": 120.53796178343946,
+          "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 408,
+          "complexName": "도곡한신",
+          "tradeType": "A1",
+          "count": 17,
+          "minPrice": 240000,
+          "medianPrice": 290000,
+          "maxPrice": 380000,
+          "avgPyeongPrice": 9438.560359456977,
+          "avgArea": 106.34529411764709,
+          "approvalElapsedYear": 39
+        },
+        {
           "complexNo": 3048,
           "complexName": "경남",
           "tradeType": "A1",
@@ -1041,18 +1053,6 @@
           "avgPyeongPrice": 9340.881609199472,
           "avgArea": 90.02562499999999,
           "approvalElapsedYear": 22
-        },
-        {
-          "complexNo": 408,
-          "complexName": "도곡한신",
-          "tradeType": "A1",
-          "count": 17,
-          "minPrice": 240000,
-          "medianPrice": 290000,
-          "maxPrice": 380000,
-          "avgPyeongPrice": 9438.560359456975,
-          "avgArea": 106.34529411764707,
-          "approvalElapsedYear": 39
         },
         {
           "complexNo": 3049,
@@ -1079,18 +1079,6 @@
           "approvalElapsedYear": 29
         },
         {
-          "complexNo": 13077,
-          "complexName": "울트라멤버스",
-          "tradeType": "A1",
-          "count": 2,
-          "minPrice": 230000,
-          "medianPrice": 230000,
-          "maxPrice": 230000,
-          "avgPyeongPrice": 7939.959795321637,
-          "avgArea": 95.76,
-          "approvalElapsedYear": 23
-        },
-        {
           "complexNo": 334,
           "complexName": "매봉",
           "tradeType": "A1",
@@ -1101,6 +1089,18 @@
           "avgPyeongPrice": 9490.809723466826,
           "avgArea": 80.76333333333335,
           "approvalElapsedYear": 28
+        },
+        {
+          "complexNo": 13077,
+          "complexName": "울트라멤버스",
+          "tradeType": "A1",
+          "count": 2,
+          "minPrice": 230000,
+          "medianPrice": 230000,
+          "maxPrice": 230000,
+          "avgPyeongPrice": 7939.959795321637,
+          "avgArea": 95.76,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 104016,
@@ -1187,6 +1187,18 @@
           "approvalElapsedYear": 22
         },
         {
+          "complexNo": 8331,
+          "complexName": "현대비젼21(주상복합)",
+          "tradeType": "A1",
+          "count": 36,
+          "minPrice": 40000,
+          "medianPrice": 45000,
+          "maxPrice": 54000,
+          "avgPyeongPrice": 2856.8879644492363,
+          "avgArea": 52.392222222222216,
+          "approvalElapsedYear": 27
+        },
+        {
           "complexNo": 3039,
           "complexName": "타워팰리스2차(주상복합)",
           "tradeType": "A1",
@@ -1196,6 +1208,30 @@
           "maxPrice": 950000,
           "avgPyeongPrice": 8965.71727371197,
           "avgArea": 193.46864406779662,
+          "approvalElapsedYear": 24
+        },
+        {
+          "complexNo": 974,
+          "complexName": "대림아크로빌(주상복합)",
+          "tradeType": "A1",
+          "count": 28,
+          "minPrice": 165000,
+          "medianPrice": 335000,
+          "maxPrice": 500000,
+          "avgPyeongPrice": 6288.020549400959,
+          "avgArea": 186.55857142857147,
+          "approvalElapsedYear": 27
+        },
+        {
+          "complexNo": 3038,
+          "complexName": "타워팰리스1차(주상복합)",
+          "tradeType": "A1",
+          "count": 120,
+          "minPrice": 349000,
+          "medianPrice": 450000,
+          "maxPrice": 1100000,
+          "avgPyeongPrice": 8923.889684599328,
+          "avgArea": 199.11574999999996,
           "approvalElapsedYear": 24
         },
         {
@@ -1230,45 +1266,9 @@
           "minPrice": 294000,
           "medianPrice": 340000,
           "maxPrice": 430000,
-          "avgPyeongPrice": 9518.283355297768,
+          "avgPyeongPrice": 9518.28335529777,
           "avgArea": 126.19600000000008,
           "approvalElapsedYear": 25
-        },
-        {
-          "complexNo": 3038,
-          "complexName": "타워팰리스1차(주상복합)",
-          "tradeType": "A1",
-          "count": 120,
-          "minPrice": 349000,
-          "medianPrice": 450000,
-          "maxPrice": 1100000,
-          "avgPyeongPrice": 8921.396069905202,
-          "avgArea": 199.11574999999996,
-          "approvalElapsedYear": 24
-        },
-        {
-          "complexNo": 974,
-          "complexName": "대림아크로빌(주상복합)",
-          "tradeType": "A1",
-          "count": 28,
-          "minPrice": 165000,
-          "medianPrice": 335000,
-          "maxPrice": 500000,
-          "avgPyeongPrice": 6288.020549400959,
-          "avgArea": 186.55857142857144,
-          "approvalElapsedYear": 27
-        },
-        {
-          "complexNo": 8331,
-          "complexName": "현대비젼21(주상복합)",
-          "tradeType": "A1",
-          "count": 36,
-          "minPrice": 40000,
-          "medianPrice": 45000,
-          "maxPrice": 54000,
-          "avgPyeongPrice": 2856.8879644492363,
-          "avgArea": 52.392222222222216,
-          "approvalElapsedYear": 27
         },
         {
           "complexNo": 975,
@@ -1295,18 +1295,6 @@
           "approvalElapsedYear": 22
         },
         {
-          "complexNo": 65,
-          "complexName": "개포우성1,2차",
-          "tradeType": "A1",
-          "count": 117,
-          "minPrice": 389000,
-          "medianPrice": 530000,
-          "maxPrice": 750000,
-          "avgPyeongPrice": 11879.31716101166,
-          "avgArea": 149.95982905982896,
-          "approvalElapsedYear": 43
-        },
-        {
           "complexNo": 180280,
           "complexName": "래미안대치팰리스",
           "tradeType": "A1",
@@ -1326,9 +1314,21 @@
           "minPrice": 329000,
           "medianPrice": 430000,
           "maxPrice": 620000,
-          "avgPyeongPrice": 11046.371212945298,
-          "avgArea": 135.21306122448976,
+          "avgPyeongPrice": 11046.371212945296,
+          "avgArea": 135.21306122448973,
           "approvalElapsedYear": 19
+        },
+        {
+          "complexNo": 65,
+          "complexName": "개포우성1,2차",
+          "tradeType": "A1",
+          "count": 117,
+          "minPrice": 389000,
+          "medianPrice": 530000,
+          "maxPrice": 750000,
+          "avgPyeongPrice": 11879.317161011659,
+          "avgArea": 149.95982905982896,
+          "approvalElapsedYear": 43
         },
         {
           "complexNo": 8710,
@@ -1338,7 +1338,7 @@
           "minPrice": 529000,
           "medianPrice": 590000,
           "maxPrice": 680000,
-          "avgPyeongPrice": 10920.74838710304,
+          "avgPyeongPrice": 10920.748387103038,
           "avgArea": 180.4267708333334,
           "approvalElapsedYear": 22
         },
@@ -1399,7 +1399,7 @@
           "medianPrice": 490000,
           "maxPrice": 650000,
           "avgPyeongPrice": 11824.706399601706,
-          "avgArea": 139.92764150943412,
+          "avgArea": 139.9276415094341,
           "approvalElapsedYear": 43
         },
         {
@@ -1446,7 +1446,7 @@
           "minPrice": 319000,
           "medianPrice": 375000,
           "maxPrice": 980000,
-          "avgPyeongPrice": 11714.288757618786,
+          "avgPyeongPrice": 11714.288757618784,
           "avgArea": 117.90189655172409,
           "approvalElapsedYear": 6
         },
@@ -1482,7 +1482,7 @@
           "minPrice": 159000,
           "medianPrice": 180000,
           "maxPrice": 240000,
-          "avgPyeongPrice": 10517.941607727387,
+          "avgPyeongPrice": 10517.941607727389,
           "avgArea": 59.15701492537312,
           "approvalElapsedYear": 34
         },
@@ -1494,7 +1494,7 @@
           "minPrice": 209000,
           "medianPrice": 245000,
           "maxPrice": 340000,
-          "avgPyeongPrice": 9740.833304630945,
+          "avgPyeongPrice": 9740.833304630947,
           "avgArea": 88.41399999999997,
           "approvalElapsedYear": 34
         },
@@ -1506,8 +1506,8 @@
           "minPrice": 284000,
           "medianPrice": 300000,
           "maxPrice": 400000,
-          "avgPyeongPrice": 7828.038832575118,
-          "avgArea": 139.8778947368421,
+          "avgPyeongPrice": 7828.038832575116,
+          "avgArea": 139.87789473684214,
           "approvalElapsedYear": 33
         },
         {
@@ -1559,18 +1559,6 @@
           "approvalElapsedYear": 22
         },
         {
-          "complexNo": 18991,
-          "complexName": "쌍용플래티넘밸류(주상복합)",
-          "tradeType": "A1",
-          "count": 13,
-          "minPrice": 158000,
-          "medianPrice": 170000,
-          "maxPrice": 330000,
-          "avgPyeongPrice": 5414.787439701621,
-          "avgArea": 121.10923076923079,
-          "approvalElapsedYear": 20
-        },
-        {
           "complexNo": 13118,
           "complexName": "대우디오빌플러스(주상복합)",
           "tradeType": "A1",
@@ -1581,6 +1569,18 @@
           "avgPyeongPrice": 2320.577229276084,
           "avgArea": 53.637333333333345,
           "approvalElapsedYear": 23
+        },
+        {
+          "complexNo": 18991,
+          "complexName": "쌍용플래티넘밸류(주상복합)",
+          "tradeType": "A1",
+          "count": 13,
+          "minPrice": 158000,
+          "medianPrice": 170000,
+          "maxPrice": 330000,
+          "avgPyeongPrice": 5414.787439701621,
+          "avgArea": 121.10923076923079,
+          "approvalElapsedYear": 20
         },
         {
           "complexNo": 104259,
@@ -1727,6 +1727,18 @@
           "approvalElapsedYear": 23
         },
         {
+          "complexNo": 102136,
+          "complexName": "뜨라네(828-76)",
+          "tradeType": "A1",
+          "count": 1,
+          "minPrice": 110000,
+          "medianPrice": 110000,
+          "maxPrice": 110000,
+          "avgPyeongPrice": 3739.191259640103,
+          "avgArea": 97.25,
+          "approvalElapsedYear": 21
+        },
+        {
           "complexNo": 119065,
           "complexName": "동원스위트뷰역삼",
           "tradeType": "A1",
@@ -1749,18 +1761,6 @@
           "avgPyeongPrice": 4466.654756929935,
           "avgArea": 71.79,
           "approvalElapsedYear": 22
-        },
-        {
-          "complexNo": 102136,
-          "complexName": "뜨라네(828-76)",
-          "tradeType": "A1",
-          "count": 1,
-          "minPrice": 110000,
-          "medianPrice": 110000,
-          "maxPrice": 110000,
-          "avgPyeongPrice": 3739.191259640103,
-          "avgArea": 97.25,
-          "approvalElapsedYear": 21
         },
         {
           "complexNo": 14386,
@@ -1787,28 +1787,40 @@
           "approvalElapsedYear": 20
         },
         {
-          "complexNo": 22386,
-          "complexName": "래미안펜타빌",
+          "complexNo": 136239,
+          "complexName": "역삼센트럴2차아이파크(도시형)",
           "tradeType": "A1",
-          "count": 128,
-          "minPrice": 364000,
-          "medianPrice": 382500,
-          "maxPrice": 410000,
-          "avgPyeongPrice": 7191.358767315891,
-          "avgArea": 177.34312500000013,
-          "approvalElapsedYear": 19
+          "count": 36,
+          "minPrice": 45000,
+          "medianPrice": 54000,
+          "maxPrice": 89900,
+          "avgPyeongPrice": 5640.665792993994,
+          "avgArea": 35.53444444444444,
+          "approvalElapsedYear": 5
         },
         {
           "complexNo": 109227,
           "complexName": "역삼자이",
           "tradeType": "A1",
-          "count": 54,
+          "count": 52,
           "minPrice": 300000,
           "medianPrice": 400000,
           "maxPrice": 490000,
-          "avgPyeongPrice": 9674.393606119664,
-          "avgArea": 137.3711111111111,
+          "avgPyeongPrice": 9710.967266036734,
+          "avgArea": 136.81,
           "approvalElapsedYear": 11
+        },
+        {
+          "complexNo": 22386,
+          "complexName": "래미안펜타빌",
+          "tradeType": "A1",
+          "count": 128,
+          "minPrice": 364000,
+          "medianPrice": 380000,
+          "maxPrice": 410000,
+          "avgPyeongPrice": 7184.959350773118,
+          "avgArea": 177.34312500000013,
+          "approvalElapsedYear": 19
         },
         {
           "complexNo": 127482,
@@ -1830,21 +1842,9 @@
           "minPrice": 113000,
           "medianPrice": 390000,
           "maxPrice": 470000,
-          "avgPyeongPrice": 9177.396995922994,
+          "avgPyeongPrice": 9177.396995922993,
           "avgArea": 117.70526315789486,
           "approvalElapsedYear": 20
-        },
-        {
-          "complexNo": 136239,
-          "complexName": "역삼센트럴2차아이파크(도시형)",
-          "tradeType": "A1",
-          "count": 36,
-          "minPrice": 45000,
-          "medianPrice": 54000,
-          "maxPrice": 89900,
-          "avgPyeongPrice": 5640.665792993994,
-          "avgArea": 35.53444444444444,
-          "approvalElapsedYear": 5
         },
         {
           "complexNo": 18213,
@@ -1854,7 +1854,7 @@
           "minPrice": 290000,
           "medianPrice": 350000,
           "maxPrice": 395000,
-          "avgPyeongPrice": 10002.986504235803,
+          "avgPyeongPrice": 10002.986504235801,
           "avgArea": 125.84500000000004,
           "approvalElapsedYear": 20
         },
@@ -1895,18 +1895,6 @@
           "approvalElapsedYear": 25
         },
         {
-          "complexNo": 394,
-          "complexName": "래미안그레이튼3차",
-          "tradeType": "A1",
-          "count": 63,
-          "minPrice": 280000,
-          "medianPrice": 310000,
-          "maxPrice": 440000,
-          "avgPyeongPrice": 10200.63041803152,
-          "avgArea": 107.83777777777786,
-          "approvalElapsedYear": 17
-        },
-        {
           "complexNo": 14142,
           "complexName": "역삼푸르지오",
           "tradeType": "A1",
@@ -1919,16 +1907,16 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 13813,
-          "complexName": "역삼e-편한세상",
+          "complexNo": 394,
+          "complexName": "래미안그레이튼3차",
           "tradeType": "A1",
-          "count": 86,
-          "minPrice": 270000,
-          "medianPrice": 300000,
-          "maxPrice": 362000,
-          "avgPyeongPrice": 11339.490142136132,
-          "avgArea": 91.21534883720936,
-          "approvalElapsedYear": 21
+          "count": 63,
+          "minPrice": 280000,
+          "medianPrice": 310000,
+          "maxPrice": 440000,
+          "avgPyeongPrice": 10200.630418031518,
+          "avgArea": 107.83777777777786,
+          "approvalElapsedYear": 17
         },
         {
           "complexNo": 24373,
@@ -1941,6 +1929,18 @@
           "avgPyeongPrice": 5296.600619525742,
           "avgArea": 93.62,
           "approvalElapsedYear": 22
+        },
+        {
+          "complexNo": 13813,
+          "complexName": "역삼e-편한세상",
+          "tradeType": "A1",
+          "count": 86,
+          "minPrice": 270000,
+          "medianPrice": 300000,
+          "maxPrice": 362000,
+          "avgPyeongPrice": 11339.490142136132,
+          "avgArea": 91.21534883720936,
+          "approvalElapsedYear": 21
         },
         {
           "complexNo": 22733,
@@ -2095,7 +2095,7 @@
           "medianPrice": 285000,
           "maxPrice": 350000,
           "avgPyeongPrice": 10933.405180820424,
-          "avgArea": 90.50499999999998,
+          "avgArea": 90.50499999999997,
           "approvalElapsedYear": 21
         },
         {
@@ -2111,18 +2111,6 @@
           "approvalElapsedYear": 27
         },
         {
-          "complexNo": 103376,
-          "complexName": "개나리SK뷰",
-          "tradeType": "A1",
-          "count": 18,
-          "minPrice": 349000,
-          "medianPrice": 410000,
-          "maxPrice": 520000,
-          "avgPyeongPrice": 10053.600172952607,
-          "avgArea": 136.6,
-          "approvalElapsedYear": 14
-        },
-        {
           "complexNo": 17528,
           "complexName": "개나리푸르지오",
           "tradeType": "A1",
@@ -2133,6 +2121,18 @@
           "avgPyeongPrice": 9834.89929313618,
           "avgArea": 137.5304347826087,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 103376,
+          "complexName": "개나리SK뷰",
+          "tradeType": "A1",
+          "count": 18,
+          "minPrice": 349000,
+          "medianPrice": 410000,
+          "maxPrice": 520000,
+          "avgPyeongPrice": 10053.600172952607,
+          "avgArea": 136.6,
+          "approvalElapsedYear": 14
         },
         {
           "complexNo": 125239,
@@ -2255,16 +2255,16 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 152278,
-          "complexName": "대치더클래스",
+          "complexNo": 971,
+          "complexName": "대치현대",
           "tradeType": "A1",
-          "count": 5,
-          "minPrice": 233000,
-          "medianPrice": 240000,
-          "maxPrice": 290000,
-          "avgPyeongPrice": 7331.590532331805,
-          "avgArea": 112.94800000000001,
-          "approvalElapsedYear": 4
+          "count": 85,
+          "minPrice": 255000,
+          "medianPrice": 330000,
+          "maxPrice": 430000,
+          "avgPyeongPrice": 9605.493334939396,
+          "avgArea": 109.54764705882356,
+          "approvalElapsedYear": 28
         },
         {
           "complexNo": 3304,
@@ -2279,16 +2279,16 @@
           "approvalElapsedYear": 25
         },
         {
-          "complexNo": 971,
-          "complexName": "대치현대",
+          "complexNo": 152278,
+          "complexName": "대치더클래스",
           "tradeType": "A1",
-          "count": 85,
-          "minPrice": 255000,
-          "medianPrice": 330000,
-          "maxPrice": 430000,
-          "avgPyeongPrice": 9605.493334939396,
-          "avgArea": 109.54764705882356,
-          "approvalElapsedYear": 28
+          "count": 5,
+          "minPrice": 233000,
+          "medianPrice": 240000,
+          "maxPrice": 290000,
+          "avgPyeongPrice": 7331.590532331805,
+          "avgArea": 112.94800000000001,
+          "approvalElapsedYear": 4
         },
         {
           "complexNo": 11167,
@@ -2306,12 +2306,12 @@
           "complexNo": 111580,
           "complexName": "대치SK뷰",
           "tradeType": "A1",
-          "count": 27,
+          "count": 25,
           "minPrice": 420000,
-          "medianPrice": 430000,
+          "medianPrice": 450000,
           "maxPrice": 600000,
-          "avgPyeongPrice": 12771.374411160721,
-          "avgArea": 116.85481481481484,
+          "avgPyeongPrice": 12864.159319126275,
+          "avgArea": 116.40960000000003,
           "approvalElapsedYear": 10
         },
         {
@@ -2332,9 +2332,9 @@
           "tradeType": "A1",
           "count": 14,
           "minPrice": 250000,
-          "medianPrice": 260000,
+          "medianPrice": 255000,
           "maxPrice": 260000,
-          "avgPyeongPrice": 8393.423528180878,
+          "avgPyeongPrice": 8370.051509968467,
           "avgArea": 101.22142857142856,
           "approvalElapsedYear": 37
         },
@@ -2370,7 +2370,7 @@
           "minPrice": 177000,
           "medianPrice": 230000,
           "maxPrice": 260000,
-          "avgPyeongPrice": 9978.013903580613,
+          "avgPyeongPrice": 9978.013903580611,
           "avgArea": 72.97793103448278,
           "approvalElapsedYear": 34
         },
@@ -2387,18 +2387,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 8431,
-          "complexName": "거평프리젠",
-          "tradeType": "A1",
-          "count": 14,
-          "minPrice": 35000,
-          "medianPrice": 38000,
-          "maxPrice": 52000,
-          "avgPyeongPrice": 3004.6533805036233,
-          "avgArea": 44.118571428571435,
-          "approvalElapsedYear": 30
-        },
-        {
           "complexNo": 14671,
           "complexName": "논현e-편한세상",
           "tradeType": "A1",
@@ -2409,6 +2397,18 @@
           "avgPyeongPrice": 4885.693009131297,
           "avgArea": 137.68,
           "approvalElapsedYear": 22
+        },
+        {
+          "complexNo": 8431,
+          "complexName": "거평프리젠",
+          "tradeType": "A1",
+          "count": 14,
+          "minPrice": 35000,
+          "medianPrice": 38000,
+          "maxPrice": 52000,
+          "avgPyeongPrice": 3004.6533805036233,
+          "avgArea": 44.118571428571435,
+          "approvalElapsedYear": 30
         },
         {
           "complexNo": 25173,
@@ -2450,12 +2450,12 @@
           "complexNo": 139570,
           "complexName": "원에디션강남(도시형)",
           "tradeType": "A1",
-          "count": 144,
+          "count": 140,
           "minPrice": 85000,
-          "medianPrice": 141500,
+          "medianPrice": 143000,
           "maxPrice": 175000,
-          "avgPyeongPrice": 7192.3281799946835,
-          "avgArea": 61.54944444444445,
+          "avgPyeongPrice": 7156.876842280246,
+          "avgArea": 61.90800000000001,
           "approvalElapsedYear": 3
         },
         {
@@ -2483,18 +2483,6 @@
           "approvalElapsedYear": 8
         },
         {
-          "complexNo": 100691,
-          "complexName": "논현프라임(192-3)",
-          "tradeType": "A1",
-          "count": 8,
-          "minPrice": 160000,
-          "medianPrice": 225000,
-          "maxPrice": 250000,
-          "avgPyeongPrice": 4903.824396856683,
-          "avgArea": 144.9575,
-          "approvalElapsedYear": 22
-        },
-        {
           "complexNo": 182317,
           "complexName": "역삼센트럴",
           "tradeType": "A1",
@@ -2507,6 +2495,18 @@
           "approvalElapsedYear": 2
         },
         {
+          "complexNo": 100691,
+          "complexName": "논현프라임(192-3)",
+          "tradeType": "A1",
+          "count": 8,
+          "minPrice": 160000,
+          "medianPrice": 225000,
+          "maxPrice": 250000,
+          "avgPyeongPrice": 4903.824396856683,
+          "avgArea": 144.9575,
+          "approvalElapsedYear": 22
+        },
+        {
           "complexNo": 124947,
           "complexName": "시티프라디움더강남(101동,주상복합)",
           "tradeType": "A1",
@@ -2515,7 +2515,19 @@
           "medianPrice": 170000,
           "maxPrice": 200000,
           "avgPyeongPrice": 6656.816046528466,
-          "avgArea": 84.88533333333334,
+          "avgArea": 84.88533333333332,
+          "approvalElapsedYear": 6
+        },
+        {
+          "complexNo": 124948,
+          "complexName": "시티프라디움더강남(201동,주상복합)",
+          "tradeType": "A1",
+          "count": 12,
+          "minPrice": 164000,
+          "medianPrice": 167500,
+          "maxPrice": 180000,
+          "avgPyeongPrice": 5785.577966130805,
+          "avgArea": 97.03999999999998,
           "approvalElapsedYear": 6
         },
         {
@@ -2529,18 +2541,6 @@
           "avgPyeongPrice": 5600.870085816708,
           "avgArea": 65.41916666666668,
           "approvalElapsedYear": 4
-        },
-        {
-          "complexNo": 124948,
-          "complexName": "시티프라디움더강남(201동,주상복합)",
-          "tradeType": "A1",
-          "count": 12,
-          "minPrice": 164000,
-          "medianPrice": 167500,
-          "maxPrice": 180000,
-          "avgPyeongPrice": 5785.577966130805,
-          "avgArea": 97.03999999999998,
-          "approvalElapsedYear": 6
         },
         {
           "complexNo": 151472,
@@ -2591,18 +2591,6 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 22571,
-          "complexName": "논현한화꿈에그린2차",
-          "tradeType": "A1",
-          "count": 2,
-          "minPrice": 170000,
-          "medianPrice": 170000,
-          "maxPrice": 170000,
-          "avgPyeongPrice": 5369.097640202542,
-          "avgArea": 104.67,
-          "approvalElapsedYear": 20
-        },
-        {
           "complexNo": 11739,
           "complexName": "로얄빌리지",
           "tradeType": "A1",
@@ -2615,16 +2603,16 @@
           "approvalElapsedYear": 24
         },
         {
-          "complexNo": 107144,
-          "complexName": "이움",
+          "complexNo": 22571,
+          "complexName": "논현한화꿈에그린2차",
           "tradeType": "A1",
           "count": 2,
-          "minPrice": 250000,
-          "medianPrice": 250000,
-          "maxPrice": 250000,
-          "avgPyeongPrice": 5780.152818576025,
-          "avgArea": 142.98,
-          "approvalElapsedYear": 21
+          "minPrice": 170000,
+          "medianPrice": 170000,
+          "maxPrice": 170000,
+          "avgPyeongPrice": 5369.097640202542,
+          "avgArea": 104.67,
+          "approvalElapsedYear": 20
         },
         {
           "complexNo": 10331,
@@ -2637,6 +2625,18 @@
           "avgPyeongPrice": 2212.488125627477,
           "avgArea": 40.76,
           "approvalElapsedYear": 28
+        },
+        {
+          "complexNo": 107144,
+          "complexName": "이움",
+          "tradeType": "A1",
+          "count": 2,
+          "minPrice": 250000,
+          "medianPrice": 250000,
+          "maxPrice": 250000,
+          "avgPyeongPrice": 5780.152818576025,
+          "avgArea": 142.98,
+          "approvalElapsedYear": 21
         },
         {
           "complexNo": 24783,
@@ -2663,18 +2663,6 @@
           "approvalElapsedYear": 25
         },
         {
-          "complexNo": 18195,
-          "complexName": "논현한화꿈에그린",
-          "tradeType": "A1",
-          "count": 2,
-          "minPrice": 145000,
-          "medianPrice": 145000,
-          "maxPrice": 145000,
-          "avgPyeongPrice": 5375.561567791859,
-          "avgArea": 89.17,
-          "approvalElapsedYear": 22
-        },
-        {
           "complexNo": 23222,
           "complexName": "역삼골든베리힐",
           "tradeType": "A1",
@@ -2684,6 +2672,18 @@
           "maxPrice": 180000,
           "avgPyeongPrice": 4236.375480563861,
           "avgArea": 140.46,
+          "approvalElapsedYear": 22
+        },
+        {
+          "complexNo": 18195,
+          "complexName": "논현한화꿈에그린",
+          "tradeType": "A1",
+          "count": 2,
+          "minPrice": 145000,
+          "medianPrice": 145000,
+          "maxPrice": 145000,
+          "avgPyeongPrice": 5375.561567791859,
+          "avgArea": 89.17,
           "approvalElapsedYear": 22
         },
         {
@@ -2747,6 +2747,18 @@
           "approvalElapsedYear": 25
         },
         {
+          "complexNo": 100318,
+          "complexName": "역삼하나빌(주상복합)",
+          "tradeType": "A1",
+          "count": 18,
+          "minPrice": 33000,
+          "medianPrice": 83000,
+          "maxPrice": 130000,
+          "avgPyeongPrice": 3740.0890299396174,
+          "avgArea": 68.17666666666666,
+          "approvalElapsedYear": 24
+        },
+        {
           "complexNo": 12739,
           "complexName": "선릉역우정에쉐르멤버스(주상복합)",
           "tradeType": "A1",
@@ -2757,18 +2769,6 @@
           "avgPyeongPrice": 3417.814195403288,
           "avgArea": 39.833999999999996,
           "approvalElapsedYear": 22
-        },
-        {
-          "complexNo": 100318,
-          "complexName": "역삼하나빌(주상복합)",
-          "tradeType": "A1",
-          "count": 18,
-          "minPrice": 33000,
-          "medianPrice": 83000,
-          "maxPrice": 130000,
-          "avgPyeongPrice": 3740.0890299396174,
-          "avgArea": 68.17666666666668,
-          "approvalElapsedYear": 24
         },
         {
           "complexNo": 19457,
@@ -2786,12 +2786,12 @@
           "complexNo": 104032,
           "complexName": "테헤란아이파크",
           "tradeType": "A1",
-          "count": 59,
+          "count": 58,
           "minPrice": 285000,
           "medianPrice": 360000,
           "maxPrice": 500000,
-          "avgPyeongPrice": 10686.980773767478,
-          "avgArea": 110.91305084745764,
+          "avgPyeongPrice": 10696.0888563369,
+          "avgArea": 111.19827586206898,
           "approvalElapsedYear": 13
         },
         {
@@ -2874,21 +2874,9 @@
           "minPrice": 250000,
           "medianPrice": 280000,
           "maxPrice": 305000,
-          "avgPyeongPrice": 9351.423967407947,
+          "avgPyeongPrice": 9351.423967407949,
           "avgArea": 99.13176470588235,
           "approvalElapsedYear": 29
-        },
-        {
-          "complexNo": 12231,
-          "complexName": "선릉역대우아이빌5차(주상복합)",
-          "tradeType": "A1",
-          "count": 16,
-          "minPrice": 19500,
-          "medianPrice": 24000,
-          "maxPrice": 42000,
-          "avgPyeongPrice": 2211.722626584459,
-          "avgArea": 37.088125000000005,
-          "approvalElapsedYear": 23
         },
         {
           "complexNo": 137413,
@@ -2901,6 +2889,18 @@
           "avgPyeongPrice": 5494.442655172415,
           "avgArea": 43.5,
           "approvalElapsedYear": 5
+        },
+        {
+          "complexNo": 12231,
+          "complexName": "선릉역대우아이빌5차(주상복합)",
+          "tradeType": "A1",
+          "count": 16,
+          "minPrice": 19500,
+          "medianPrice": 24000,
+          "maxPrice": 42000,
+          "avgPyeongPrice": 2211.7226265844592,
+          "avgArea": 37.088125000000005,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 14705,
@@ -2927,18 +2927,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 11010,
-          "complexName": "포스코더샵",
-          "tradeType": "A1",
-          "count": 40,
-          "minPrice": 379000,
-          "medianPrice": 430000,
-          "maxPrice": 460000,
-          "avgPyeongPrice": 7694.9112024880105,
-          "avgArea": 182.59,
-          "approvalElapsedYear": 22
-        },
-        {
           "complexNo": 113852,
           "complexName": "현대썬앤빌테헤란(도시형)",
           "tradeType": "A1",
@@ -2949,6 +2937,18 @@
           "avgPyeongPrice": 3296.5635419038094,
           "avgArea": 60.67222222222223,
           "approvalElapsedYear": 10
+        },
+        {
+          "complexNo": 11010,
+          "complexName": "포스코더샵",
+          "tradeType": "A1",
+          "count": 40,
+          "minPrice": 379000,
+          "medianPrice": 430000,
+          "maxPrice": 460000,
+          "avgPyeongPrice": 7694.9112024880105,
+          "avgArea": 182.59,
+          "approvalElapsedYear": 22
         },
         {
           "complexNo": 126762,
@@ -2975,16 +2975,16 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 13826,
-          "complexName": "대치풍림아이원2차",
+          "complexNo": 3303,
+          "complexName": "롯데캐슬",
           "tradeType": "A1",
-          "count": 1,
-          "minPrice": 270000,
-          "medianPrice": 270000,
-          "maxPrice": 270000,
-          "avgPyeongPrice": 5241.115384615385,
-          "avgArea": 170.3,
-          "approvalElapsedYear": 23
+          "count": 8,
+          "minPrice": 319000,
+          "medianPrice": 320000,
+          "maxPrice": 450000,
+          "avgPyeongPrice": 7702.028273600237,
+          "avgArea": 145.6225,
+          "approvalElapsedYear": 24
         },
         {
           "complexNo": 23612,
@@ -2999,18 +2999,6 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 3303,
-          "complexName": "롯데캐슬",
-          "tradeType": "A1",
-          "count": 8,
-          "minPrice": 319000,
-          "medianPrice": 320000,
-          "maxPrice": 450000,
-          "avgPyeongPrice": 7702.028273600237,
-          "avgArea": 145.6225,
-          "approvalElapsedYear": 24
-        },
-        {
           "complexNo": 148650,
           "complexName": "아티스톤(주상복합)",
           "tradeType": "A1",
@@ -3021,6 +3009,30 @@
           "avgPyeongPrice": 7151.2969841424965,
           "avgArea": 95.87666666666667,
           "approvalElapsedYear": 4
+        },
+        {
+          "complexNo": 13826,
+          "complexName": "대치풍림아이원2차",
+          "tradeType": "A1",
+          "count": 1,
+          "minPrice": 270000,
+          "medianPrice": 270000,
+          "maxPrice": 270000,
+          "avgPyeongPrice": 5241.115384615385,
+          "avgArea": 170.3,
+          "approvalElapsedYear": 23
+        },
+        {
+          "complexNo": 102910,
+          "complexName": "메트로",
+          "tradeType": "A1",
+          "count": 4,
+          "minPrice": 110000,
+          "medianPrice": 130000,
+          "maxPrice": 130000,
+          "avgPyeongPrice": 4330.251751196415,
+          "avgArea": 95.32749999999999,
+          "approvalElapsedYear": 24
         },
         {
           "complexNo": 13081,
@@ -3043,7 +3055,7 @@
           "medianPrice": 41000,
           "maxPrice": 130000,
           "avgPyeongPrice": 3252.8406079209017,
-          "avgArea": 58.29888888888888,
+          "avgArea": 58.2988888888889,
           "approvalElapsedYear": 23
         },
         {
@@ -3057,18 +3069,6 @@
           "avgPyeongPrice": 5605.750985749317,
           "avgArea": 144.0825,
           "approvalElapsedYear": 25
-        },
-        {
-          "complexNo": 102910,
-          "complexName": "메트로",
-          "tradeType": "A1",
-          "count": 4,
-          "minPrice": 110000,
-          "medianPrice": 130000,
-          "maxPrice": 130000,
-          "avgPyeongPrice": 4330.251751196415,
-          "avgArea": 95.32749999999999,
-          "approvalElapsedYear": 24
         },
         {
           "complexNo": 11464,
@@ -3107,18 +3107,6 @@
           "approvalElapsedYear": 22
         },
         {
-          "complexNo": 17539,
-          "complexName": "채널리저브(주상복합)",
-          "tradeType": "A1",
-          "count": 14,
-          "minPrice": 209000,
-          "medianPrice": 225000,
-          "maxPrice": 370000,
-          "avgPyeongPrice": 6920.233944642838,
-          "avgArea": 115.15857142857145,
-          "approvalElapsedYear": 20
-        },
-        {
           "complexNo": 101493,
           "complexName": "삼성펠리스(129-5)",
           "tradeType": "A1",
@@ -3129,6 +3117,18 @@
           "avgPyeongPrice": 4578.641449004975,
           "avgArea": 187.6,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 17539,
+          "complexName": "채널리저브(주상복합)",
+          "tradeType": "A1",
+          "count": 14,
+          "minPrice": 209000,
+          "medianPrice": 225000,
+          "maxPrice": 370000,
+          "avgPyeongPrice": 6920.233944642838,
+          "avgArea": 115.15857142857145,
+          "approvalElapsedYear": 20
         },
         {
           "complexNo": 11465,
@@ -3203,18 +3203,6 @@
           "approvalElapsedYear": 29
         },
         {
-          "complexNo": 9906,
-          "complexName": "대치대우아이빌명문가(주상복합)",
-          "tradeType": "A1",
-          "count": 5,
-          "minPrice": 28000,
-          "medianPrice": 29000,
-          "maxPrice": 34000,
-          "avgPyeongPrice": 2345.453700951406,
-          "avgArea": 42.168,
-          "approvalElapsedYear": 23
-        },
-        {
           "complexNo": 179277,
           "complexName": "대치명문(민간임대,도시형)",
           "tradeType": "A1",
@@ -3225,6 +3213,18 @@
           "avgPyeongPrice": 5837.02249347459,
           "avgArea": 65.13,
           "approvalElapsedYear": 5
+        },
+        {
+          "complexNo": 9906,
+          "complexName": "대치대우아이빌명문가(주상복합)",
+          "tradeType": "A1",
+          "count": 5,
+          "minPrice": 28000,
+          "medianPrice": 29000,
+          "maxPrice": 34000,
+          "avgPyeongPrice": 2345.453700951406,
+          "avgArea": 42.168,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 19313,
@@ -3294,8 +3294,8 @@
           "minPrice": 300000,
           "medianPrice": 340000,
           "maxPrice": 400000,
-          "avgPyeongPrice": 11235.857130918568,
-          "avgArea": 104.77200000000002,
+          "avgPyeongPrice": 11235.85713091857,
+          "avgArea": 104.772,
           "approvalElapsedYear": 5
         },
         {
@@ -3347,18 +3347,6 @@
           "approvalElapsedYear": 22
         },
         {
-          "complexNo": 151286,
-          "complexName": "브라이튼N40",
-          "tradeType": "A1",
-          "count": 22,
-          "minPrice": 350000,
-          "medianPrice": 543350,
-          "maxPrice": 1100000,
-          "avgPyeongPrice": 12258.001890772024,
-          "avgArea": 145.13590909090908,
-          "approvalElapsedYear": 5
-        },
-        {
           "complexNo": 18,
           "complexName": "논현신동아",
           "tradeType": "A1",
@@ -3369,6 +3357,18 @@
           "avgPyeongPrice": 8299.299379971648,
           "avgArea": 82.60285714285716,
           "approvalElapsedYear": 30
+        },
+        {
+          "complexNo": 151286,
+          "complexName": "브라이튼N40",
+          "tradeType": "A1",
+          "count": 22,
+          "minPrice": 350000,
+          "medianPrice": 543350,
+          "maxPrice": 1100000,
+          "avgPyeongPrice": 12258.001890772028,
+          "avgArea": 145.13590909090908,
+          "approvalElapsedYear": 5
         },
         {
           "complexNo": 106267,
@@ -3443,18 +3443,6 @@
           "approvalElapsedYear": 25
         },
         {
-          "complexNo": 107165,
-          "complexName": "스위트캐슬",
-          "tradeType": "A1",
-          "count": 8,
-          "minPrice": 300000,
-          "medianPrice": 300000,
-          "maxPrice": 300000,
-          "avgPyeongPrice": 3670.239813478406,
-          "avgArea": 270.21,
-          "approvalElapsedYear": 24
-        },
-        {
           "complexNo": 102760,
           "complexName": "논현브라운스톤로얄스위트",
           "tradeType": "A1",
@@ -3465,6 +3453,18 @@
           "avgPyeongPrice": 6003.492792833684,
           "avgArea": 264.32,
           "approvalElapsedYear": 22
+        },
+        {
+          "complexNo": 107165,
+          "complexName": "스위트캐슬",
+          "tradeType": "A1",
+          "count": 8,
+          "minPrice": 300000,
+          "medianPrice": 300000,
+          "maxPrice": 300000,
+          "avgPyeongPrice": 3670.239813478406,
+          "avgArea": 270.21,
+          "approvalElapsedYear": 24
         },
         {
           "complexNo": 105430,
@@ -3491,16 +3491,16 @@
           "approvalElapsedYear": 24
         },
         {
-          "complexNo": 141007,
-          "complexName": "아츠논현(도시형)",
+          "complexNo": 103370,
+          "complexName": "로체샤르캐슬",
           "tradeType": "A1",
-          "count": 7,
-          "minPrice": 125000,
-          "medianPrice": 148000,
-          "maxPrice": 170000,
-          "avgPyeongPrice": 9663.226483705004,
-          "avgArea": 50.04,
-          "approvalElapsedYear": 3
+          "count": 6,
+          "minPrice": 190000,
+          "medianPrice": 190000,
+          "maxPrice": 190000,
+          "avgPyeongPrice": 5006.671504176554,
+          "avgArea": 125.45333333333333,
+          "approvalElapsedYear": 18
         },
         {
           "complexNo": 8774,
@@ -3522,8 +3522,8 @@
           "minPrice": 430000,
           "medianPrice": 570000,
           "maxPrice": 680000,
-          "avgPyeongPrice": 7870.61447620287,
-          "avgArea": 231.97857142857143,
+          "avgPyeongPrice": 7870.614476202871,
+          "avgArea": 231.97857142857146,
           "approvalElapsedYear": 23
         },
         {
@@ -3539,28 +3539,28 @@
           "approvalElapsedYear": 5
         },
         {
-          "complexNo": 103370,
-          "complexName": "로체샤르캐슬",
+          "complexNo": 141007,
+          "complexName": "아츠논현(도시형)",
           "tradeType": "A1",
-          "count": 6,
-          "minPrice": 190000,
-          "medianPrice": 190000,
-          "maxPrice": 190000,
-          "avgPyeongPrice": 5006.671504176554,
-          "avgArea": 125.45333333333333,
-          "approvalElapsedYear": 18
+          "count": 7,
+          "minPrice": 125000,
+          "medianPrice": 148000,
+          "maxPrice": 170000,
+          "avgPyeongPrice": 9663.226483705004,
+          "avgArea": 50.04,
+          "approvalElapsedYear": 3
         },
         {
-          "complexNo": 138046,
-          "complexName": "펜트힐캐스케이드(도시형)",
+          "complexNo": 9765,
+          "complexName": "논현두산위브1단지",
           "tradeType": "A1",
-          "count": 70,
-          "minPrice": 98000,
-          "medianPrice": 135000,
-          "maxPrice": 190000,
-          "avgPyeongPrice": 6773.721738363274,
-          "avgArea": 65.93285714285713,
-          "approvalElapsedYear": 4
+          "count": 26,
+          "minPrice": 209000,
+          "medianPrice": 240000,
+          "maxPrice": 270000,
+          "avgPyeongPrice": 6803.120087450674,
+          "avgArea": 115.25384615384617,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 103939,
@@ -3573,6 +3573,18 @@
           "avgPyeongPrice": 7760.174659718749,
           "avgArea": 283.945,
           "approvalElapsedYear": 15
+        },
+        {
+          "complexNo": 101321,
+          "complexName": "논현두산위브2단지",
+          "tradeType": "A1",
+          "count": 10,
+          "minPrice": 230000,
+          "medianPrice": 270000,
+          "maxPrice": 275000,
+          "avgPyeongPrice": 6851.587598731976,
+          "avgArea": 123.59400000000001,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 121973,
@@ -3599,28 +3611,16 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 9765,
-          "complexName": "논현두산위브1단지",
+          "complexNo": 138046,
+          "complexName": "펜트힐캐스케이드(도시형)",
           "tradeType": "A1",
-          "count": 26,
-          "minPrice": 209000,
-          "medianPrice": 240000,
-          "maxPrice": 270000,
-          "avgPyeongPrice": 6803.120087450672,
-          "avgArea": 115.25384615384617,
-          "approvalElapsedYear": 23
-        },
-        {
-          "complexNo": 101321,
-          "complexName": "논현두산위브2단지",
-          "tradeType": "A1",
-          "count": 10,
-          "minPrice": 230000,
-          "medianPrice": 270000,
-          "maxPrice": 275000,
-          "avgPyeongPrice": 6851.587598731976,
-          "avgArea": 123.59400000000001,
-          "approvalElapsedYear": 23
+          "count": 68,
+          "minPrice": 98000,
+          "medianPrice": 135000,
+          "maxPrice": 190000,
+          "avgPyeongPrice": 6719.079290971879,
+          "avgArea": 65.78147058823528,
+          "approvalElapsedYear": 4
         },
         {
           "complexNo": 3043,
@@ -3671,18 +3671,6 @@
           "approvalElapsedYear": 20
         },
         {
-          "complexNo": 27822,
-          "complexName": "논현웰스톤(주상복합)",
-          "tradeType": "A1",
-          "count": 16,
-          "minPrice": 129500,
-          "medianPrice": 137500,
-          "maxPrice": 142000,
-          "avgPyeongPrice": 4431.715050837332,
-          "avgArea": 101.91000000000003,
-          "approvalElapsedYear": 18
-        },
-        {
           "complexNo": 24032,
           "complexName": "프라임(80-13)",
           "tradeType": "A1",
@@ -3693,6 +3681,18 @@
           "avgPyeongPrice": 4256.995085195879,
           "avgArea": 114.29,
           "approvalElapsedYear": 23
+        },
+        {
+          "complexNo": 27822,
+          "complexName": "논현웰스톤(주상복합)",
+          "tradeType": "A1",
+          "count": 16,
+          "minPrice": 129500,
+          "medianPrice": 137500,
+          "maxPrice": 142000,
+          "avgPyeongPrice": 4431.715050837332,
+          "avgArea": 101.91000000000003,
+          "approvalElapsedYear": 18
         },
         {
           "complexNo": 10831,
@@ -3786,7 +3786,7 @@
           "minPrice": 254000,
           "medianPrice": 261250,
           "maxPrice": 600000,
-          "avgPyeongPrice": 9409.253545655838,
+          "avgPyeongPrice": 9409.253545655836,
           "avgArea": 108.46199999999999,
           "approvalElapsedYear": 2
         },
@@ -3875,15 +3875,39 @@
           "approvalElapsedYear": 29
         },
         {
-          "complexNo": 18967,
-          "complexName": "롯데캐슬프레미어",
+          "complexNo": 24009,
+          "complexName": "삼성힐스테이트1단지",
           "tradeType": "A1",
-          "count": 79,
-          "minPrice": 320000,
-          "medianPrice": 420000,
-          "maxPrice": 650000,
-          "avgPyeongPrice": 9557.502026917802,
-          "avgArea": 155.1188607594937,
+          "count": 182,
+          "minPrice": 144500,
+          "medianPrice": 360000,
+          "maxPrice": 450000,
+          "avgPyeongPrice": 10878.835465377519,
+          "avgArea": 103.66071428571445,
+          "approvalElapsedYear": 18
+        },
+        {
+          "complexNo": 473,
+          "complexName": "서광",
+          "tradeType": "A1",
+          "count": 16,
+          "minPrice": 259000,
+          "medianPrice": 262500,
+          "maxPrice": 300000,
+          "avgPyeongPrice": 11024.19499155201,
+          "avgArea": 80.46374999999999,
+          "approvalElapsedYear": 28
+        },
+        {
+          "complexNo": 22861,
+          "complexName": "래미안삼성2차",
+          "tradeType": "A1",
+          "count": 38,
+          "minPrice": 330000,
+          "medianPrice": 370000,
+          "maxPrice": 580000,
+          "avgPyeongPrice": 8827.36666910571,
+          "avgArea": 157.42157894736843,
           "approvalElapsedYear": 20
         },
         {
@@ -3899,39 +3923,15 @@
           "approvalElapsedYear": 28
         },
         {
-          "complexNo": 473,
-          "complexName": "서광",
+          "complexNo": 18967,
+          "complexName": "롯데캐슬프레미어",
           "tradeType": "A1",
-          "count": 16,
-          "minPrice": 259000,
-          "medianPrice": 262500,
-          "maxPrice": 300000,
-          "avgPyeongPrice": 11024.19499155201,
-          "avgArea": 80.46374999999999,
-          "approvalElapsedYear": 28
-        },
-        {
-          "complexNo": 24009,
-          "complexName": "삼성힐스테이트1단지",
-          "tradeType": "A1",
-          "count": 182,
-          "minPrice": 144500,
-          "medianPrice": 360000,
-          "maxPrice": 450000,
-          "avgPyeongPrice": 10878.835465377517,
-          "avgArea": 103.66071428571445,
-          "approvalElapsedYear": 18
-        },
-        {
-          "complexNo": 22861,
-          "complexName": "래미안삼성2차",
-          "tradeType": "A1",
-          "count": 38,
-          "minPrice": 330000,
-          "medianPrice": 370000,
-          "maxPrice": 580000,
-          "avgPyeongPrice": 8827.36666910571,
-          "avgArea": 157.42157894736843,
+          "count": 79,
+          "minPrice": 320000,
+          "medianPrice": 420000,
+          "maxPrice": 650000,
+          "avgPyeongPrice": 9557.502026917802,
+          "avgArea": 155.11886075949369,
           "approvalElapsedYear": 20
         },
         {
@@ -3947,18 +3947,6 @@
           "approvalElapsedYear": 17
         },
         {
-          "complexNo": 482,
-          "complexName": "석탑",
-          "tradeType": "A1",
-          "count": 20,
-          "minPrice": 250000,
-          "medianPrice": 253000,
-          "maxPrice": 275000,
-          "avgPyeongPrice": 8208.981434174932,
-          "avgArea": 103.75899999999999,
-          "approvalElapsedYear": 31
-        },
-        {
           "complexNo": 624,
           "complexName": "현대",
           "tradeType": "A1",
@@ -3969,6 +3957,18 @@
           "avgPyeongPrice": 8657.32174339321,
           "avgArea": 107.97999999999999,
           "approvalElapsedYear": 28
+        },
+        {
+          "complexNo": 482,
+          "complexName": "석탑",
+          "tradeType": "A1",
+          "count": 20,
+          "minPrice": 250000,
+          "medianPrice": 253000,
+          "maxPrice": 275000,
+          "avgPyeongPrice": 8208.981434174932,
+          "avgArea": 103.75899999999999,
+          "approvalElapsedYear": 31
         },
         {
           "complexNo": 24053,
@@ -4043,18 +4043,6 @@
           "approvalElapsedYear": 24
         },
         {
-          "complexNo": 1061,
-          "complexName": "청담우방",
-          "tradeType": "A1",
-          "count": 26,
-          "minPrice": 260000,
-          "medianPrice": 287000,
-          "maxPrice": 330000,
-          "avgPyeongPrice": 7122.640113423404,
-          "avgArea": 136.14692307692306,
-          "approvalElapsedYear": 27
-        },
-        {
           "complexNo": 103371,
           "complexName": "케럿스테이트",
           "tradeType": "A1",
@@ -4065,6 +4053,18 @@
           "avgPyeongPrice": 4341.502914245193,
           "avgArea": 143.8225,
           "approvalElapsedYear": 23
+        },
+        {
+          "complexNo": 1061,
+          "complexName": "청담우방",
+          "tradeType": "A1",
+          "count": 26,
+          "minPrice": 260000,
+          "medianPrice": 287000,
+          "maxPrice": 330000,
+          "avgPyeongPrice": 7122.640113423404,
+          "avgArea": 136.14692307692306,
+          "approvalElapsedYear": 27
         },
         {
           "complexNo": 109991,
@@ -4091,16 +4091,16 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 26112,
-          "complexName": "노블테라스",
+          "complexNo": 105839,
+          "complexName": "네오블로썸",
           "tradeType": "A1",
-          "count": 1,
-          "minPrice": 340000,
-          "medianPrice": 340000,
-          "maxPrice": 340000,
-          "avgPyeongPrice": 5033.66429307179,
-          "avgArea": 223.29,
-          "approvalElapsedYear": 24
+          "count": 2,
+          "minPrice": 190000,
+          "medianPrice": 190000,
+          "maxPrice": 190000,
+          "avgPyeongPrice": 5461.256847230676,
+          "avgArea": 115.01,
+          "approvalElapsedYear": 18
         },
         {
           "complexNo": 13908,
@@ -4115,28 +4115,16 @@
           "approvalElapsedYear": 25
         },
         {
-          "complexNo": 105839,
-          "complexName": "네오블로썸",
+          "complexNo": 26112,
+          "complexName": "노블테라스",
           "tradeType": "A1",
-          "count": 2,
-          "minPrice": 190000,
-          "medianPrice": 190000,
-          "maxPrice": 190000,
-          "avgPyeongPrice": 5461.256847230676,
-          "avgArea": 115.01,
-          "approvalElapsedYear": 18
-        },
-        {
-          "complexNo": 22913,
-          "complexName": "골든카운티",
-          "tradeType": "A1",
-          "count": 4,
-          "minPrice": 260000,
-          "medianPrice": 260000,
-          "maxPrice": 260000,
-          "avgPyeongPrice": 8663.482511843566,
-          "avgArea": 99.21,
-          "approvalElapsedYear": 8
+          "count": 1,
+          "minPrice": 340000,
+          "medianPrice": 340000,
+          "maxPrice": 340000,
+          "avgPyeongPrice": 5033.66429307179,
+          "avgArea": 223.29,
+          "approvalElapsedYear": 24
         },
         {
           "complexNo": 14950,
@@ -4149,6 +4137,18 @@
           "avgPyeongPrice": 6288.2249899850885,
           "avgArea": 187.69800000000004,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 22913,
+          "complexName": "골든카운티",
+          "tradeType": "A1",
+          "count": 4,
+          "minPrice": 260000,
+          "medianPrice": 260000,
+          "maxPrice": 260000,
+          "avgPyeongPrice": 8663.482511843566,
+          "avgArea": 99.21,
+          "approvalElapsedYear": 8
         },
         {
           "complexNo": 16534,
@@ -4214,12 +4214,12 @@
           "complexNo": 24008,
           "complexName": "삼성힐스테이트2단지",
           "tradeType": "A1",
-          "count": 106,
+          "count": 105,
           "minPrice": 179500,
           "medianPrice": 350000,
-          "maxPrice": 400000,
-          "avgPyeongPrice": 11097.801162876187,
-          "avgArea": 100.97066037735851,
+          "maxPrice": 390000,
+          "avgPyeongPrice": 11088.485679278443,
+          "avgArea": 100.8894285714286,
           "approvalElapsedYear": 18
         },
         {
@@ -4235,16 +4235,16 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 127477,
-          "complexName": "래미안라클래시",
+          "complexNo": 3313,
+          "complexName": "삼성한일",
           "tradeType": "A1",
-          "count": 104,
-          "minPrice": 339000,
-          "medianPrice": 400000,
-          "maxPrice": 700000,
-          "avgPyeongPrice": 13370.842065884342,
-          "avgArea": 112.62576923076925,
-          "approvalElapsedYear": 5
+          "count": 9,
+          "minPrice": 199000,
+          "medianPrice": 220000,
+          "maxPrice": 230000,
+          "avgPyeongPrice": 7235.233994704278,
+          "avgArea": 99.36555555555555,
+          "approvalElapsedYear": 25
         },
         {
           "complexNo": 111332,
@@ -4254,21 +4254,21 @@
           "minPrice": 330000,
           "medianPrice": 425000,
           "maxPrice": 880000,
-          "avgPyeongPrice": 12508.724586711194,
+          "avgPyeongPrice": 12508.724586711196,
           "avgArea": 121.97615384615384,
           "approvalElapsedYear": 9
         },
         {
-          "complexNo": 11431,
-          "complexName": "형우",
+          "complexNo": 127477,
+          "complexName": "래미안라클래시",
           "tradeType": "A1",
-          "count": 9,
-          "minPrice": 360000,
-          "medianPrice": 380000,
-          "maxPrice": 480000,
-          "avgPyeongPrice": 6176.013178190657,
-          "avgArea": 216.82333333333335,
-          "approvalElapsedYear": 24
+          "count": 100,
+          "minPrice": 339000,
+          "medianPrice": 400000,
+          "maxPrice": 700000,
+          "avgPyeongPrice": 13378.415157034122,
+          "avgArea": 112.46540000000003,
+          "approvalElapsedYear": 5
         },
         {
           "complexNo": 128640,
@@ -4283,16 +4283,16 @@
           "approvalElapsedYear": 5
         },
         {
-          "complexNo": 3313,
-          "complexName": "삼성한일",
+          "complexNo": 11431,
+          "complexName": "형우",
           "tradeType": "A1",
           "count": 9,
-          "minPrice": 199000,
-          "medianPrice": 220000,
-          "maxPrice": 230000,
-          "avgPyeongPrice": 7235.233994704278,
-          "avgArea": 99.36555555555555,
-          "approvalElapsedYear": 25
+          "minPrice": 360000,
+          "medianPrice": 380000,
+          "maxPrice": 480000,
+          "avgPyeongPrice": 6176.013178190657,
+          "avgArea": 216.82333333333335,
+          "approvalElapsedYear": 24
         },
         {
           "complexNo": 113209,
@@ -4317,18 +4317,6 @@
           "avgPyeongPrice": 11218.219763811596,
           "avgArea": 221.01,
           "approvalElapsedYear": 18
-        },
-        {
-          "complexNo": 14292,
-          "complexName": "삼성우림루미아트",
-          "tradeType": "A1",
-          "count": 2,
-          "minPrice": 270000,
-          "medianPrice": 280000,
-          "maxPrice": 290000,
-          "avgPyeongPrice": 5918.485141338873,
-          "avgArea": 156.57999999999998,
-          "approvalElapsedYear": 22
         },
         {
           "complexNo": 116863,
@@ -4487,6 +4475,42 @@
           "approvalElapsedYear": 29
         },
         {
+          "complexNo": 14292,
+          "complexName": "삼성우림루미아트",
+          "tradeType": "A1",
+          "count": 1,
+          "minPrice": 270000,
+          "medianPrice": 270000,
+          "maxPrice": 270000,
+          "avgPyeongPrice": 6042.255280259952,
+          "avgArea": 147.72,
+          "approvalElapsedYear": 22
+        },
+        {
+          "complexNo": 22327,
+          "complexName": "동일파크스위트",
+          "tradeType": "A1",
+          "count": 16,
+          "minPrice": 419000,
+          "medianPrice": 430000,
+          "maxPrice": 500000,
+          "avgPyeongPrice": 8400.916173919348,
+          "avgArea": 178.78749999999997,
+          "approvalElapsedYear": 20
+        },
+        {
+          "complexNo": 23872,
+          "complexName": "래미안삼성1차(201동)",
+          "tradeType": "A1",
+          "count": 12,
+          "minPrice": 300000,
+          "medianPrice": 335000,
+          "maxPrice": 370000,
+          "avgPyeongPrice": 8763.479176516526,
+          "avgArea": 127.805,
+          "approvalElapsedYear": 21
+        },
+        {
           "complexNo": 107803,
           "complexName": "삼성라테라스",
           "tradeType": "A1",
@@ -4511,30 +4535,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 22327,
-          "complexName": "동일파크스위트",
-          "tradeType": "A1",
-          "count": 16,
-          "minPrice": 419000,
-          "medianPrice": 430000,
-          "maxPrice": 500000,
-          "avgPyeongPrice": 8400.916173919348,
-          "avgArea": 178.78749999999997,
-          "approvalElapsedYear": 20
-        },
-        {
-          "complexNo": 18610,
-          "complexName": "삼성SK뷰",
-          "tradeType": "A1",
-          "count": 6,
-          "minPrice": 250000,
-          "medianPrice": 300000,
-          "maxPrice": 350000,
-          "avgPyeongPrice": 7823.511057731627,
-          "avgArea": 128.67999999999998,
-          "approvalElapsedYear": 21
-        },
-        {
           "complexNo": 101425,
           "complexName": "삼부(102동)",
           "tradeType": "A1",
@@ -4547,15 +4547,15 @@
           "approvalElapsedYear": 28
         },
         {
-          "complexNo": 23872,
-          "complexName": "래미안삼성1차(201동)",
+          "complexNo": 18610,
+          "complexName": "삼성SK뷰",
           "tradeType": "A1",
-          "count": 12,
-          "minPrice": 300000,
-          "medianPrice": 335000,
-          "maxPrice": 370000,
-          "avgPyeongPrice": 8763.479176516526,
-          "avgArea": 127.805,
+          "count": 6,
+          "minPrice": 250000,
+          "medianPrice": 300000,
+          "maxPrice": 350000,
+          "avgPyeongPrice": 7823.511057731627,
+          "avgArea": 128.67999999999998,
           "approvalElapsedYear": 21
         },
         {
@@ -4631,18 +4631,6 @@
           "approvalElapsedYear": 14
         },
         {
-          "complexNo": 101865,
-          "complexName": "동구싼타빌",
-          "tradeType": "A1",
-          "count": 3,
-          "minPrice": 180000,
-          "medianPrice": 180000,
-          "maxPrice": 200000,
-          "avgPyeongPrice": 7649.093024007229,
-          "avgArea": 80.85333333333334,
-          "approvalElapsedYear": 23
-        },
-        {
           "complexNo": 23869,
           "complexName": "래미안삼성1차(301,302,303동)",
           "tradeType": "A1",
@@ -4653,6 +4641,18 @@
           "avgPyeongPrice": 9254.197274124157,
           "avgArea": 128.1025,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 101865,
+          "complexName": "동구싼타빌",
+          "tradeType": "A1",
+          "count": 3,
+          "minPrice": 180000,
+          "medianPrice": 180000,
+          "maxPrice": 200000,
+          "avgPyeongPrice": 7649.093024007229,
+          "avgArea": 80.85333333333334,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 24074,
@@ -4795,7 +4795,7 @@
           "medianPrice": 130000,
           "maxPrice": 200000,
           "avgPyeongPrice": 3784.224976620708,
-          "avgArea": 105.4588888888889,
+          "avgArea": 105.45888888888891,
           "approvalElapsedYear": 52
         },
         {
@@ -4883,18 +4883,6 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 3,
-          "complexName": "동현",
-          "tradeType": "A1",
-          "count": 44,
-          "minPrice": 277500,
-          "medianPrice": 325000,
-          "maxPrice": 530000,
-          "avgPyeongPrice": 9767.351545931853,
-          "avgArea": 118.83113636363636,
-          "approvalElapsedYear": 42
-        },
-        {
           "complexNo": 11616,
           "complexName": "논현한진로즈힐",
           "tradeType": "A1",
@@ -4905,6 +4893,18 @@
           "avgPyeongPrice": 6529.725489314511,
           "avgArea": 111.21,
           "approvalElapsedYear": 23
+        },
+        {
+          "complexNo": 3,
+          "complexName": "동현",
+          "tradeType": "A1",
+          "count": 44,
+          "minPrice": 277500,
+          "medianPrice": 325000,
+          "maxPrice": 530000,
+          "avgPyeongPrice": 9767.351545931853,
+          "avgArea": 118.83113636363636,
+          "approvalElapsedYear": 42
         },
         {
           "complexNo": 29,
@@ -5039,18 +5039,6 @@
           "approvalElapsedYear": 27
         },
         {
-          "complexNo": 110393,
-          "complexName": "동궁빌리지",
-          "tradeType": "A1",
-          "count": 4,
-          "minPrice": 380000,
-          "medianPrice": 390000,
-          "maxPrice": 400000,
-          "avgPyeongPrice": 8997.14086672687,
-          "avgArea": 143.53,
-          "approvalElapsedYear": 33
-        },
-        {
           "complexNo": 26994,
           "complexName": "청담e-편한세상4차",
           "tradeType": "A1",
@@ -5061,6 +5049,18 @@
           "avgPyeongPrice": 7785.285924548795,
           "avgArea": 150.50529411764705,
           "approvalElapsedYear": 16
+        },
+        {
+          "complexNo": 110393,
+          "complexName": "동궁빌리지",
+          "tradeType": "A1",
+          "count": 4,
+          "minPrice": 380000,
+          "medianPrice": 390000,
+          "maxPrice": 400000,
+          "avgPyeongPrice": 8997.14086672687,
+          "avgArea": 143.53,
+          "approvalElapsedYear": 33
         },
         {
           "complexNo": 1096,
@@ -5087,18 +5087,6 @@
           "approvalElapsedYear": 21
         },
         {
-          "complexNo": 11744,
-          "complexName": "청담영풍마드레빌",
-          "tradeType": "A1",
-          "count": 7,
-          "minPrice": 250000,
-          "medianPrice": 270000,
-          "maxPrice": 275000,
-          "avgPyeongPrice": 6914.720733771188,
-          "avgArea": 128.67857142857147,
-          "approvalElapsedYear": 23
-        },
-        {
           "complexNo": 22626,
           "complexName": "청담e-편한세상2차(204동)",
           "tradeType": "A1",
@@ -5109,6 +5097,18 @@
           "avgPyeongPrice": 6679.391513832764,
           "avgArea": 128.68,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 11744,
+          "complexName": "청담영풍마드레빌",
+          "tradeType": "A1",
+          "count": 7,
+          "minPrice": 250000,
+          "medianPrice": 270000,
+          "maxPrice": 275000,
+          "avgPyeongPrice": 6914.720733771188,
+          "avgArea": 128.67857142857147,
+          "approvalElapsedYear": 23
         },
         {
           "complexNo": 3064,
@@ -5171,6 +5171,18 @@
           "approvalElapsedYear": 1
         },
         {
+          "complexNo": 10028,
+          "complexName": "한신오페라하우스",
+          "tradeType": "A1",
+          "count": 14,
+          "minPrice": 280000,
+          "medianPrice": 300000,
+          "maxPrice": 310000,
+          "avgPyeongPrice": 6323.055782673948,
+          "avgArea": 156.74428571428572,
+          "approvalElapsedYear": 23
+        },
+        {
           "complexNo": 120981,
           "complexName": "청담스테이",
           "tradeType": "A1",
@@ -5193,18 +5205,6 @@
           "avgPyeongPrice": 8211.481307777258,
           "avgArea": 122.88348837209297,
           "approvalElapsedYear": 24
-        },
-        {
-          "complexNo": 10028,
-          "complexName": "한신오페라하우스",
-          "tradeType": "A1",
-          "count": 14,
-          "minPrice": 280000,
-          "medianPrice": 300000,
-          "maxPrice": 310000,
-          "avgPyeongPrice": 6323.055782673948,
-          "avgArea": 156.74428571428572,
-          "approvalElapsedYear": 23
         },
         {
           "complexNo": 22891,
@@ -5267,6 +5267,18 @@
           "approvalElapsedYear": 19
         },
         {
+          "complexNo": 106342,
+          "complexName": "청담파크빌",
+          "tradeType": "A1",
+          "count": 2,
+          "minPrice": 150000,
+          "medianPrice": 150000,
+          "maxPrice": 150000,
+          "avgPyeongPrice": 5303.965664776982,
+          "avgArea": 93.49,
+          "approvalElapsedYear": 23
+        },
+        {
           "complexNo": 733,
           "complexName": "진흥",
           "tradeType": "A1",
@@ -5275,7 +5287,7 @@
           "medianPrice": 370000,
           "maxPrice": 560000,
           "avgPyeongPrice": 10458.926827997142,
-          "avgArea": 126.19400000000005,
+          "avgArea": 126.19400000000003,
           "approvalElapsedYear": 43
         },
         {
@@ -5289,18 +5301,6 @@
           "avgPyeongPrice": 9159.613371471272,
           "avgArea": 196.3327272727274,
           "approvalElapsedYear": 43
-        },
-        {
-          "complexNo": 106342,
-          "complexName": "청담파크빌",
-          "tradeType": "A1",
-          "count": 2,
-          "minPrice": 150000,
-          "medianPrice": 150000,
-          "maxPrice": 150000,
-          "avgPyeongPrice": 5303.965664776982,
-          "avgArea": 93.49,
-          "approvalElapsedYear": 23
         },
         {
           "complexNo": 117425,
@@ -5514,7 +5514,7 @@
           "minPrice": 500000,
           "medianPrice": 700000,
           "maxPrice": 2250000,
-          "avgPyeongPrice": 18492.108624296496,
+          "avgPyeongPrice": 18492.108624296492,
           "avgArea": 141.96300000000002,
           "approvalElapsedYear": 1
         },
@@ -5526,21 +5526,9 @@
           "minPrice": 319000,
           "medianPrice": 390000,
           "maxPrice": 500000,
-          "avgPyeongPrice": 9526.966109613451,
+          "avgPyeongPrice": 9526.96610961345,
           "avgArea": 136.11000000000004,
           "approvalElapsedYear": 13
-        },
-        {
-          "complexNo": 1081,
-          "complexName": "청담자이",
-          "tradeType": "A1",
-          "count": 452,
-          "minPrice": 254000,
-          "medianPrice": 420000,
-          "maxPrice": 650000,
-          "avgPyeongPrice": 13831.077691775263,
-          "avgArea": 97.1780530973453,
-          "approvalElapsedYear": 15
         },
         {
           "complexNo": 17713,
@@ -5553,6 +5541,18 @@
           "avgPyeongPrice": 10198.866904034445,
           "avgArea": 270.11333333333334,
           "approvalElapsedYear": 21
+        },
+        {
+          "complexNo": 1081,
+          "complexName": "청담자이",
+          "tradeType": "A1",
+          "count": 452,
+          "minPrice": 254000,
+          "medianPrice": 420000,
+          "maxPrice": 650000,
+          "avgPyeongPrice": 13831.077691775261,
+          "avgArea": 97.1780530973453,
+          "approvalElapsedYear": 15
         },
         {
           "complexNo": 8478,
@@ -5615,18 +5615,6 @@
           "approvalElapsedYear": 16
         },
         {
-          "complexNo": 114923,
-          "complexName": "현대빌라트",
-          "tradeType": "A1",
-          "count": 2,
-          "minPrice": 950000,
-          "medianPrice": 950000,
-          "maxPrice": 950000,
-          "avgPyeongPrice": 15468.136482293257,
-          "avgArea": 203.03,
-          "approvalElapsedYear": 30
-        },
-        {
           "complexNo": 107189,
           "complexName": "대림빌라트",
           "tradeType": "A1",
@@ -5637,6 +5625,18 @@
           "avgPyeongPrice": 15771.875000000002,
           "avgArea": 209.6,
           "approvalElapsedYear": 28
+        },
+        {
+          "complexNo": 114923,
+          "complexName": "현대빌라트",
+          "tradeType": "A1",
+          "count": 2,
+          "minPrice": 950000,
+          "medianPrice": 950000,
+          "maxPrice": 950000,
+          "avgPyeongPrice": 15468.136482293257,
+          "avgArea": 203.03,
+          "approvalElapsedYear": 30
         },
         {
           "complexNo": 24387,
@@ -5671,7 +5671,7 @@
           "medianPrice": 1500000,
           "maxPrice": 1700000,
           "avgPyeongPrice": 17690.714774344462,
-          "avgArea": 282.37,
+          "avgArea": 282.37000000000006,
           "approvalElapsedYear": 48
         },
         {
@@ -5747,18 +5747,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 114030,
-          "complexName": "청담신동아빌라트",
-          "tradeType": "A1",
-          "count": 6,
-          "minPrice": 520000,
-          "medianPrice": 545000,
-          "maxPrice": 560000,
-          "avgPyeongPrice": 7472.493183936346,
-          "avgArea": 239.63000000000002,
-          "approvalElapsedYear": 32
-        },
-        {
           "complexNo": 103309,
           "complexName": "연세리버빌3차",
           "tradeType": "A1",
@@ -5771,16 +5759,16 @@
           "approvalElapsedYear": 28
         },
         {
-          "complexNo": 123601,
-          "complexName": "T.S.",
+          "complexNo": 114030,
+          "complexName": "청담신동아빌라트",
           "tradeType": "A1",
-          "count": 3,
-          "minPrice": 420000,
-          "medianPrice": 420000,
-          "maxPrice": 420000,
-          "avgPyeongPrice": 7857.553480475383,
-          "avgArea": 176.69999999999996,
-          "approvalElapsedYear": 29
+          "count": 6,
+          "minPrice": 520000,
+          "medianPrice": 545000,
+          "maxPrice": 560000,
+          "avgPyeongPrice": 7472.493183936346,
+          "avgArea": 239.63000000000002,
+          "approvalElapsedYear": 32
         },
         {
           "complexNo": 16509,
@@ -5795,6 +5783,18 @@
           "approvalElapsedYear": 30
         },
         {
+          "complexNo": 123601,
+          "complexName": "T.S.",
+          "tradeType": "A1",
+          "count": 3,
+          "minPrice": 420000,
+          "medianPrice": 420000,
+          "maxPrice": 420000,
+          "avgPyeongPrice": 7857.553480475383,
+          "avgArea": 176.69999999999996,
+          "approvalElapsedYear": 29
+        },
+        {
           "complexNo": 135102,
           "complexName": "에비뉴나인티(도시형)",
           "tradeType": "A1",
@@ -5805,30 +5805,6 @@
           "avgPyeongPrice": 7992.55092472041,
           "avgArea": 67.255,
           "approvalElapsedYear": 6
-        },
-        {
-          "complexNo": 16502,
-          "complexName": "LG",
-          "tradeType": "A1",
-          "count": 6,
-          "minPrice": 650000,
-          "medianPrice": 670000,
-          "maxPrice": 690000,
-          "avgPyeongPrice": 8408.154088527826,
-          "avgArea": 263.42,
-          "approvalElapsedYear": 29
-        },
-        {
-          "complexNo": 113714,
-          "complexName": "청담마크노빌",
-          "tradeType": "A1",
-          "count": 4,
-          "minPrice": 720000,
-          "medianPrice": 800000,
-          "maxPrice": 800000,
-          "avgPyeongPrice": 8684.19877408056,
-          "avgArea": 296.92,
-          "approvalElapsedYear": 19
         },
         {
           "complexNo": 125260,
@@ -5843,6 +5819,30 @@
           "approvalElapsedYear": 8
         },
         {
+          "complexNo": 103051,
+          "complexName": "연세리버테라스",
+          "tradeType": "A1",
+          "count": 27,
+          "minPrice": 650000,
+          "medianPrice": 890000,
+          "maxPrice": 1000000,
+          "avgPyeongPrice": 10439.218147003023,
+          "avgArea": 269.83777777777766,
+          "approvalElapsedYear": 24
+        },
+        {
+          "complexNo": 16502,
+          "complexName": "LG",
+          "tradeType": "A1",
+          "count": 6,
+          "minPrice": 650000,
+          "medianPrice": 670000,
+          "maxPrice": 690000,
+          "avgPyeongPrice": 8408.154088527826,
+          "avgArea": 263.42,
+          "approvalElapsedYear": 29
+        },
+        {
           "complexNo": 102220,
           "complexName": "청담파라곤Ⅱ 2단지",
           "tradeType": "A1",
@@ -5855,16 +5855,16 @@
           "approvalElapsedYear": 17
         },
         {
-          "complexNo": 103051,
-          "complexName": "연세리버테라스",
+          "complexNo": 113714,
+          "complexName": "청담마크노빌",
           "tradeType": "A1",
-          "count": 27,
-          "minPrice": 650000,
-          "medianPrice": 890000,
-          "maxPrice": 1000000,
-          "avgPyeongPrice": 10439.218147003023,
-          "avgArea": 269.83777777777766,
-          "approvalElapsedYear": 24
+          "count": 4,
+          "minPrice": 720000,
+          "medianPrice": 800000,
+          "maxPrice": 800000,
+          "avgPyeongPrice": 8684.19877408056,
+          "avgArea": 296.92,
+          "approvalElapsedYear": 19
         },
         {
           "complexNo": 108206,
@@ -5983,32 +5983,8 @@
           "medianPrice": 2200000,
           "maxPrice": 2500000,
           "avgPyeongPrice": 23786.41748534377,
-          "avgArea": 308.2736363636363,
+          "avgArea": 308.2736363636364,
           "approvalElapsedYear": 3
-        },
-        {
-          "complexNo": 16490,
-          "complexName": "삼호",
-          "tradeType": "A1",
-          "count": 10,
-          "minPrice": 430000,
-          "medianPrice": 520000,
-          "maxPrice": 530000,
-          "avgPyeongPrice": 6927.195183551671,
-          "avgArea": 238.66000000000003,
-          "approvalElapsedYear": 30
-        },
-        {
-          "complexNo": 100237,
-          "complexName": "상지리츠빌6차",
-          "tradeType": "A1",
-          "count": 4,
-          "minPrice": 349000,
-          "medianPrice": 349500,
-          "maxPrice": 350000,
-          "avgPyeongPrice": 6824.405537507384,
-          "avgArea": 169.3,
-          "approvalElapsedYear": 25
         },
         {
           "complexNo": 3060,
@@ -6023,6 +5999,18 @@
           "approvalElapsedYear": 35
         },
         {
+          "complexNo": 16490,
+          "complexName": "삼호",
+          "tradeType": "A1",
+          "count": 10,
+          "minPrice": 430000,
+          "medianPrice": 520000,
+          "maxPrice": 530000,
+          "avgPyeongPrice": 6927.195183551671,
+          "avgArea": 238.66000000000003,
+          "approvalElapsedYear": 30
+        },
+        {
           "complexNo": 101724,
           "complexName": "빌폴라리스",
           "tradeType": "A1",
@@ -6030,9 +6018,21 @@
           "minPrice": 680000,
           "medianPrice": 750000,
           "maxPrice": 800000,
-          "avgPyeongPrice": 12110.884974567814,
+          "avgPyeongPrice": 12110.884974567816,
           "avgArea": 203.80999999999997,
           "approvalElapsedYear": 17
+        },
+        {
+          "complexNo": 100237,
+          "complexName": "상지리츠빌6차",
+          "tradeType": "A1",
+          "count": 4,
+          "minPrice": 349000,
+          "medianPrice": 349500,
+          "maxPrice": 350000,
+          "avgPyeongPrice": 6824.405537507384,
+          "avgArea": 169.3,
+          "approvalElapsedYear": 25
         },
         {
           "complexNo": 102840,
@@ -6059,18 +6059,6 @@
           "approvalElapsedYear": 26
         },
         {
-          "complexNo": 3063,
-          "complexName": "구산",
-          "tradeType": "A1",
-          "count": 16,
-          "minPrice": 190000,
-          "medianPrice": 220000,
-          "maxPrice": 270000,
-          "avgPyeongPrice": 8835.465788165071,
-          "avgArea": 86.03625,
-          "approvalElapsedYear": 33
-        },
-        {
           "complexNo": 982,
           "complexName": "청담현대3차",
           "tradeType": "A1",
@@ -6081,6 +6069,18 @@
           "avgPyeongPrice": 9873.025837733596,
           "avgArea": 133.71599999999984,
           "approvalElapsedYear": 28
+        },
+        {
+          "complexNo": 3063,
+          "complexName": "구산",
+          "tradeType": "A1",
+          "count": 16,
+          "minPrice": 190000,
+          "medianPrice": 220000,
+          "maxPrice": 270000,
+          "avgPyeongPrice": 8835.465788165071,
+          "avgArea": 86.03625,
+          "approvalElapsedYear": 33
         },
         {
           "complexNo": 101191,
@@ -6095,18 +6095,6 @@
           "approvalElapsedYear": 20
         },
         {
-          "complexNo": 1000,
-          "complexName": "건영",
-          "tradeType": "A1",
-          "count": 80,
-          "minPrice": 330000,
-          "medianPrice": 395000,
-          "maxPrice": 500000,
-          "avgPyeongPrice": 12373.881127450983,
-          "avgArea": 105.06000000000014,
-          "approvalElapsedYear": 32
-        },
-        {
           "complexNo": 103260,
           "complexName": "상지리츠빌10차",
           "tradeType": "A1",
@@ -6119,16 +6107,16 @@
           "approvalElapsedYear": 19
         },
         {
-          "complexNo": 104069,
-          "complexName": "강변상지리츠빌",
+          "complexNo": 1000,
+          "complexName": "건영",
           "tradeType": "A1",
-          "count": 6,
-          "minPrice": 600000,
-          "medianPrice": 700000,
-          "maxPrice": 700000,
-          "avgPyeongPrice": 11230.987446703699,
-          "avgArea": 196.23,
-          "approvalElapsedYear": 26
+          "count": 80,
+          "minPrice": 330000,
+          "medianPrice": 395000,
+          "maxPrice": 500000,
+          "avgPyeongPrice": 12373.881127450983,
+          "avgArea": 105.06000000000014,
+          "approvalElapsedYear": 32
         },
         {
           "complexNo": 16522,
@@ -6143,6 +6131,18 @@
           "approvalElapsedYear": 24
         },
         {
+          "complexNo": 104069,
+          "complexName": "강변상지리츠빌",
+          "tradeType": "A1",
+          "count": 6,
+          "minPrice": 600000,
+          "medianPrice": 700000,
+          "maxPrice": 700000,
+          "avgPyeongPrice": 11230.987446703699,
+          "avgArea": 196.23,
+          "approvalElapsedYear": 26
+        },
+        {
           "complexNo": 110268,
           "complexName": "청담CJ빌리지",
           "tradeType": "A1",
@@ -6155,18 +6155,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 23682,
-          "complexName": "청담대우멤버스카운티XII",
-          "tradeType": "A1",
-          "count": 1,
-          "minPrice": 460000,
-          "medianPrice": 460000,
-          "maxPrice": 460000,
-          "avgPyeongPrice": 9015.064619397677,
-          "avgArea": 168.68,
-          "approvalElapsedYear": 22
-        },
-        {
           "complexNo": 103420,
           "complexName": "청담신원아침도시마인(도시형)",
           "tradeType": "A1",
@@ -6177,6 +6165,18 @@
           "avgPyeongPrice": 3516.8579299853886,
           "avgArea": 47.22125,
           "approvalElapsedYear": 13
+        },
+        {
+          "complexNo": 23682,
+          "complexName": "청담대우멤버스카운티XII",
+          "tradeType": "A1",
+          "count": 1,
+          "minPrice": 460000,
+          "medianPrice": 460000,
+          "maxPrice": 460000,
+          "avgPyeongPrice": 9015.064619397677,
+          "avgArea": 168.68,
+          "approvalElapsedYear": 22
         },
         {
           "complexNo": 3066,
@@ -6239,18 +6239,6 @@
           "approvalElapsedYear": 23
         },
         {
-          "complexNo": 135644,
-          "complexName": "PH129",
-          "tradeType": "A1",
-          "count": 21,
-          "minPrice": 1350000,
-          "medianPrice": 1700000,
-          "maxPrice": 3300000,
-          "avgPyeongPrice": 18324.802982055593,
-          "avgArea": 332.88000000000005,
-          "approvalElapsedYear": 7
-        },
-        {
           "complexNo": 1077,
           "complexName": "청담아이파크",
           "tradeType": "A1",
@@ -6261,6 +6249,18 @@
           "avgPyeongPrice": 8528.49538731981,
           "avgArea": 137.07433333333336,
           "approvalElapsedYear": 13
+        },
+        {
+          "complexNo": 135644,
+          "complexName": "PH129",
+          "tradeType": "A1",
+          "count": 21,
+          "minPrice": 1350000,
+          "medianPrice": 1700000,
+          "maxPrice": 3300000,
+          "avgPyeongPrice": 18324.802982055593,
+          "avgArea": 332.88000000000005,
+          "approvalElapsedYear": 7
         },
         {
           "complexNo": 102049,
