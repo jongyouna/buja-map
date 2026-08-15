@@ -46,12 +46,21 @@ async function main() {
   const list = json?.result?.etfItemList;
   if (!Array.isArray(list) || !list.length) throw new Error("ETF 목록이 비어 있습니다");
 
+  // 같은 ETF가 분류 탭마다 중복해서 실려 온다. 코드 기준으로 한 번만 남긴다.
+  // 값이 비어 몇 종목이나 버려졌는지도 로그에 남긴다(조용히 사라지면 "검색해도 안 나온다"가 된다).
+  let dropped = 0;
+  const seen = new Set();
   const items = list
     .map((it) => {
       const code = String(it.itemcode || "").trim();
       const name = String(it.itemname || "").trim();
       const price = num(it.nowVal);
-      if (!/^\d{6}$/.test(code) || !name || !price) return null;
+      if (!/^\d{6}$/.test(code) || !name || !price) {
+        dropped++;
+        return null;
+      }
+      if (seen.has(code)) return null;
+      seen.add(code);
       return {
         code,
         name,
@@ -73,7 +82,7 @@ async function main() {
   };
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(payload), "utf-8");
-  console.log(`${items.length}종목 저장 -> ${OUT}`);
+  console.log(`원본 ${list.length}건 -> 중복 제거·검증 후 ${items.length}종목 저장 (값이 비어 제외 ${dropped}건) -> ${OUT}`);
   console.log(`예시: ${items.slice(0, 3).map((i) => `${i.name}(${i.code}) ${i.price}`).join(" / ")}`);
 }
 

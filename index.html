@@ -2505,29 +2505,29 @@ const ALLOC_MAX_ROWS = 60;
 const ALLOC_DEFAULT_THRESHOLD = 8; // Threshold 기준 = 목표비중 × 8%
 // 처음 여는 사람이 구조를 바로 볼 수 있도록 넣어 둔 예시 구성. 종목을 지우거나 바꿔서 쓰면 된다.
 const ALLOC_DEFAULT_ROWS = [
-  // 종목코드는 일부러 비워 둔다. 코드를 기억에 의존해 적어 넣으면 틀렸을 때 엉뚱한 종목의
-  // 시세를 가져오게 되고, 화면상으로는 멀쩡해 보여 알아채기 어렵다. 코드는 KRX 목록에서
-  // 종목명이 정확히 일치할 때만 자동으로 붙이고(resolveMissingCodes), 아니면 사용자가
-  // 검색해서 고르게 한다.
-  { cat: "주식", name: "TIGER 미국S&P500", target: 26, avgPrice: 20233, qty: 1425 },
-  { cat: "주식", name: "ACE 미국S&P500", target: 4, avgPrice: 20100, qty: 212 },
-  { cat: "주식", name: "TIGER 미국배당다우존스", target: 2, avgPrice: 12190, qty: 188 },
-  { cat: "주식", name: "TIGER 일본니케이225", target: 2, avgPrice: 25204, qty: 78 },
-  { cat: "주식", name: "KODEX 차이나CSI300", target: 2, avgPrice: 14166, qty: 170 },
-  { cat: "주식", name: "TIGER 미국나스닥100", target: 9, avgPrice: 138704, qty: 69 },
-  { cat: "주식", name: "KIWOOM 200TR", target: 2, avgPrice: 52888, qty: 20 },
-  { cat: "주식", name: "TIGER 인도니프티50", target: 3, avgPrice: 13218, qty: 363 },
-  { cat: "주식", name: "ACE 미국나스닥100채권혼합액티브", target: 6, avgPrice: 15144, qty: 592 },
-  { cat: "주식", name: "ACE 미국S&P500채권혼합액티브", target: 4, avgPrice: 13700, qty: 430 },
-  { cat: "채권", name: "TIGER 미국달러단기채권액티브", target: 3, avgPrice: 12885, qty: 330 },
-  { cat: "채권", name: "ACE 국고채10년", target: 2, avgPrice: 88507, qty: 37 },
-  { cat: "채권", name: "RISE KIS국고채30년Enhanced", target: 3, avgPrice: 71905, qty: 81 },
-  { cat: "채권", name: "ACE 미국30년국채액티브", target: 1, avgPrice: 8153, qty: 200 },
-  { cat: "채권", name: "KODEX 200미국채혼합", target: 9, avgPrice: 23354, qty: 634 },
-  { cat: "채권", name: "KODEX iShares미국하이일드액티브", target: 3, avgPrice: 11678, qty: 360 },
-  { cat: "현금성자산", name: "TIGER 미국달러SOFR금리액티브", target: 3, avgPrice: 57126, qty: 73 },
-  { cat: "현금성자산", name: "TIGER KOFR금리액티브", target: 3, avgPrice: 108859, qty: 40 },
-  { cat: "대체", name: "ACE KRX 금현물", target: 13, avgPrice: 20796, qty: 697 },
+  // 종목코드는 실제 시세 목록과 대조해 확인한 값이다. 화면에서 읽은 이름만으로는 위험하다.
+  // 예를 들어 "ACE 미국30년국채액티브"는 이름이 거의 같은 종목이 둘(476760, 453850(H)) 있어
+  // 이름만 보고 고르면 다른 상품의 시세를 가져오면서도 화면은 멀쩡해 보인다.
+  // 그래서 각 줄의 코드는 그 종목의 현재가가 원본 표의 현재가와 맞는지까지 확인해 넣었다.
+  { cat: "주식", name: "TIGER 미국S&P500", code: "360750", target: 26, avgPrice: 20233, qty: 1425 },
+  { cat: "주식", name: "ACE 미국S&P500", code: "360200", target: 4, avgPrice: 20100, qty: 212 },
+  { cat: "주식", name: "TIGER 미국배당다우존스", code: "458730", target: 2, avgPrice: 12190, qty: 188 },
+  { cat: "주식", name: "TIGER 일본니케이225", code: "241180", target: 2, avgPrice: 25204, qty: 78 },
+  { cat: "주식", name: "KODEX 차이나CSI300", code: "283580", target: 2, avgPrice: 14166, qty: 170 },
+  { cat: "주식", name: "TIGER 미국나스닥100", code: "133690", target: 9, avgPrice: 138704, qty: 69 },
+  { cat: "주식", name: "KIWOOM 200TR", code: "294400", target: 2, avgPrice: 52888, qty: 20 },
+  { cat: "주식", name: "TIGER 인도니프티50", code: "453870", target: 3, avgPrice: 13218, qty: 363 },
+  { cat: "주식", name: "ACE 미국나스닥100미국채혼합50액티브", code: "438100", target: 6, avgPrice: 15144, qty: 592 },
+  { cat: "주식", name: "ACE 미국S&P500미국채혼합50액티브", code: "438080", target: 4, avgPrice: 13700, qty: 430 },
+  { cat: "채권", name: "TIGER 미국달러단기채권액티브", code: "329750", target: 3, avgPrice: 12885, qty: 330 },
+  { cat: "채권", name: "ACE 국고채10년", code: "365780", target: 2, avgPrice: 88507, qty: 37 },
+  { cat: "채권", name: "RISE KIS국고채30년Enhanced", code: "385560", target: 3, avgPrice: 71905, qty: 81 },
+  { cat: "채권", name: "ACE 미국30년국채액티브(H)", code: "453850", target: 1, avgPrice: 8153, qty: 200 },
+  { cat: "채권", name: "KODEX 200미국채혼합50", code: "284430", target: 9, avgPrice: 23354, qty: 634 },
+  { cat: "채권", name: "KODEX iShares미국하이일드액티브", code: "468380", target: 3, avgPrice: 11678, qty: 360 },
+  { cat: "현금성자산", name: "TIGER 미국달러SOFR금리액티브(합성)", code: "456610", target: 3, avgPrice: 57126, qty: 73 },
+  { cat: "현금성자산", name: "TIGER KOFR금리액티브(합성)", code: "449170", target: 3, avgPrice: 108859, qty: 40 },
+  { cat: "대체", name: "ACE KRX금현물", code: "411060", target: 13, avgPrice: 20796, qty: 697 },
 ];
 
 let allocSync = { state: "idle", error: null, at: null };
@@ -2539,7 +2539,7 @@ function setAllocSync(next) {
 }
 
 function defaultAllocRows() {
-  return ALLOC_DEFAULT_ROWS.map((r) => ({ ...r, code: "", price: null, changeRate: null, priceSource: null, manualPrice: false }));
+  return ALLOC_DEFAULT_ROWS.map((r) => ({ ...r, price: null, changeRate: null, priceSource: null, manualPrice: false }));
 }
 
 function defaultAllocDoc() {
