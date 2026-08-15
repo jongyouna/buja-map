@@ -17,6 +17,7 @@ on:
         options:
           - gangnam # 강남구만 (1~2분)
           - seoul # 서울 전체 구 + 정밀 동
+          - probe # 타일 1개만 조회해 응답 원본을 로그에 출력(파일은 그대로)
 
 permissions:
   contents: write

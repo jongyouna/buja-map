@@ -25,6 +25,9 @@ const SPOTLIGHT_DONGS = [{ gu: "동작구", dong: "흑석동" }]; // 구 전체 
 
 const SCOPE = (process.env.NAVER_SCOPE || "seoul").toLowerCase();
 const SCOPE_PRESETS = {
+  // 응답에 실제로 어떤 필드가 오는지 확인하려고 타일 하나만 조회해 원본 JSON을 찍는다.
+  // 파일은 건드리지 않는다. 새 항목(전용면적·세대수 등)을 추가하기 전에 필드명을 확인하는 용도.
+  probe: { probe: true, onlyGu: ["강남구"], includeSpotlightDongs: false, label: "필드 확인용 1타일 조회" },
   gangnam: { onlyGu: ["강남구"], includeSpotlightDongs: false, label: "강남구만" },
   seoul: { onlyGu: null, includeSpotlightDongs: true, label: "서울 전체 구 + 정밀 동" },
 };
@@ -476,9 +479,60 @@ function mergeRegions(existing, fresh) {
   return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, "ko"));
 }
 
+// 응답 원본을 찍어 필드명을 확인한다. 화면에 새 항목을 추가하기 전에 이걸로 먼저 확인할 것.
+async function probeOnce() {
+  const browser = await launchStealthBrowser();
+  const { page, context } = await newStealthPage(browser);
+  try {
+    // 역삼동 한복판의 작은 상자 하나
+    const boundingBox = { left: 127.03, right: 127.045, bottom: 37.494, top: 37.506 };
+    const body = {
+      filter: {
+        tradeTypes: ["A1"],
+        realEstateTypes: REAL_ESTATE_TYPES,
+        roomCount: [],
+        bathRoomCount: [],
+        optionTypes: [],
+        oneRoomShapeTypes: [],
+        moveInTypes: [],
+        filtersExclusiveSpace: false,
+        floorTypes: [],
+        directionTypes: [],
+        hasArticlePhoto: false,
+        isAuthorizedByOwner: false,
+        parkingTypes: [],
+        entranceTypes: [],
+        hasArticle: false,
+      },
+      boundingBox,
+      precision: 15,
+      userChannelType: "PC",
+      articlePagingRequest: { size: 5 },
+    };
+    const res = await callApi(page, "/front-api/v1/article/boundedArticles", body);
+    console.log(`HTTP ${res.status}`);
+    const json = JSON.parse(res.text);
+    const list = json.result?.list || [];
+    console.log(`받은 그룹 ${list.length}개`);
+    console.log("=== RESULT KEYS ===");
+    console.log(JSON.stringify(Object.keys(json.result || {})));
+    for (const [i, group] of list.slice(0, 2).entries()) {
+      console.log(`=== GROUP ${i} 전체 ===`);
+      console.log(JSON.stringify(group, null, 2));
+    }
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
 async function main() {
   const outPath = path.join(__dirname, "..", "data", "naver-land.json");
   console.log(`수집 범위: ${SCOPE} (${SCOPE_CONFIG.label})`);
+  if (SCOPE_CONFIG.probe) {
+    await probeOnce();
+    return;
+  }
   let regions = [];
   let lastError = null;
 
