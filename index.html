@@ -2531,6 +2531,21 @@ async function initNaverTab() {
     return Math.round(c.minPrice / (supply / 3.305785));
   }
 
+  // 단지명 링크. 네이버가 자기 API(recentView)에서 매물 탭 주소로 알려주는 형식이
+  // complexes/{번호}?tab=article 이라 그걸 그대로 쓴다. 이 주소는 지도 화면으로
+  // 리다이렉트되면서 해당 단지의 매물 목록을 연다.
+  // 전용면적 범위를 함께 넘겨 그 평형만 보이게 한다(exclusiveSpaceMode=true).
+  function complexUrl(c) {
+    const params = new URLSearchParams({ tab: "article", tradeTypes: tradeSelect.value });
+    const ex = c.exclusiveArea;
+    if (ex > 0) {
+      // 같은 평형이라도 타입별로 소수점이 조금씩 다르므로 좁은 범위로 감싼다.
+      params.set("exclusiveSpaceMode", "true");
+      params.set("space", `${(ex - 0.5).toFixed(4)}-${(ex + 0.5).toFixed(4)}`);
+    }
+    return `https://fin.land.naver.com/complexes/${c.complexNo}?${params}`;
+  }
+
   function pyeongAskCell(c) {
     const v = pyeongAskMin(c);
     if (v == null) return "–";
@@ -2679,7 +2694,11 @@ async function initNaverTab() {
         return `
       <tr>
         <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
-        <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>` : escapeHtml(r.complexName)}</td>
+        <td>${
+          r.complexNo
+            ? `<a class="naver-complex-link" href="${complexUrl(r)}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>`
+            : escapeHtml(r.complexName)
+        }</td>
         <td class="num">${
           r.householdCount == null
             ? "–"
