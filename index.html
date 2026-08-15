@@ -165,6 +165,28 @@
   }
   .range-slider input[type="range"]::-moz-range-track { background: none; border: none; }
   .range-ticks { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); }
+  .filter-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+  }
+  .filter-sync { font-size: 0.74rem; color: var(--muted); }
+  .filter-reset {
+    font-size: 0.76rem;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .filter-reset:hover { color: var(--text); border-color: var(--muted); }
   .filter-field.disabled select, .filter-field.disabled input { background: var(--bg); color: var(--muted); cursor: not-allowed; }
   .region-btn {
     font-size: 0.82rem;
@@ -800,6 +822,11 @@
           </div>
         </div>
       </div>
+
+      <div class="filter-footer">
+        <span class="filter-sync" id="filterSyncNote"></span>
+        <button class="filter-reset" id="filterResetBtn" type="button">필터 초기화</button>
+      </div>
     </div>
 
     <div class="summary-bar" id="naverSummaryBar"></div>
@@ -990,6 +1017,39 @@ async function upsertUserRecord(user) {
   return { ...prev, ...profile, loginCount: (prev.loginCount || 0) + 1 };
 }
 
+// ---- 네이버 탭 필터 설정 저장 ----
+// 로그인하면 users/{uid}.naverFilters 에, 로그인하지 않았으면 이 브라우저에만 저장한다.
+// 로그인 계정에 저장된 설정이 있으면 그쪽이 이긴다(다른 기기에서 이어서 보기 위함).
+const NAVER_PREFS_KEY = "buja-map.naverFilters";
+let naverPrefsHook = null; // initNaverTab이 등록. 로그인 상태가 바뀌면 설정을 다시 적용한다.
+
+function readLocalNaverPrefs() {
+  try {
+    const raw = localStorage.getItem(NAVER_PREFS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function currentNaverPrefs() {
+  if (currentUser && currentUserDoc?.naverFilters) return currentUserDoc.naverFilters;
+  return readLocalNaverPrefs();
+}
+
+function persistNaverPrefs(prefs) {
+  try {
+    localStorage.setItem(NAVER_PREFS_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    /* 시크릿 모드 등에서 저장이 막혀도 화면은 그대로 동작해야 한다 */
+  }
+  if (!currentUser) return;
+  if (currentUserDoc) currentUserDoc.naverFilters = prefs;
+  setDoc(doc(db, "users", currentUser.uid), { naverFilters: prefs }, { merge: true }).catch((err) => {
+    console.error("필터 설정을 계정에 저장하지 못했습니다:", err);
+  });
+}
+
 function updateAdminTabVisibility() {
   const btn = document.getElementById("adminTabBtn");
   const allowed = isAdminUser();
@@ -1019,6 +1079,8 @@ onAuthStateChanged(auth, async (user) => {
     renderAuthArea();
     updateAdminTabVisibility();
   }
+  // 로그인/로그아웃 직후 그 계정에 저장해 둔 지역필터·핀·가격대를 다시 적용한다.
+  if (naverPrefsHook) naverPrefsHook();
   if (onAuthChangedHook) await onAuthChangedHook();
 });
 
@@ -2509,6 +2571,8 @@ async function initNaverTab() {
   }
 
   function render() {
+    // 필터를 건드리면 어떤 경로로든 render()를 거치므로, 설정 저장은 여기 한 곳에서만 건다.
+    if (prefsReady && !applyingPrefs) persistPrefsSoon();
     const sortValue = (r) => (sortKey === "supplyArea" ? rowArea(r) : r[sortKey]);
     const rows = currentRows().slice().sort((a, b) => {
       const va = sortValue(a), vb = sortValue(b);
@@ -2565,9 +2629,128 @@ async function initNaverTab() {
       render();
     });
   });
+  // ---- 필터 설정 저장 / 복원 ----
+  // 지역필터 드롭다운, 담아둔 핀, 단지필터, 가격대, 정렬까지 한 덩어리로 기억한다.
+  const defaultPrefs = () => ({
+    v: 1,
+    include: [{ level: "si", si: "서울", label: "서울시" }],
+    exclude: [],
+    gugun: "",
+    dong: "",
+    trade: "A1",
+    pyeongType: "",
+    age: "",
+    dealCount: "",
+    priceMin: 0,
+    priceMax: PRICE_MAX_STEP,
+    sortKey: "count",
+    sortDir: "desc",
+  });
+  const SORT_KEYS = new Set([...document.querySelectorAll("#naverTable th.sortable")].map((th) => th.dataset.sort));
+  let prefsReady = false;
+  let applyingPrefs = false;
+
+  // 저장된 값은 다른 기기·예전 버전에서 온 것일 수 있으므로 그대로 믿지 않고 걸러서 쓴다.
+  function sanitizeChips(list) {
+    if (!Array.isArray(list)) return null;
+    const out = [];
+    for (const c of list.slice(0, 60)) {
+      if (!c || typeof c !== "object") continue;
+      if (!["si", "gugun", "dong"].includes(c.level) || typeof c.si !== "string") continue;
+      const chip = { level: c.level, si: c.si };
+      if (c.level !== "si") {
+        if (typeof c.gugun !== "string" || !c.gugun) continue;
+        chip.gugun = c.gugun;
+      }
+      if (c.level === "dong") {
+        if (typeof c.dong !== "string" || !c.dong) continue;
+        chip.dong = c.dong;
+      }
+      // 라벨은 저장된 문자열을 믿지 않고 항상 새로 만든다(그대로 innerHTML에 들어가므로).
+      chip.label = chip.level === "si" ? `${chip.si}시` : [chip.si, chip.gugun, chip.dong].filter(Boolean).join(" ");
+      out.push(chip);
+    }
+    return out;
+  }
+
+  function collectPrefs() {
+    return {
+      v: 1,
+      include: includeChips,
+      exclude: excludeChips,
+      gugun: gugunSelect.value,
+      dong: dongSelect.value,
+      trade: tradeSelect.value,
+      pyeongType: pyeongTypeSelect.value,
+      age: ageSelect.value,
+      dealCount: dealCountSelect.value,
+      priceMin: Number(priceMinRange.value),
+      priceMax: Number(priceMaxRange.value),
+      sortKey,
+      sortDir,
+    };
+  }
+
+  function applyPrefs(raw) {
+    const d = defaultPrefs();
+    const p = raw && typeof raw === "object" ? raw : d;
+    applyingPrefs = true;
+    try {
+      includeChips = sanitizeChips(p.include) ?? d.include;
+      excludeChips = sanitizeChips(p.exclude) ?? d.exclude;
+      // 값이 목록에 없으면 select가 알아서 ""(전체)로 떨어지므로 별도 검증이 필요 없다.
+      gugunSelect.value = typeof p.gugun === "string" ? p.gugun : "";
+      refreshDongOptions();
+      dongSelect.value = typeof p.dong === "string" ? p.dong : "";
+      tradeSelect.value = typeof p.trade === "string" ? p.trade : d.trade;
+      if (!tradeSelect.value) tradeSelect.value = d.trade;
+      pyeongTypeSelect.value = typeof p.pyeongType === "string" ? p.pyeongType : "";
+      ageSelect.value = typeof p.age === "string" ? p.age : "";
+      dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
+      const clampStep = (v, fallback) =>
+        Number.isFinite(v) ? Math.min(PRICE_MAX_STEP, Math.max(0, Math.round(v))) : fallback;
+      const lo = clampStep(p.priceMin, 0);
+      const hi = clampStep(p.priceMax, PRICE_MAX_STEP);
+      priceMinRange.value = String(Math.min(lo, hi));
+      priceMaxRange.value = String(Math.max(lo, hi));
+      sortKey = SORT_KEYS.has(p.sortKey) ? p.sortKey : d.sortKey;
+      sortDir = p.sortDir === "asc" ? "asc" : "desc";
+    } finally {
+      applyingPrefs = false;
+    }
+    renderChips();
+    renderPriceRange();
+    render();
+  }
+
+  const persistPrefsSoon = debounce(() => persistNaverPrefs(collectPrefs()), 700);
+
+  function updateSyncNote() {
+    document.getElementById("filterSyncNote").textContent = currentUser
+      ? "필터 설정이 구글 계정에 저장됩니다. 다른 기기에서 로그인해도 그대로 열립니다."
+      : "필터 설정이 이 브라우저에만 저장됩니다. 구글로 로그인하면 계정에 저장돼 어디서든 이어집니다.";
+  }
+
+  // 로그인 상태가 바뀌면 그 계정의 설정으로 갈아끼운다.
+  naverPrefsHook = () => {
+    applyPrefs(currentNaverPrefs());
+    updateSyncNote();
+    // 계정에 저장된 설정이 아직 없으면, 로그인 직전까지 쓰던 설정을 그대로 계정에 올려준다.
+    if (currentUser && !currentUserDoc?.naverFilters) persistNaverPrefs(collectPrefs());
+  };
+
+  document.getElementById("filterResetBtn").addEventListener("click", () => {
+    applyPrefs(null);
+    persistNaverPrefs(collectPrefs());
+  });
+
   tradeSelect.addEventListener("change", render);
-  renderPriceRange();
-  render();
+  // 드롭다운 선택도 기억해야 하므로, 표를 다시 그리지 않는 변경에도 저장을 걸어둔다.
+  [gugunSelect, dongSelect].forEach((el) => el.addEventListener("change", () => prefsReady && persistPrefsSoon()));
+
+  applyPrefs(currentNaverPrefs());
+  updateSyncNote();
+  prefsReady = true;
 }
 </script>
 </body>
