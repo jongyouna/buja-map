@@ -59,6 +59,12 @@ const TILE_KEEP_RADIUS = { lat: 0.014, lon: 0.017 };
 // 대단지가 몰린 구역도 상한 안으로 들어온다(깊이 3에서는 누락이 발생했다).
 const MAX_SUBDIVIDE_DEPTH = 5;
 
+// 네이버 차단을 피하려고 요청 사이에 두는 대기(ms 기준값, 실제로는 최대 50% 지터가 붙는다).
+// 전체 소요 시간의 대부분이 이 대기다 — 조회 횟수를 줄이는 것보다 여기가 훨씬 크게 작용한다.
+// 차단 위험과 수집 시간을 맞바꾸는 손잡이이므로 값을 낮출 때는 실제 실행으로 확인할 것.
+const PAGE_DELAY_MS = 500; // 같은 타일의 다음 페이지
+const TILE_DELAY_MS = 350; // 다음 타일 / 분할된 하위 타일
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = (baseMs) => baseMs + Math.floor(Math.random() * baseMs * 0.5);
 
@@ -228,7 +234,7 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
 
     if (!json.result?.hasNextPage) return { articles: collected, hasMore: false };
     cursor = { seed: json.result.seed, lastInfo: json.result.lastInfo };
-    if (pageIndex < maxPages - 1) await sleep(jitter(1000));
+    if (pageIndex < maxPages - 1) await sleep(jitter(PAGE_DELAY_MS));
   }
 
   return { articles: collected, hasMore: true };
@@ -324,7 +330,7 @@ async function fetchTile(page, tile, tradeType, depth, stats) {
   ];
   const out = [];
   for (const quad of quads) {
-    await sleep(jitter(700));
+    await sleep(jitter(TILE_DELAY_MS));
     out.push(...(await fetchTile(page, quad, tradeType, depth + 1, stats)));
   }
   return out;
@@ -396,7 +402,7 @@ async function fetchAllRegions() {
           if (articles.length > 0) {
             console.log(`[${i + 1}/${tiles.length}] ${tradeType}: 조회 ${articles.length}건 → 대상 ${kept}건`);
           }
-          await sleep(jitter(700));
+          await sleep(jitter(TILE_DELAY_MS));
         }
       } catch (err) {
         console.log(`[${i + 1}/${tiles.length}] 오류(건너뜀): ${err.message}`);
