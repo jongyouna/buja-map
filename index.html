@@ -848,7 +848,9 @@
             <tr>
               <th data-sort="regionLabel" class="sortable">지역</th>
               <th data-sort="complexName" class="sortable">단지명</th>
+              <th data-sort="householdCount" class="sortable num">세대수</th>
               <th data-sort="supplyArea" class="sortable num">전용면적</th>
+              <th data-sort="realMaxPrice" class="sortable num" title="최근 3년 실거래가 중 최고가">실거래 최고가</th>
               <th data-sort="count" class="sortable num">매물 수</th>
               <th data-sort="minPrice" class="sortable num">최저가</th>
               <th data-sort="maxPrice" class="sortable num">최고가</th>
@@ -2285,7 +2287,7 @@ async function initNaverTab() {
     console.error("네이버 부동산 데이터를 불러오지 못했습니다:", e);
     updatedEl.textContent = "";
     topBadge.textContent = "";
-    tbody.innerHTML = `<tr><td colspan="7" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="naver-empty">아직 수집된 매물 데이터가 없습니다.<br/><br/>네이버는 데이터센터 IP(GitHub Actions 등)에서의 부동산 조회를 차단하기 때문에,<br/>국내 가정용 회선 PC에서 <code>node scripts/fetch-naver-land.js</code>를 실행한 뒤<br/><code>data/naver-land.json</code>을 커밋하면 이 표가 채워집니다.</td></tr>`;
     return;
   }
 
@@ -2582,8 +2584,8 @@ async function initNaverTab() {
       const b = priceBounds();
       const priceHint = b.isAll ? "" : `<br/>가격대 <b>${priceRangeLabel.textContent}</b> 범위를 넓혀보세요.`;
       tbody.innerHTML = includeChips.length
-        ? `<tr><td colspan="7" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.${priceHint}</td></tr>`
-        : `<tr><td colspan="7" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
+        ? `<tr><td colspan="9" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.${priceHint}</td></tr>`
+        : `<tr><td colspan="9" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
       return;
     }
 
@@ -2602,7 +2604,23 @@ async function initNaverTab() {
       <tr>
         <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
         <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>` : escapeHtml(r.complexName)}</td>
+        <td class="num">${
+          r.householdCount == null
+            ? "–"
+            : `${r.householdCount.toLocaleString("ko-KR")}${
+                r.unitHouseholdCount == null
+                  ? ""
+                  : ` <span class="naver-pyeong" title="이 평형의 세대수">${r.unitHouseholdCount.toLocaleString("ko-KR")}</span>`
+              }`
+        }</td>
         <td class="num">${areaCell}</td>
+        <td class="num">${
+          r.realMaxPrice == null
+            ? "–"
+            : `${fmtManwon(r.realMaxPrice)}${
+                r.realMaxDate ? ` <span class="naver-pyeong">${r.realMaxDate.slice(2, 7)}</span>` : ""
+              }`
+        }</td>
         <td class="num">${r.count.toLocaleString("ko-KR")}</td>
         <td class="num">${fmtManwon(r.minPrice)}</td>
         <td class="num">${fmtManwon(r.maxPrice)}</td>

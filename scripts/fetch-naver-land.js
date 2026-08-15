@@ -67,6 +67,11 @@ const MAX_SUBDIVIDE_DEPTH = 5;
 // 차단 위험과 수집 시간을 맞바꾸는 손잡이이므로 값을 낮출 때는 실제 실행으로 확인할 것.
 const PAGE_DELAY_MS = 500; // 같은 타일의 다음 페이지
 const TILE_DELAY_MS = 350; // 다음 타일 / 분할된 하위 타일
+const DETAIL_DELAY_MS = 180; // 단지 상세(세대수·실거래가) 조회 사이. 가벼운 GET이라 짧게 둔다.
+
+// 실거래 최고가를 몇 년치에서 뽑을지. 3개월만 보면 거래가 없어 null이 뜨는 단지가 대부분이다.
+const REAL_PRICE_YEARS = 3;
+const COMPLEXES_PER_DETAIL_SESSION = 150; // 이 개수마다 브라우저를 새로 띄운다
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = (baseMs) => baseMs + Math.floor(Math.random() * baseMs * 0.5);
@@ -305,6 +310,110 @@ function aggregateComplexes(articles, tradeType) {
   return complexes;
 }
 
+// ---- 단지 상세 보강 ----
+// 매물 목록 응답에는 세대수도 실거래가도 없다(probe로 확인). 단지 상세 API 두 개를 더 부른다.
+//   /front-api/v1/complex/pyeongList                  : 평형타입별 전용면적 · 세대수
+//   /front-api/v1/complex/pyeong/realPrice/summary    : 평형타입별 실거래 최저/최고/평균
+// 평형타입은 전용면적으로 우리 행과 맞춘다(둘 다 네이버가 준 같은 값이라 정확히 일치한다).
+function realPriceStartDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - REAL_PRICE_YEARS);
+  return d.toISOString().slice(0, 10);
+}
+
+async function fetchPyeongList(page, complexNo) {
+  const res = await callApi(page, `/front-api/v1/complex/pyeongList?complexNumber=${complexNo}`);
+  if (res.status !== 200) return null;
+  const json = JSON.parse(res.text);
+  return json.isSuccess && Array.isArray(json.result) ? json.result : null;
+}
+
+async function fetchRealPriceSummary(page, complexNo, pyeongTypeNumber, tradeType, startDate) {
+  const res = await callApi(
+    page,
+    `/front-api/v1/complex/pyeong/realPrice/summary?complexNumber=${complexNo}` +
+      `&pyeongTypeNumber=${pyeongTypeNumber}&realEstateType=A01&tradeType=${tradeType}&startDate=${startDate}`
+  );
+  if (res.status !== 200) return null;
+  const json = JSON.parse(res.text);
+  return json.isSuccess ? json.result : null; // 거래 이력이 없으면 result가 null
+}
+
+async function enrichWithComplexDetail(regions) {
+  const startDate = realPriceStartDate();
+  // 같은 단지가 구 지역과 정밀 동 지역에 함께 들어 있으므로, 단지 번호로 묶어 한 번만 조회한다.
+  const byComplex = new Map();
+  for (const region of regions) {
+    for (const row of region.complexes) {
+      if (row.complexNo == null) continue;
+      if (!byComplex.has(row.complexNo)) byComplex.set(row.complexNo, []);
+      byComplex.get(row.complexNo).push(row);
+    }
+  }
+  if (byComplex.size === 0) return;
+  console.log(`[상세] 단지 ${byComplex.size}곳의 세대수·실거래 최고가 조회 시작 (실거래 ${REAL_PRICE_YEARS}년치)`);
+
+  let browser = await launchStealthBrowser();
+  let session = await newStealthPage(browser);
+  const stat = { ok: 0, failed: 0, households: 0, realPrice: 0 };
+  let i = 0;
+  try {
+    for (const [complexNo, group] of byComplex) {
+      i++;
+      if (i > 1 && i % COMPLEXES_PER_DETAIL_SESSION === 0) {
+        await session.context.close().catch(() => {});
+        await browser.close().catch(() => {});
+        browser = await launchStealthBrowser();
+        session = await newStealthPage(browser);
+      }
+      try {
+        const types = await fetchPyeongList(session.page, complexNo);
+        await sleep(jitter(DETAIL_DELAY_MS));
+        if (!types) {
+          stat.failed++;
+          continue;
+        }
+        const total = types.reduce((s, t) => s + (t.householdCount || 0), 0);
+        const byArea = new Map();
+        for (const t of types) {
+          if (t.exclusiveArea > 0) byArea.set(t.exclusiveArea.toFixed(2), t);
+        }
+        for (const row of group) {
+          if (total > 0) {
+            row.householdCount = total;
+            stat.households++;
+          }
+          const t = row.exclusiveArea == null ? null : byArea.get(row.exclusiveArea.toFixed(2));
+          if (!t) continue;
+          row.unitHouseholdCount = t.householdCount ?? null;
+          const summary = await fetchRealPriceSummary(session.page, complexNo, t.number, row.tradeType, startDate);
+          await sleep(jitter(DETAIL_DELAY_MS));
+          const maxDeal = summary?.maxPrice?.dealPrice;
+          if (maxDeal > 0) {
+            row.realMaxPrice = Math.round(maxDeal / 10000); // 원 -> 만원
+            row.realMaxDate = summary.maxPrice.tradeDate || null;
+            stat.realPrice++;
+          }
+        }
+        stat.ok++;
+      } catch (err) {
+        // 단지 하나가 실패해도 나머지는 계속 채운다. 이 값들은 없어도 표가 동작한다.
+        stat.failed++;
+      }
+      if (i % 100 === 0) {
+        console.log(`  [상세] ${i}/${byComplex.size} 단지 (성공 ${stat.ok} / 실패 ${stat.failed} / 실거래 ${stat.realPrice}행)`);
+      }
+    }
+  } finally {
+    await session.context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+  console.log(
+    `[상세] 완료 — 단지 ${byComplex.size}곳 중 성공 ${stat.ok} / 실패 ${stat.failed}, ` +
+      `세대수 ${stat.households}행 / 실거래 최고가 ${stat.realPrice}행`
+  );
+}
+
 // 타일 하나를 조회한다. 상한에 걸리면 매물이 빽빽하다는 뜻이므로 4분할해 다시 조회한다.
 // 분할된 타일끼리는 겹치지 않으므로 같은 매물이 두 번 잡히지 않는다.
 async function fetchTile(page, tile, tradeType, depth, stats) {
@@ -465,6 +574,8 @@ async function fetchAllRegions() {
       complexes,
     });
   }
+
+  await enrichWithComplexDetail(results);
 
   return results;
 }
