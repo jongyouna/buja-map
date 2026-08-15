@@ -75,6 +75,31 @@
   }
   .tab-btn:hover { color: var(--text); }
   .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+  /* 급매 Now!: 매물이 매일 바뀌는 탭이라 눈에 먼저 들어오도록 빨간색으로 강조한다.
+     선택하지 않았을 때도 빨간 글씨라서, 다른 탭을 보고 있어도 위치가 보인다. */
+  .tab-btn.hot { color: var(--bad); }
+  .tab-btn.hot:hover { color: #912018; }
+  .tab-btn.hot.active { color: var(--bad); border-bottom-color: var(--bad); }
+  /* 글씨 왼쪽의 점. 선택했을 때만 천천히 깜빡여 "지금 보고 있는 실시간 탭"임을 알린다. */
+  .tab-btn.hot::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--bad);
+    vertical-align: 1px;
+  }
+  .tab-btn.hot.active::before { animation: hot-pulse 1.6s ease-in-out infinite; }
+  @keyframes hot-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(180, 35, 24, 0.45); }
+    50% { opacity: 0.55; box-shadow: 0 0 0 4px rgba(180, 35, 24, 0); }
+  }
+  /* 깜빡임을 불편해하는 사용자도 있으므로 OS 설정을 따른다. */
+  @media (prefers-reduced-motion: reduce) {
+    .tab-btn.hot.active::before { animation: none; }
+  }
   .tab-panel[hidden] { display: none; }
   .naver-controls { display: flex; gap: 8px; flex-shrink: 0; }
   .naver-controls select {
@@ -804,7 +829,7 @@
 
   <nav class="tabbar" id="tabBar">
     <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
-    <button class="tab-btn" data-tab="naver" type="button">급매 Now!</button>
+    <button class="tab-btn hot" data-tab="naver" type="button">급매 Now!</button>
     <!-- 자산 배분 탭은 항상 보이지만 로그인해야 열린다. 로그인하지 않고 누르면 로그인 안내 팝업이 뜬다. -->
     <button class="tab-btn" data-tab="allocation" type="button" id="allocationTabBtn">자산 배분</button>
     <!-- 관리자 탭 버튼은 관리자로 로그인했을 때만 나타난다. 다만 이 hidden은 화면 정리일 뿐이고,
