@@ -429,7 +429,7 @@
   }
   .panel h2 { font-size: 1.05rem; margin: 0 0 4px; font-weight: 700; }
   .panel .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 16px; line-height: 1.55; }
-  .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
   .save-btn, .delete-btn {
     flex-shrink: 0;
     border-radius: 8px;
@@ -788,6 +788,9 @@
   .alloc-suggest-item .s-meta { color: var(--muted); flex-shrink: 0; }
   .alloc-suggest-empty { padding: 10px; font-size: 0.78rem; color: var(--muted); text-align: center; }
 
+  /* "자세히"는 카드로 바뀌는 좁은 화면에서만 쓴다. */
+  .alloc-row-expand { display: none; }
+
   .alloc-row-remove {
     border: none;
     background: none;
@@ -859,6 +862,151 @@
   .import-preview.error { background: var(--bad-bg); color: var(--bad); }
   .import-preview.ok { background: var(--good-bg); color: var(--good); }
   .import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  /* ---- 좁은 화면(휴대폰): 표를 카드로 바꾼다 ----
+     열이 15개라 휴대폰에서는 가로 스크롤로만 볼 수 있고, 스크롤하면 종목명이 화면 밖으로
+     나가 어느 종목의 숫자인지 알 수 없게 된다. 그래서 좁은 화면에서는 한 종목을 한 카드로
+     세로로 쌓고, 각 값 앞에 열 이름(data-label)을 붙인다. 표의 DOM은 그대로 두므로
+     입력·계산·검색 동작은 데스크톱과 완전히 같다. */
+  @media (max-width: 820px) {
+    .alloc-table-scroll { overflow-x: visible; }
+    .alloc-table { min-width: 0; display: block; }
+    .alloc-table thead { display: none; }
+    .alloc-table tbody, .alloc-table tfoot { display: block; }
+    .alloc-table tr { display: block; }
+    .alloc-table td { display: flex; }
+
+    /* 한 종목 = 한 카드 */
+    .alloc-table tbody tr[data-idx] {
+      position: relative;
+      /* 카드 안 순서를 정할 수 있게 세로 flex로 둔다. 표에서는 분류 칸이 먼저지만
+         카드에서는 종목명이 제목이라 맨 위여야 한다. */
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 12px 8px;
+      margin-bottom: 10px;
+      background: var(--panel);
+    }
+    .alloc-table tbody tr[data-idx] td.alloc-name-td { order: -1; }
+    .alloc-table tbody tr[data-idx] td {
+      border: none;
+      padding: 5px 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      white-space: normal;
+    }
+    /* 값 앞에 열 이름을 붙인다. 카드에는 표 머리글이 없으므로 이게 유일한 설명이다. */
+    .alloc-table tbody tr[data-idx] td::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 600;
+      flex: 0 0 auto;
+    }
+    /* 값이 비어 자리만 채우는 칸은 카드에서 뺀다. */
+    .alloc-table td:empty, .alloc-table td:not([data-label]):not(.alloc-name-td):not(.alloc-col-remove) { display: none; }
+
+    /* 종목명은 카드 제목이라 열 이름 없이 한 줄 전체를 쓴다. */
+    .alloc-table tbody tr[data-idx] td.alloc-name-td {
+      padding: 0 26px 6px 0;
+      border-bottom: 1px solid var(--panel-border);
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .alloc-table tbody tr[data-idx] td.alloc-name-td::before { content: none; }
+    .alloc-name-cell { width: 100%; }
+    .alloc-name-input { font-size: 0.9rem !important; flex: 1 1 auto; min-width: 0; }
+
+    /* 카드에는 핵심 값만 두고 나머지(입력칸 포함)는 "자세히"로 펼친다.
+       14개를 다 펼쳐 두면 종목당 카드가 너무 길어져 세로 스크롤이 가로 스크롤만큼 괴로워진다. */
+    .alloc-row-expand {
+      display: inline-flex;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 0;
+    }
+    .alloc-table tbody tr[data-idx]:not(.expanded) .alloc-more { display: none; }
+
+    /* 분류는 펼쳤을 때만 나오는 편집 항목 */
+    .alloc-table tbody tr[data-idx] td.alloc-cat-cell { background: none; text-align: left; }
+    .alloc-table tbody tr[data-idx] td.alloc-cat-cell select { width: 140px; flex: 0 0 auto; text-align: left; }
+
+    /* 입력칸은 오른쪽에 고정 폭으로 두어 값들이 세로로 정렬되게 한다. */
+    .alloc-table tbody tr[data-idx] td input:not(.alloc-name-input) { width: 140px; flex: 0 0 auto; font-size: 0.85rem; }
+    .alloc-table tbody tr[data-idx] td input.alloc-name-input { width: auto; flex: 1 1 auto; min-width: 0; }
+    .alloc-table tbody tr[data-idx] td.num { text-align: right; font-size: 0.85rem; }
+
+    /* 삭제 버튼은 카드 오른쪽 위 모서리로 */
+    .alloc-table tbody tr[data-idx] td.alloc-col-remove {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 0;
+      display: block;
+      background: none;
+    }
+    .alloc-table tbody tr[data-idx] td.alloc-col-remove::before { content: none; }
+
+    /* 리밸런싱 표시는 칸 전체를 칠하지 않고 값만 뱃지로 */
+    .alloc-table tbody tr[data-idx] td.alloc-rebal-on,
+    .alloc-table tbody tr[data-idx] td.alloc-rebal-off {
+      background: none !important;
+      color: inherit;
+      justify-content: space-between;
+    }
+    .alloc-table tbody tr[data-idx] td.alloc-rebal-on { color: var(--bad); font-weight: 700; }
+    .alloc-table tbody tr[data-idx] td.alloc-rebal-off { color: var(--muted); }
+
+    /* 소계·합계는 카드가 아니라 한 줄짜리 요약 띠로 */
+    .alloc-subtotal, .alloc-grandtotal {
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      align-items: baseline;
+    }
+    .alloc-subtotal { background: #eef6ee; }
+    .alloc-grandtotal { background: #f2f4f7; }
+    .alloc-subtotal td, .alloc-grandtotal td {
+      border: none;
+      padding: 0;
+      background: none !important;
+      gap: 5px;
+      font-size: 0.8rem;
+    }
+    .alloc-subtotal td[colspan="2"], .alloc-grandtotal td[colspan="2"] { flex: 0 0 100%; font-size: 0.85rem; }
+    .alloc-subtotal td[data-label]::before, .alloc-grandtotal td[data-label]::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+
+    /* 검색 드롭다운이 카드 밖으로 나가지 않게 */
+    .alloc-suggest { width: min(320px, calc(100vw - 80px)); }
+
+    /* 소개 문구 옆 배지·버튼이 좁은 칸에 갇혀 세로로 찌그러지지 않게 아래로 내린다. */
+    #tabPanel-allocation .panel-header > .updated,
+    #tabPanel-allocation .panel-header > p.intro,
+    #tabPanel-allocation .panel-header > div { flex: 1 1 100%; }
+    #tabPanel-allocation .panel-header .toggle-btn { align-self: flex-start; }
+
+    /* 요약 줄과 계좌 탭도 좁은 화면에 맞춘다. */
+    .alloc-summary { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+    .alloc-summary .cell { padding: 9px 10px; }
+    .alloc-summary .cell .value { font-size: 0.92rem; }
+    .acct-tab { max-width: 100%; }
+  }
+
   .alloc-quote-state { font-size: 0.74rem; color: var(--muted); }
   .alloc-quote-state.error { color: var(--bad); }
 </style>
@@ -1259,7 +1407,7 @@
                 <th style="min-width:230px">종목</th>
                 <th class="num">목표<br />비중</th>
                 <th class="num">보유<br />비중</th>
-                <th style="width:40px">리밸</th>
+                <th style="width:58px">리밸<br />런싱</th>
                 <th class="num">전일대비<br />(%)</th>
                 <th class="num">현재가</th>
                 <th class="num">평균<br />매입가</th>
@@ -1269,7 +1417,6 @@
                 <th class="num">포트편차<br />(%)</th>
                 <th class="num">Threshold<br />기준</th>
                 <th class="num">손익(원)</th>
-                <th class="num">Buy(+) or<br />Sell(-)</th>
                 <th class="alloc-col-remove">삭제</th>
               </tr>
             </thead>
@@ -3226,7 +3373,7 @@ function initAllocationTab() {
   // renderRows()는 행이 늘거나 줄 때만, renderComputed()는 계산 결과 칸만 갈아끼운다.
   function renderRows() {
     if (!state.rows.length) {
-      tbody.innerHTML = `<tr><td class="alloc-empty" colspan="16">종목을 추가해 주세요.</td></tr>`;
+      tbody.innerHTML = `<tr><td class="alloc-empty" colspan="15">종목을 추가해 주세요.</td></tr>`;
       tfoot.innerHTML = "";
       return;
     }
@@ -3241,43 +3388,42 @@ function initAllocationTab() {
         const color = ALLOC_COLORS[i % ALLOC_COLORS.length];
         html.push(`
         <tr data-idx="${i}">
-          <td class="alloc-cat-cell">
+          <td class="alloc-cat-cell alloc-more" data-label="분류">
             <select data-field="cat">${ALLOC_CATEGORIES.map((c) => `<option value="${c}"${c === r.cat ? " selected" : ""}>${c}</option>`).join("")}</select>
           </td>
-          <td>
+          <td class="alloc-name-td" data-label="종목">
             <div class="alloc-name-cell">
               <span class="alloc-swatch" style="background:${color}"></span>
               <input type="text" class="alloc-name-input" data-field="name" value="${escapeHtml(r.name)}" placeholder="종목명 검색" maxlength="40" autocomplete="off" />
               <span class="alloc-code" data-cell="code">${r.code ? escapeHtml(r.code) : ""}</span>
               <div class="alloc-suggest" data-suggest hidden></div>
             </div>
+            <button class="alloc-row-expand" type="button" data-action="expand" aria-expanded="false">자세히 ▾</button>
           </td>
-          <td class="num alloc-cell-input"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
-          <td class="num" data-cell="weight1">–</td>
-          <td data-cell="rebal" class="alloc-rebal-off">0</td>
-          <td class="num" data-cell="change">–</td>
-          <td class="num alloc-cell-price"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
-          <td class="num alloc-cell-input"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
-          <td class="num alloc-cell-input"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
-          <td class="num alloc-heat" data-cell="profitRate">–</td>
-          <td class="num" data-cell="weight2">–</td>
-          <td class="num" data-cell="gap">–</td>
-          <td class="num" data-cell="thresholdBase">–</td>
-          <td class="num" data-cell="profit">–</td>
-          <td class="num alloc-heat" data-cell="trade">–</td>
+          <td class="num alloc-cell-input alloc-more" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
+          <td class="num" data-cell="weight1" data-label="보유비중">–</td>
+          <td data-cell="rebal" class="alloc-rebal-off" data-label="리밸런싱">0</td>
+          <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
+          <td class="num alloc-cell-price alloc-more" data-label="현재가"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
+          <td class="num alloc-cell-input alloc-more" data-label="평균매입가"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
+          <td class="num alloc-cell-input alloc-more" data-label="잔고수량"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
+          <td class="num alloc-heat" data-cell="profitRate" data-label="수익률(%)">–</td>
+          <td class="num alloc-more" data-cell="weight2" data-label="보유비중(%)">–</td>
+          <td class="num alloc-more" data-cell="gap" data-label="포트편차(%)">–</td>
+          <td class="num alloc-more" data-cell="thresholdBase" data-label="Threshold 기준">–</td>
+          <td class="num" data-cell="profit" data-label="손익(원)">–</td>
           <td class="alloc-col-remove"><button class="alloc-row-remove" type="button" data-action="remove" title="이 종목 삭제" aria-label="${escapeHtml(r.name || "이름 없는 종목")} 삭제">×</button></td>
         </tr>`);
       });
       html.push(`
         <tr class="alloc-subtotal" data-subtotal="${escapeHtml(cat)}">
           <td colspan="2">${escapeHtml(cat)} Sub Total</td>
-          <td class="num" data-cell="stTarget">–</td>
-          <td class="num" data-cell="stWeight">–</td>
+          <td class="num" data-cell="stTarget" data-label="목표비중">–</td>
+          <td class="num" data-cell="stWeight" data-label="보유비중">–</td>
           <td colspan="6"></td>
-          <td class="num" data-cell="stWeight2">–</td>
+          <td class="num" data-cell="stWeight2" data-label="보유비중(%)">–</td>
           <td colspan="2"></td>
-          <td class="num" data-cell="stProfit">–</td>
-          <td></td>
+          <td class="num" data-cell="stProfit" data-label="손익(원)">–</td>
           <td class="alloc-col-remove"></td>
         </tr>`);
     });
@@ -3300,7 +3446,10 @@ function initAllocationTab() {
         const el = tr.querySelector(`[data-cell="${cell}"]`);
         if (!el) return;
         el.textContent = text;
-        if (cls !== undefined) el.className = cls;
+        if (cls === undefined) return;
+        // 좁은 화면에서 접어 두는 칸이라는 표시(alloc-more)는 계산 결과를 갈아끼울 때도
+        // 남겨야 한다. 지우면 접기가 풀려 카드에 모든 값이 다시 나온다.
+        el.className = el.classList.contains("alloc-more") ? `${cls} alloc-more` : cls;
       };
       const hasPrice = r.price !== null;
       set("weight1", hasPrice ? r.weight.toFixed(1) : "–", "num");
@@ -3310,7 +3459,6 @@ function initAllocationTab() {
       set("change", Number.isFinite(r.changeRate) ? r.changeRate.toFixed(2) : "–", `num ${signClass(r.changeRate)}`);
       set("profitRate", Number.isFinite(r.profitRate) ? r.profitRate.toFixed(2) : "–", `num alloc-heat ${signClass(r.profitRate)}`);
       set("profit", Number.isFinite(r.profit) ? fmtSignedWon(r.profit) : "–", `num ${signClass(r.profit)}`);
-      set("trade", hasPrice ? String(r.tradeQty) : "–", `num alloc-heat ${signClass(r.tradeQty)}`);
       set("rebal", r.needRebal ? "1" : "0", r.needRebal ? "alloc-rebal-on" : "alloc-rebal-off");
       const codeEl = tr.querySelector('[data-cell="code"]');
       if (codeEl) codeEl.textContent = r.code || "";
@@ -3336,14 +3484,14 @@ function initAllocationTab() {
     tfoot.innerHTML = state.rows.length
       ? `<tr class="alloc-grandtotal">
           <td colspan="2">합계</td>
-          <td class="num">${Math.round(c.targetSum * 10) / 10}</td>
-          <td class="num">${c.nowTotal > 0 ? "100.0" : "–"}</td>
-          <td class="alloc-rebal-off">${c.rebalCount}</td>
+          <td class="num" data-label="목표비중">${Math.round(c.targetSum * 10) / 10}</td>
+          <td class="num" data-label="보유비중">${c.nowTotal > 0 ? "100.0" : "–"}</td>
+          <td class="alloc-rebal-off" data-label="리밸런싱 대상">${c.rebalCount}</td>
           <td colspan="5"></td>
-          <td class="num">${c.nowTotal > 0 ? "100.00" : "–"}</td>
+          <td class="num" data-label="보유비중(%)">${c.nowTotal > 0 ? "100.00" : "–"}</td>
           <td colspan="2"></td>
-          <td class="num ${signClass(c.profit)}">${fmtSignedWon(c.profit)}</td>
-          <td colspan="2"></td>
+          <td class="num ${signClass(c.profit)}" data-label="손익(원)">${fmtSignedWon(c.profit)}</td>
+          <td></td>
         </tr>`
       : "";
 
@@ -3618,6 +3766,15 @@ function initAllocationTab() {
     if (pick) {
       const tr = pick.closest("tr[data-idx]");
       pickSuggestion(Number(tr.dataset.idx), pick.dataset.pick, pick.dataset.pickName);
+      return;
+    }
+    const expand = e.target.closest('[data-action="expand"]');
+    if (expand) {
+      // 좁은 화면에서만 보이는 버튼. 카드에 접어 둔 나머지 값·입력칸을 펼친다.
+      const tr = expand.closest("tr[data-idx]");
+      const open = tr.classList.toggle("expanded");
+      expand.setAttribute("aria-expanded", String(open));
+      expand.textContent = open ? "접기 ▴" : "자세히 ▾";
       return;
     }
     const btn = e.target.closest('[data-action="remove"]');
