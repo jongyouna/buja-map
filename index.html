@@ -284,6 +284,10 @@
   .naver-table .naver-empty { text-align: center; color: var(--muted); padding: 28px 8px; }
   .naver-complex-link { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--muted); }
   .naver-pyeong { color: var(--muted); font-size: 11px; margin-left: 2px; }
+  /* 국내 관례대로 상승은 빨강, 하락은 파랑 */
+  .chg-up { color: #ff6b6b; font-size: 11px; margin-left: 2px; }
+  .chg-down { color: #5aa9ff; font-size: 11px; margin-left: 2px; }
+  .chg-flat { color: var(--muted); font-size: 11px; margin-left: 2px; }
   .naver-complex-link:hover { border-bottom-style: solid; }
   .admin-user { display: flex; align-items: center; gap: 8px; }
   .admin-user img { width: 24px; height: 24px; border-radius: 50%; }
@@ -853,9 +857,9 @@
               <th data-sort="supplyArea" class="sortable num">전용면적</th>
               <th data-sort="realMaxPrice" class="sortable num" title="최근 3년 실거래가 중 최고가">실거래 최고가</th>
               <th data-sort="count" class="sortable num">매물 수</th>
+              <th data-sort="pyeongAskMin" class="sortable num" title="가장 싼 호가를 공급면적 평당으로 환산한 값 · 괄호는 일주일 전 대비 변화율">평당호가최저가</th>
               <th data-sort="minPrice" class="sortable num">최저가</th>
               <th data-sort="maxPrice" class="sortable num">최고가</th>
-              <th data-sort="avgPyeongPrice" class="sortable num">평당가(만원)</th>
             </tr>
           </thead>
           <tbody id="naverTableBody"></tbody>
@@ -2518,6 +2522,31 @@ async function initNaverTab() {
   }
   const rowAreaIsSupply = (c) => c.exclusiveArea == null;
 
+  // 평당호가최저가: 가장 싼 호가를 공급면적 평당으로 환산한 값(만원).
+  // 수집 단계에서 넣어 주지만, 아직 재수집되지 않은 지역도 바로 보이도록 여기서도 계산한다.
+  function pyeongAskMin(c) {
+    if (c.pyeongAskMin != null) return c.pyeongAskMin;
+    const supply = c.supplyArea ?? c.avgArea ?? null;
+    if (c.minPrice == null || supply == null) return null;
+    return Math.round(c.minPrice / (supply / 3.305785));
+  }
+
+  function pyeongAskCell(c) {
+    const v = pyeongAskMin(c);
+    if (v == null) return "–";
+    const main = `${v.toLocaleString("ko-KR")}만원`;
+    const prev = c.prevPyeongAskMin;
+    if (!(prev > 0)) return main;
+    const pct = ((v - prev) / prev) * 100;
+    // 0.05% 미만은 보합으로 본다(반올림해서 0.0%로 찍히는 구간).
+    if (Math.abs(pct) < 0.05) return `${main} <span class="chg-flat">보합</span>`;
+    const up = pct > 0;
+    const title = `일주일 전(${c.prevDate ?? "?"}) ${prev.toLocaleString("ko-KR")}만원 대비`;
+    return `${main} <span class="${up ? "chg-up" : "chg-down"}" title="${title}">(${Math.abs(pct).toFixed(
+      1
+    )}% ${up ? "↑" : "↓"})</span>`;
+  }
+
   // 가격대 슬라이더는 그 행의 "최저가"만 본다. 최저가가 범위 밖이면 행을 제외한다.
   // (최고가는 얼마든 걸러내지 않는다 — 급매를 찾는 화면이므로 기준은 가장 싼 매물이다.)
   function passesPriceRange(c) {
@@ -2583,12 +2612,13 @@ async function initNaverTab() {
     const totalListings = rows.reduce((s, r) => s + r.count, 0);
     const complexCount = new Set(rows.map((r) => r.complexNo ?? r.complexName)).size;
     // 행이 면적별로 쪼개진 뒤로는 행마다 매물 수 차이가 커서, 단순 평균 대신
-    // 매물 수로 가중해야 "이 조건의 평균 평당가"라는 말이 맞는다.
+    // 매물 수로 가중해야 "이 조건의 평균 평당호가최저가"라는 말이 맞는다.
     let pw = 0;
     let pn = 0;
     for (const r of rows) {
-      if (r.avgPyeongPrice == null || !r.count) continue;
-      pw += r.avgPyeongPrice * r.count;
+      const v = pyeongAskMin(r);
+      if (v == null || !r.count) continue;
+      pw += v * r.count;
       pn += r.count;
     }
     const avgPyeong = pn ? pw / pn : null;
@@ -2596,7 +2626,10 @@ async function initNaverTab() {
       { name: "단지 수", value: `${complexCount.toLocaleString("ko-KR")}곳` },
       { name: "면적별 항목", value: `${rows.length.toLocaleString("ko-KR")}개` },
       { name: "총 매물 수", value: `${totalListings.toLocaleString("ko-KR")}건` },
-      { name: "평균 평당가", value: avgPyeong == null ? "–" : `${Math.round(avgPyeong).toLocaleString("ko-KR")}만원` },
+      {
+        name: "평균 평당호가최저가",
+        value: avgPyeong == null ? "–" : `${Math.round(avgPyeong).toLocaleString("ko-KR")}만원`,
+      },
     ];
     document.getElementById("naverSummaryBar").innerHTML = items
       .map((i) => `<div class="summary-pill"><span class="name">${i.name}</span><span class="chg">${i.value}</span></div>`)
@@ -2606,7 +2639,8 @@ async function initNaverTab() {
   function render() {
     // 필터를 건드리면 어떤 경로로든 render()를 거치므로, 설정 저장은 여기 한 곳에서만 건다.
     if (prefsReady && !applyingPrefs) persistPrefsSoon();
-    const sortValue = (r) => (sortKey === "supplyArea" ? rowArea(r) : r[sortKey]);
+    const sortValue = (r) =>
+      sortKey === "supplyArea" ? rowArea(r) : sortKey === "pyeongAskMin" ? pyeongAskMin(r) : r[sortKey];
     const rows = currentRows().slice().sort((a, b) => {
       const va = sortValue(a), vb = sortValue(b);
       if (va == null) return 1;
@@ -2664,9 +2698,9 @@ async function initNaverTab() {
               }`
         }</td>
         <td class="num">${r.count.toLocaleString("ko-KR")}</td>
+        <td class="num">${pyeongAskCell(r)}</td>
         <td class="num">${fmtManwon(r.minPrice)}</td>
         <td class="num">${fmtManwon(r.maxPrice)}</td>
-        <td class="num">${r.avgPyeongPrice == null ? "–" : Math.round(r.avgPyeongPrice).toLocaleString("ko-KR")}</td>
       </tr>`;
       })
       .join("");

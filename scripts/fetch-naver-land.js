@@ -290,6 +290,7 @@ function aggregateComplexes(articles, tradeType) {
     const years = bucket.approvalElapsedYears;
     // 한 줄 안의 매물은 면적이 모두 같으므로 평당가는 평균가에서 바로 나온다.
     const avgPrice = prices.length ? prices.reduce((s, v) => s + v, 0) / prices.length : null;
+    const minPrice = prices.length ? prices[0] : null;
     complexes.push({
       complexNo: bucket.complexNo,
       complexName: bucket.complexName,
@@ -298,12 +299,17 @@ function aggregateComplexes(articles, tradeType) {
       exclusiveArea: bucket.exclusiveArea,
       supplyArea: bucket.supplyArea,
       count: bucket.prices.length,
-      minPrice: prices.length ? prices[0] : null,
+      minPrice,
       maxPrice: prices.length ? prices[prices.length - 1] : null,
       avgPrice,
       // 평당가는 관례대로 공급면적 기준이다(전용면적으로 나누면 값이 30%쯤 부풀려진다).
       avgPyeongPrice:
         avgPrice != null && bucket.supplyArea != null ? avgPrice / (bucket.supplyArea / PYEONG_M2) : null,
+      // 가장 싼 호가를 평당으로 환산한 값. 화면의 기준 지표이자 주간 변화율의 계산 대상.
+      pyeongAskMin:
+        minPrice != null && bucket.supplyArea != null
+          ? Math.round(minPrice / (bucket.supplyArea / PYEONG_M2))
+          : null,
       approvalElapsedYear: years.length ? Math.round(years.reduce((s, v) => s + v, 0) / years.length) : null,
     });
   }
@@ -580,6 +586,91 @@ async function fetchAllRegions() {
   return results;
 }
 
+// ---- 평당호가최저가 주간 변화율 ----
+// 네이버는 호가 이력을 주지 않는다. 그래서 수집할 때마다 (단지|전용면적)별 평당호가최저가를
+// 따로 쌓아 두고, 오늘 값과 일주일 전 값을 비교한다.
+// 매일 수집하므로 하루 한 점이면 충분하고, 비교에 필요한 만큼만 남기고 버린다.
+const HISTORY_KEEP_DAYS = 12; // 7일 전 값을 찾을 수 있을 만큼만
+const HISTORY_MATCH_MIN_DAYS = 5; // "일주일 전"으로 인정할 최소 간격
+const HISTORY_MATCH_MAX_DAYS = 12; // 최대 간격(수집이 며칠 걸러도 비교는 되도록)
+// 매일 수집한 점을 전부 남기면 서울 전체 기준 하루 2MB씩 저장소가 불어난다.
+// 3일보다 촘촘한 점은 버린다. 남는 점이 오늘/3일/6일/9일/12일이라 7일 비교에는 충분하고,
+// 실제로 비교에 쓴 날짜는 화면 툴팁에 그대로 보여준다.
+const HISTORY_MIN_GAP_DAYS = 3;
+
+const historyKey = (row) =>
+  `${row.complexNo ?? row.complexName}|${row.exclusiveArea == null ? "" : row.exclusiveArea.toFixed(2)}|${row.tradeType}`;
+
+function readHistory(histPath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(histPath, "utf8"));
+    return parsed && typeof parsed.series === "object" ? parsed.series : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+const daysBetween = (a, b) => Math.round((Date.parse(a) - Date.parse(b)) / 86400000);
+
+// HISTORY_MIN_GAP_DAYS 길이의 고정 구간마다 한 점씩만 남긴다.
+//
+// "오늘로부터 3일 이상 떨어진 점만 남긴다"는 식으로 오늘 기준으로 솎으면 안 된다.
+// 매일 수집하면 어제 점이 매번 버려져서 이력이 영원히 한 점만 남는다.
+// 달력에 고정된 구간으로 나눠야 점이 자리를 지키고 쌓인다.
+function thinHistory(points, today) {
+  const byBucket = new Map();
+  for (const p of points) {
+    if (daysBetween(today, p[0]) > HISTORY_KEEP_DAYS) continue;
+    const bucket = Math.floor(Date.parse(p[0]) / 86400000 / HISTORY_MIN_GAP_DAYS);
+    const cur = byBucket.get(bucket);
+    if (!cur || p[0] > cur[0]) byBucket.set(bucket, p); // 같은 구간이면 최신 값
+  }
+  return [...byBucket.values()].sort((x, y) => (x[0] < y[0] ? -1 : 1));
+}
+
+// 오늘 값을 이력에 넣고, 일주일 전 값을 각 행에 붙인다.
+function applyWeeklyChange(regions, series, today) {
+  let matched = 0;
+  const touched = new Set();
+  for (const region of regions) {
+    for (const row of region.complexes) {
+      if (row.pyeongAskMin == null) continue;
+      const key = historyKey(row);
+      const points = series[key] || [];
+
+      // 같은 날 두 번 수집하면 나중 값으로 덮어쓴다.
+      const older = points.filter((p) => p[0] !== today);
+      // 일주일 전에 가장 가까운 점을 찾는다.
+      let best = null;
+      for (const p of older) {
+        const gap = daysBetween(today, p[0]);
+        if (gap < HISTORY_MATCH_MIN_DAYS || gap > HISTORY_MATCH_MAX_DAYS) continue;
+        if (!best || Math.abs(gap - 7) < Math.abs(daysBetween(today, best[0]) - 7)) best = p;
+      }
+      if (best) {
+        row.prevPyeongAskMin = best[1];
+        row.prevDate = best[0];
+        matched++;
+      }
+
+      if (!touched.has(key)) {
+        older.push([today, row.pyeongAskMin]);
+        series[key] = thinHistory(older, today);
+        touched.add(key);
+      }
+    }
+  }
+  // 이번에 수집하지 않은 지역의 이력은 건드리지 않되, 너무 오래된 항목은 정리한다.
+  for (const [key, points] of Object.entries(series)) {
+    if (touched.has(key)) continue;
+    const kept = thinHistory(points, today);
+    if (kept.length === 0) delete series[key];
+    else series[key] = kept;
+  }
+  console.log(`[변화율] 이력 ${Object.keys(series).length}건 보관 / 이번에 일주일 전 값과 비교된 행 ${matched}개`);
+  return series;
+}
+
 function readExistingRegions(outPath) {
   try {
     const parsed = JSON.parse(fs.readFileSync(outPath, "utf8"));
@@ -677,6 +768,7 @@ async function probeOnce() {
 
 async function main() {
   const outPath = path.join(__dirname, "..", "data", "naver-land.json");
+  const histPath = path.join(__dirname, "..", "data", "naver-land-history.json");
   console.log(`수집 범위: ${SCOPE} (${SCOPE_CONFIG.label})`);
   if (SCOPE_CONFIG.probe) {
     await probeOnce();
@@ -708,9 +800,14 @@ async function main() {
     process.exit(1);
   }
 
+  // 이번에 수집한 지역에 "일주일 전 평당호가최저가"를 붙이고 이력을 갱신한다.
+  const today = new Date().toISOString().slice(0, 10);
+  const series = applyWeeklyChange(regions, readHistory(histPath), today);
+
   const merged = mergeRegions(readExistingRegions(outPath), regions);
   const data = { updatedAt: new Date().toISOString(), scope: SCOPE, regions: merged };
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(histPath, JSON.stringify({ updatedAt: new Date().toISOString(), series }));
   // 개별 매물 가격까지 담으면서 파일이 커졌다. 들여쓰기를 빼면 절반 크기가 되고,
   // 어차피 기계가 만드는 파일이라 사람이 diff를 읽을 일은 없다.
   fs.writeFileSync(outPath, JSON.stringify(data));
