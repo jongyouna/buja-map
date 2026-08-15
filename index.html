@@ -799,6 +799,19 @@
     border-radius: 6px;
   }
   .alloc-row-remove:hover { color: var(--bad); background: var(--bad-bg); }
+  /* 삭제 칸은 표 오른쪽 끝에 있는데 표가 화면보다 넓어서, 가로로 스크롤하지 않으면
+     보이지 않았다. 오른쪽에 고정해 항상 손이 닿게 한다. */
+  .alloc-table .alloc-col-remove {
+    position: sticky;
+    right: 0;
+    width: 44px;
+    text-align: center;
+    background: var(--panel);
+    box-shadow: -8px 0 8px -8px rgba(0, 0, 0, 0.25);
+  }
+  .alloc-table thead .alloc-col-remove { background: #f2f4f7; z-index: 3; }
+  .alloc-subtotal .alloc-col-remove { background: #eef6ee; }
+  .alloc-table tbody tr:hover .alloc-col-remove { background: #fcfcfd; }
   .alloc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
   .alloc-note { font-size: 0.74rem; color: var(--muted); margin: 12px 0 0; line-height: 1.6; }
   .alloc-note.error { color: var(--bad); }
@@ -1222,7 +1235,7 @@
                 <th class="num">Threshold<br />기준</th>
                 <th class="num">손익(원)</th>
                 <th class="num">Buy(+) or<br />Sell(-)</th>
-                <th style="width:30px"></th>
+                <th class="alloc-col-remove">삭제</th>
               </tr>
             </thead>
             <tbody id="allocTableBody"></tbody>
@@ -3093,7 +3106,7 @@ function initAllocationTab() {
           <td class="num" data-cell="thresholdBase">–</td>
           <td class="num" data-cell="profit">–</td>
           <td class="num alloc-heat" data-cell="trade">–</td>
-          <td><button class="alloc-row-remove" type="button" data-action="remove" title="이 종목 삭제" aria-label="이 종목 삭제">×</button></td>
+          <td class="alloc-col-remove"><button class="alloc-row-remove" type="button" data-action="remove" title="이 종목 삭제" aria-label="${escapeHtml(r.name || "이름 없는 종목")} 삭제">×</button></td>
         </tr>`);
       });
       html.push(`
@@ -3105,7 +3118,8 @@ function initAllocationTab() {
           <td class="num" data-cell="stWeight2">–</td>
           <td colspan="2"></td>
           <td class="num" data-cell="stProfit">–</td>
-          <td colspan="2"></td>
+          <td></td>
+          <td class="alloc-col-remove"></td>
         </tr>`);
     });
     tbody.innerHTML = html.join("");
@@ -3436,6 +3450,11 @@ function initAllocationTab() {
     const btn = e.target.closest('[data-action="remove"]');
     if (!btn) return;
     const idx = Number(btn.closest("tr[data-idx]").dataset.idx);
+    const row = state.rows[idx];
+    if (!row) return;
+    // 빈 줄은 그냥 지우고, 입력한 내용이 있는 줄만 한 번 물어본다.
+    const hasData = row.name || row.qty > 0 || row.avgPrice > 0 || row.target > 0;
+    if (hasData && !confirm(`"${row.name || "이름 없는 종목"}" 을(를) 목록에서 삭제할까요?`)) return;
     state.rows.splice(idx, 1);
     closeSuggest();
     renderRows();
