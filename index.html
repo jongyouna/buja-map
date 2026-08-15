@@ -1004,7 +1004,15 @@ renderAuthArea();
 // 보안 규칙상 본인은 role/blocked를 바꿀 수 없고(최초 생성 시 user/false 고정), 관리자만 바꿀 수 있다.
 async function upsertUserRecord(user) {
   const ref = doc(db, "users", user.uid);
-  const snap = await getDoc(ref);
+  // 읽기와 쓰기 중 어느 쪽이 막혔는지 구분해 둔다. 둘은 보안 규칙의 다른 조항이라
+  // "권한 없음"만 보면 어디를 고쳐야 하는지 알 수 없다.
+  let snap;
+  try {
+    snap = await getDoc(ref);
+  } catch (err) {
+    err.step = "read";
+    throw err;
+  }
   const profile = {
     uid: user.uid,
     email: user.email || "",
@@ -1012,11 +1020,16 @@ async function upsertUserRecord(user) {
     photoURL: user.photoURL || "",
     lastLoginAt: new Date().toISOString(),
   };
-  if (!snap.exists()) {
-    await setDoc(ref, { ...profile, role: "user", blocked: false, createdAt: new Date().toISOString(), loginCount: 1 });
-    return { ...profile, role: "user", blocked: false, createdAt: profile.lastLoginAt, loginCount: 1 };
+  try {
+    if (!snap.exists()) {
+      await setDoc(ref, { ...profile, role: "user", blocked: false, createdAt: new Date().toISOString(), loginCount: 1 });
+      return { ...profile, role: "user", blocked: false, createdAt: profile.lastLoginAt, loginCount: 1 };
+    }
+    await setDoc(ref, { ...profile, loginCount: increment(1) }, { merge: true });
+  } catch (err) {
+    err.step = snap.exists() ? "update" : "create";
+    throw err;
   }
-  await setDoc(ref, { ...profile, loginCount: increment(1) }, { merge: true });
   const prev = snap.data();
   return { ...prev, ...profile, loginCount: (prev.loginCount || 0) + 1 };
 }
@@ -1070,6 +1083,7 @@ function persistNaverPrefs(prefs) {
     .then(() => setPrefsSync({ state: "saved", error: null, at: new Date() }))
     .catch((err) => {
       console.error("필터 설정을 계정에 저장하지 못했습니다:", err);
+      err.step = "save";
       setPrefsSync({ state: "error", error: err });
     });
 }
@@ -1096,6 +1110,9 @@ onAuthStateChanged(auth, async (user) => {
         alert("관리자에 의해 차단된 계정입니다.");
         return;
       }
+      // 여기까지 왔다는 건 이 계정으로 users 문서를 읽고 쓸 수 있다는 뜻이다.
+      // 실제 쓰기를 한 번 성공한 뒤에야 "계정에 저장된다"고 말한다.
+      setPrefsSync({ state: "ready", error: null });
     } catch (err) {
       // 접속 기록 저장에 실패해도 대시보드 자체는 그대로 쓸 수 있어야 한다.
       // 다만 이 실패는 곧 "계정에 필터 설정을 못 읽고 못 쓴다"는 뜻이므로 조용히 넘기지 않는다.
@@ -2772,17 +2789,23 @@ async function initNaverTab() {
       el.textContent = "필터 설정이 이 브라우저에만 저장됩니다. 구글로 로그인하면 계정에 저장돼 어디서든 이어집니다.";
       return;
     }
+    const who = currentUser.email || currentUser.uid;
     if (prefsSync.state === "error") {
       const code = prefsSync.error?.code || prefsSync.error?.message || "알 수 없는 오류";
+      const stepName = { read: "문서 읽기", create: "문서 만들기", update: "문서 수정", save: "설정 저장" }[
+        prefsSync.error?.step || "save"
+      ];
       el.textContent =
-        `계정에 저장하지 못했습니다 (${code}). 이 브라우저에만 저장되어 다른 기기에서는 보이지 않습니다.` +
-        (String(code).includes("permission") ? " Firebase 콘솔에서 firestore.rules를 게시했는지 확인해 주세요." : "");
+        `${who} 계정 연동 실패 — ${stepName}에서 ${code}. 이 브라우저에만 저장되어 다른 기기에서는 보이지 않습니다.` +
+        (String(code).includes("permission")
+          ? " Firebase 콘솔 > Firestore > 규칙에 firestore.rules를 게시했는지 확인해 주세요."
+          : "");
       return;
     }
     const when = prefsSync.at
       ? ` · 마지막 저장 ${prefsSync.at.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`
       : "";
-    el.textContent = `필터 설정이 구글 계정(${currentUser.email || ""})에 저장됩니다. 다른 기기에서 로그인해도 그대로 열립니다.${when}`;
+    el.textContent = `필터 설정이 구글 계정(${who})에 저장됩니다. 다른 기기에서 로그인해도 그대로 열립니다.${when}`;
   }
   prefsStatusHook = updateSyncNote;
 
