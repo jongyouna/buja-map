@@ -761,25 +761,48 @@ async function probeOnce() {
       console.log(s.body);
     }
 
-    // 표의 단지명을 어디로 연결할지 정하려면, 단지 페이지의 탭이 실제로 어떤 주소를
-    // 만드는지 봐야 한다. 탭 값을 추측해서 넣으면 엉뚱한 화면이 열린다.
-    console.log(`=== 단지 페이지 탭 주소 조사 ===`);
-    console.log(`진입 후 URL: ${page.url()}`);
-    const tabTexts = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("a,button"))
-        .map((el) => (el.textContent || "").trim())
-        .filter((t) => /^(매물|시세\/실거래가|시세|실거래가|단지정보|학군|주변정보|사진|리뷰)$/.test(t))
+    // 표의 단지명 링크에 "해당 평형"까지 실어 보내려면, 단지 페이지가 어떤 쿼리
+    // 파라미터로 평형을 고르는지 확인해야 한다. 후보 주소를 실제로 열고, 페이지가
+    // 어떤 pyeongTypeNumber로 API를 부르는지 보면 먹혔는지 알 수 있다.
+    console.log(`=== 단지 페이지 평형 지정 방법 조사 ===`);
+    const types = (await fetchPyeongList(page, complexNumber)) || [];
+    console.log(
+      `평형타입: ${JSON.stringify(types.map((t) => ({ n: t.number, name: t.name, ex: t.exclusiveArea })))}`
     );
-    console.log(`탭 후보: ${JSON.stringify([...new Set(tabTexts)])}`);
-    for (const label of [...new Set(tabTexts)]) {
+    // 기본 선택이 아닌 평형을 골라야 "먹혔는지"를 구분할 수 있다.
+    const target = types[types.length - 1];
+    if (!target) {
+      console.log("평형타입이 없어 조사 중단");
+      return;
+    }
+    const ex = target.exclusiveArea;
+    const candidates = [
+      `?tab=article`,
+      `?tab=article&pyeongTypeNumber=${target.number}`,
+      `?tab=article&exclusiveSpaceMode=true&space=${(ex - 0.5).toFixed(4)}-${(ex + 0.5).toFixed(4)}`,
+      `?tab=article&tradeTypes=A1&exclusiveSpaceMode=true&space=${(ex - 0.5).toFixed(4)}-${(ex + 0.5).toFixed(4)}`,
+    ];
+    for (const q of candidates) {
+      const hits = [];
+      const listener = (r) => {
+        const m = /pyeongTypeNumber=(\d+)/.exec(r.url());
+        if (m && r.url().includes("/complex/")) hits.push(m[1]);
+      };
+      page.on("response", listener);
       try {
-        const target = page.locator(`a:text-is("${label}"), button:text-is("${label}")`).first();
-        await target.click({ timeout: 5000 });
-        await page.waitForTimeout(1500);
-        console.log(`[${label}] -> ${page.url()}`);
+        await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}${q}`, {
+          waitUntil: "networkidle",
+          timeout: 45000,
+        });
+        await page.waitForTimeout(2500);
       } catch (e) {
-        console.log(`[${label}] 클릭 실패: ${e.message.split("\n")[0]}`);
+        console.log(`  ${q} -> 이동 실패: ${e.message.split("\n")[0]}`);
       }
+      page.off("response", listener);
+      const uniq = [...new Set(hits)];
+      console.log(`  ${q}`);
+      console.log(`     최종 URL: ${page.url()}`);
+      console.log(`     조회된 pyeongTypeNumber: ${JSON.stringify(uniq)} (기대 ${target.number})`);
     }
   } finally {
     await context.close();
