@@ -463,7 +463,9 @@ async function fetchAllRegions() {
   const byGu = new Map();
   // 정밀 동(흑석동 등)은 별도 지역으로도 남기기 위해 따로 보관
   const spotlightArticles = new Map();
-  const stats = { queries: 0, fetched: 0, kept: 0, subdivided: 0, truncated: 0, wasted: 0 };
+  const stats = { queries: 0, fetched: 0, kept: 0, subdivided: 0, truncated: 0, wasted: 0, duplicates: 0, noArticleId: 0 };
+  // 매물 번호는 전국에서 유일하므로 구를 가리지 않고 한 벌만 둔다.
+  const seenArticles = new Set();
 
   try {
     session = await newStealthPage(browser);
@@ -497,6 +499,20 @@ async function fetchAllRegions() {
             const sector = a.address?.sector;
             const guNumber = sector ? dongToGu.get(sector) : null;
             if (!guNumber) continue; // 수집 대상 밖의 지역
+
+            // 같은 매물을 두 번 세지 않는다. 타일은 서로 겹치지 않지만 그건 우리 격자 이야기이고,
+            // 네이버가 경계에 걸친 매물을 양쪽 조회에 모두 실어 줄 수 있다. 매물 수가 세대수를
+            // 넘는 행이 관측돼서(서초구 래미안원베일리 한 평형 3,514건 / 단지 2,842세대) 막아 둔다.
+            const articleId = a.articleNumber ?? a.articleId ?? null;
+            if (articleId != null) {
+              if (seenArticles.has(articleId)) {
+                stats.duplicates++;
+                continue;
+              }
+              seenArticles.add(articleId);
+            } else {
+              stats.noArticleId++;
+            }
             kept++;
 
             const bucket = byGu.get(guNumber);
@@ -536,6 +552,8 @@ async function fetchAllRegions() {
   const hitRate = stats.fetched ? Math.round((stats.kept / stats.fetched) * 100) : 0;
   console.log(
     `[수집 요약] 조회 ${stats.queries}회 / 받은 매물 ${stats.fetched}건 / 대상 ${stats.kept}건 (적중률 ${hitRate}%)` +
+      ` / 중복 매물 제외 ${stats.duplicates}건` +
+      (stats.noArticleId ? ` / 매물번호 없음 ${stats.noArticleId}건` : "") +
       ` / 타일 분할 ${stats.subdivided}회(버린 조회 ${stats.wasted}건)` +
       (stats.truncated ? ` / 최대 깊이 상한 도달 ${stats.truncated}회 ※일부 누락 가능` : "")
   );
