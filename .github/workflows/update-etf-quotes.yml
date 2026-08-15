@@ -1,0 +1,44 @@
+name: Update ETF quotes
+
+# 자산 배분 탭이 쓰는 ETF 종목 목록·현재가(data/etf-quotes.json)를 갱신한다.
+#
+# 브라우저에서 시세 API를 직접 부를 수 없어서(네이버·KRX 모두 CORS 헤더를 주지 않는다)
+# 여기서 받아 정적 파일로 배포한다. 따라서 화면에 보이는 현재가의 신선도는 이 cron이 정한다.
+# 장중에는 10분마다 돌리고(하루 약 40커밋), 마감 뒤 한 번 더 받아 종가로 마무리한다.
+#
+# 커밋이 너무 쌓이는 게 부담이면 장중 cron 줄만 지우면 된다. 그러면 하루 한 번 종가만 갱신된다.
+# 참고: GitHub Actions의 예약 실행은 혼잡할 때 수 분 늦게 시작될 수 있다(보장된 주기가 아니다).
+
+on:
+  schedule:
+    - cron: "*/10 0-6 * * 1-5" # 평일 UTC 00:00~06:50 = KST 09:00~15:50 (정규장)
+    - cron: "0 7 * * 1-5" # 평일 UTC 07:00 = KST 16:00 (마감 후 종가)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etf-quotes
+  cancel-in-progress: true
+
+jobs:
+  update-etf-quotes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch ETF quotes
+        run: node scripts/fetch-etf-quotes.js
+      - name: Commit updated quotes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/etf-quotes.json
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "chore: ETF 시세 갱신"
+          # 다른 워크플로가 그 사이 push 했을 수 있으므로 rebase 후 올린다.
+          git pull --rebase origin main
+          git push

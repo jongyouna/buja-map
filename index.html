@@ -1060,7 +1060,7 @@
   <!-- 자산 배분: 로그인한 사용자만 열 수 있고, 입력한 내용은 그 구글 계정에 저장된다. -->
   <section class="tab-panel" id="tabPanel-allocation" hidden>
     <div class="panel-header">
-      <p class="intro">보유 종목과 목표 비중을 넣으면 현재 비중·포트편차·리밸런싱 필요 수량을 계산합니다. 종목명을 입력하면 국내 상장 종목(ETF 포함)을 검색해 현재가를 가져옵니다. 입력한 내용은 로그인한 구글 계정에 저장됩니다.</p>
+      <p class="intro">보유 종목과 목표 비중을 넣으면 현재 비중·포트편차·리밸런싱 필요 수량을 계산합니다. 종목명을 입력하면 국내 상장 ETF를 검색해 현재가를 가져옵니다. 시세는 장중 10분 간격으로 갱신되며, 표에 기준 시각을 함께 표시합니다. 입력한 내용은 로그인한 구글 계정에 저장됩니다.</p>
       <div class="updated" id="allocTopBadge"></div>
     </div>
 
@@ -2599,45 +2599,53 @@ function persistAllocDoc(docData) {
 }
 
 // ---- 종목 검색 · 시세 ----
-// 검색 목록과 종가 스냅샷은 GitHub Actions가 KRX에서 받아 data/krx-quotes.json 에 넣어 둔다
-// (scripts/fetch-krx-quotes.js). 브라우저에서 KRX를 직접 부르면 CORS에 막히기 때문이다.
-let krxQuotes = null; // { updatedAt, tradeDate, items: [{code, name, kind, price, prevClose}] }
-let krxQuotesPromise = null;
-let krxQuotesError = null;
+// 종목 목록과 현재가는 GitHub Actions가 받아 data/etf-quotes.json 에 넣어 둔 것을 읽는다
+// (scripts/fetch-etf-quotes.js).
+//
+// 브라우저에서 시세 API를 직접 부르지 않는 이유: 네이버 시세 API도 KRX 정보데이터시스템도
+// Access-Control-Allow-Origin 헤더를 주지 않는다(2026-08 확인). 즉 브라우저에서 부르면
+// CORS에 무조건 막힌다. 그래서 현재가의 신선도는 그 워크플로의 cron이 정한다
+// (장중 10분 간격). 화면에는 언제 받은 값인지를 항상 같이 보여 준다.
+let etfQuotes = null; // { updatedAt, source, items: [{code, name, price, changeRate}] }
+let etfQuotesPromise = null;
+let etfQuotesError = null;
 
-function loadKrxQuotes() {
-  if (krxQuotesPromise) return krxQuotesPromise;
-  krxQuotesPromise = fetch("./data/krx-quotes.json")
+function loadEtfQuotes(force = false) {
+  if (etfQuotesPromise && !force) return etfQuotesPromise;
+  etfQuotesError = null;
+  // 새로고침할 때는 캐시된 옛 시세가 아니라 방금 배포된 값을 받아야 한다.
+  const url = force ? `./data/etf-quotes.json?t=${Date.now()}` : "./data/etf-quotes.json";
+  etfQuotesPromise = fetch(url, force ? { cache: "no-store" } : undefined)
     .then((res) => {
-      if (!res.ok) throw new Error(`목록을 불러오지 못했습니다 (${res.status})`);
+      if (!res.ok) throw new Error(`시세 파일을 불러오지 못했습니다 (${res.status})`);
       return res.json();
     })
     .then((json) => {
-      if (!json || !Array.isArray(json.items)) throw new Error("목록 형식이 올바르지 않습니다");
-      krxQuotes = json;
+      if (!json || !Array.isArray(json.items) || !json.items.length) throw new Error("시세 파일 형식이 올바르지 않습니다");
+      etfQuotes = json;
       return json;
     })
     .catch((err) => {
-      // 목록이 없어도 종목명을 직접 입력하고 현재가를 손으로 넣으면 표는 그대로 쓸 수 있다.
-      console.error("KRX 종목 목록을 불러오지 못했습니다:", err);
-      krxQuotesError = err;
+      // 목록이 없어도 종목명과 현재가를 직접 입력하면 표는 그대로 쓸 수 있다.
+      console.error("ETF 시세를 불러오지 못했습니다:", err);
+      etfQuotesError = err;
       return null;
     });
-  return krxQuotesPromise;
+  return etfQuotesPromise;
 }
 
-function searchKrx(query, limit = 12) {
-  if (!krxQuotes) return [];
+function searchEtf(query, limit = 12) {
+  if (!etfQuotes) return [];
   const q = query.trim().toLowerCase().replace(/\s+/g, "");
   if (!q) return [];
   const hits = [];
-  for (const item of krxQuotes.items) {
+  for (const item of etfQuotes.items) {
     const name = item.name.toLowerCase().replace(/\s+/g, "");
     const idx = name.indexOf(q);
     const codeHit = item.code.startsWith(q);
     if (idx < 0 && !codeHit) continue;
-    // 이름이 검색어로 시작하는 종목을 위로 올린다. ETF를 개별 주식보다 먼저 보여 준다.
-    hits.push({ item, score: (codeHit ? -100 : idx) + (item.kind === "etf" ? 0 : 50) });
+    // 이름이 검색어로 시작하는 종목을 위로 올린다.
+    hits.push({ item, score: codeHit ? -100 : idx });
     if (hits.length > 400) break;
   }
   hits.sort((a, b) => a.score - b.score || a.item.name.length - b.item.name.length);
@@ -2648,12 +2656,12 @@ function searchKrx(query, limit = 12) {
 // 때만 붙인다. 비슷한 이름(예: "TIGER 미국S&P500"과 "TIGER 미국S&P500TR")을 임의로 골라
 // 붙이면 엉뚱한 종목의 시세를 가져오면서도 화면은 멀쩡해 보여 알아채기 어렵기 때문이다.
 function resolveMissingCodes(rows) {
-  if (!krxQuotes) return { resolved: 0, unresolved: [] };
+  if (!etfQuotes) return { resolved: 0, unresolved: [] };
   const norm = (v) => v.toLowerCase().replace(/\s+/g, "");
   const byName = new Map();
-  for (const item of krxQuotes.items) {
+  for (const item of etfQuotes.items) {
     const key = norm(item.name);
-    if (byName.has(key)) byName.set(key, null); // 동명이인이 있으면 자동으로 고르지 않는다
+    if (byName.has(key)) byName.set(key, null); // 이름이 겹치면 자동으로 고르지 않는다
     else byName.set(key, item);
   }
   let resolved = 0;
@@ -2671,63 +2679,24 @@ function resolveMissingCodes(rows) {
   return { resolved, unresolved };
 }
 
-// 브라우저에서 직접 부를 수 있는 실시간 시세 후보들. 이 서버들이 CORS를 허용하는지는
-// 우리가 정할 수 없으므로, 앞에서부터 시도해 보고 전부 실패하면 KRX 종가 스냅샷을 쓴다.
-// (실패해도 화면은 종가 기준으로 계속 동작하고, 어느 쪽 값인지 표에 표시한다.)
-const LIVE_QUOTE_PROVIDERS = [
-  {
-    name: "naver-polling",
-    url: (code) => `https://polling.finance.naver.com/api/realtime/domestic/stock/${code}`,
-    parse: (j) => {
-      const d = j?.datas?.[0];
-      if (!d) return null;
-      return { price: krNumber(d.closePrice), changeRate: krNumber(d.fluctuationsRatio) };
-    },
-  },
-  {
-    name: "naver-mobile",
-    url: (code) => `https://m.stock.naver.com/api/stock/${code}/basic`,
-    parse: (j) => {
-      if (!j) return null;
-      return { price: krNumber(j.closePrice), changeRate: krNumber(j.fluctuationsRatio) };
-    },
-  },
-];
-
-// "27,410" 처럼 콤마가 섞인 문자열도 숫자로 읽는다.
-function krNumber(v) {
-  if (v === null || v === undefined) return null;
-  const n = Number(String(v).replace(/,/g, "").trim());
-  return Number.isFinite(n) ? n : null;
+function lookupQuote(code) {
+  const hit = etfQuotes?.items.find((it) => it.code === code);
+  if (!hit || !(hit.price > 0)) return null;
+  return { price: hit.price, changeRate: Number.isFinite(hit.changeRate) ? hit.changeRate : null };
 }
 
-async function fetchLiveQuote(code) {
-  for (const provider of LIVE_QUOTE_PROVIDERS) {
-    try {
-      const res = await fetch(provider.url(code), { cache: "no-store" });
-      if (!res.ok) continue;
-      const parsed = provider.parse(await res.json());
-      if (parsed && Number.isFinite(parsed.price) && parsed.price > 0) {
-        return { price: parsed.price, changeRate: Number.isFinite(parsed.changeRate) ? parsed.changeRate : null, source: "live" };
-      }
-    } catch (e) {
-      // CORS 차단·네트워크 오류 모두 여기로 온다. 다음 후보로 넘어간다.
-    }
-  }
-  return null;
-}
-
-// 실시간 호출이 되면 그 값을, 안 되면 KRX 종가 스냅샷을 돌려준다.
-async function fetchQuote(code) {
-  const live = await fetchLiveQuote(code);
-  if (live) return live;
-  await loadKrxQuotes();
-  const snap = krxQuotes?.items.find((it) => it.code === code);
-  if (snap && snap.price > 0) {
-    const changeRate = snap.prevClose > 0 ? ((snap.price - snap.prevClose) / snap.prevClose) * 100 : null;
-    return { price: snap.price, changeRate, source: "close", tradeDate: krxQuotes.tradeDate };
-  }
-  return null;
+// 시세 파일을 언제 받은 것인지. 화면에 그대로 적어 사용자가 신선도를 판단하게 한다.
+function quoteAgeLabel() {
+  if (!etfQuotes?.updatedAt) return "";
+  const at = new Date(etfQuotes.updatedAt);
+  if (isNaN(at)) return "";
+  const mins = Math.floor((Date.now() - at.getTime()) / 60000);
+  const clock = at.toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  if (mins < 1) return `${clock} 기준(방금)`;
+  if (mins < 60) return `${clock} 기준(${mins}분 전)`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${clock} 기준(${hours}시간 전)`;
+  return `${clock} 기준(${Math.floor(hours / 24)}일 전)`;
 }
 
 function fmtWon(v) {
@@ -3028,64 +2997,45 @@ function initAllocationTab() {
     quoteStateEl.classList.toggle("error", !!isError);
   }
 
-  async function refreshQuotes() {
-    // 검색 목록을 먼저 받아야 종목코드가 없는 행에 코드를 붙일 수 있다.
-    setQuoteState("종목 목록을 확인하는 중...", false);
-    await loadKrxQuotes();
-    const { resolved, unresolved } = resolveMissingCodes(state.rows);
-    if (resolved) {
-      renderRows();
-      persistSoon();
-    }
-
-    const targets = state.rows.filter((r) => r.code && !r.manualPrice);
-    if (!targets.length) {
-      const why = krxQuotes
-        ? "종목명을 검색해 목록에서 골라 주세요(코드가 붙어야 시세를 가져옵니다)."
-        : "종목 목록을 불러오지 못했습니다. 현재가를 직접 입력해 주세요.";
-      setQuoteState(why, !krxQuotes);
+  async function refreshQuotes({ force = false } = {}) {
+    setQuoteState("시세를 불러오는 중...", false);
+    await loadEtfQuotes(force);
+    if (!etfQuotes) {
+      setQuoteState(`시세를 불러오지 못했습니다(${etfQuotesError?.message || "원인 불명"}). 현재가를 직접 입력해 주세요.`, true);
+      badgeEl.textContent = "";
       renderComputed();
       return;
     }
 
-    setQuoteState(`시세를 불러오는 중... (0/${targets.length})`, false);
-    let done = 0;
-    let live = 0;
-    let close = 0;
-    let failed = 0;
-    await Promise.all(
-      targets.map(async (row) => {
-        const quote = await fetchQuote(row.code);
-        done++;
-        if (quote) {
-          row.price = quote.price;
-          row.changeRate = quote.changeRate;
-          row.priceSource = quote.source;
-          if (quote.source === "live") live++;
-          else close++;
-        } else {
-          failed++;
-        }
-        setQuoteState(`시세를 불러오는 중... (${done}/${targets.length})`, false);
-      })
-    );
-    // 시세가 바뀌면 현재가 입력칸의 값도 새로 그려야 한다.
+    // 종목코드가 없는 행은 이름이 정확히 일치할 때만 코드를 붙인다.
+    const { resolved, unresolved } = resolveMissingCodes(state.rows);
+
+    let applied = 0;
+    let missing = 0;
+    for (const row of state.rows) {
+      if (row.manualPrice) continue; // 직접 넣은 현재가가 우선한다
+      if (!row.code) continue;
+      const quote = lookupQuote(row.code);
+      if (quote) {
+        row.price = quote.price;
+        row.changeRate = quote.changeRate;
+        row.priceSource = "quotes";
+        applied++;
+      } else {
+        missing++;
+      }
+    }
+
+    // 현재가 입력칸의 값도 새로 그려야 하므로 행을 다시 만든다.
     renderRows();
     renderComputed();
-    persistAllocDoc(state);
+    if (applied || resolved) persistAllocDoc(state);
 
-    const parts = [];
-    if (live) parts.push(`실시간 ${live}종목`);
-    if (close) {
-      const d = krxQuotes?.tradeDate;
-      const dateLabel = d ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : "최근";
-      parts.push(`${dateLabel} 종가 ${close}종목`);
-    }
-    if (failed) parts.push(`실패 ${failed}종목`);
-    if (unresolved.length) parts.push(`코드 미확인 ${unresolved.length}종목(검색해서 골라 주세요)`);
-    const at = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
-    setQuoteState(`${at} 기준 · ${parts.join(" · ") || "가져온 시세 없음"}`, failed > 0 || unresolved.length > 0);
-    badgeEl.textContent = live ? "실시간 시세" : close ? "종가 기준" : "";
+    const parts = [`${applied}종목 반영`];
+    if (missing) parts.push(`목록에 없음 ${missing}종목`);
+    if (unresolved.length) parts.push(`코드 미확인 ${unresolved.length}종목(종목명을 검색해 골라 주세요)`);
+    setQuoteState(`${quoteAgeLabel()} · ${parts.join(" · ")}`, missing > 0 || unresolved.length > 0);
+    badgeEl.textContent = quoteAgeLabel();
   }
 
   // ---- 종목 검색 드롭다운 ----
@@ -3098,18 +3048,18 @@ function initAllocationTab() {
   }
 
   async function openSuggest(idx, query) {
-    await loadKrxQuotes();
+    await loadEtfQuotes();
     const tr = tbody.querySelector(`tr[data-idx="${idx}"]`);
     if (!tr) return;
     const box = tr.querySelector("[data-suggest]");
     if (!box) return;
-    if (krxQuotesError && !krxQuotes) {
+    if (etfQuotesError && !etfQuotes) {
       box.innerHTML = `<div class="alloc-suggest-empty">종목 목록을 불러오지 못했습니다.<br />종목명과 현재가를 직접 입력해 주세요.</div>`;
       box.hidden = false;
       suggestRow = idx;
       return;
     }
-    const hits = searchKrx(query);
+    const hits = searchEtf(query);
     if (!hits.length) {
       box.innerHTML = `<div class="alloc-suggest-empty">검색 결과가 없습니다</div>`;
       box.hidden = false;
@@ -3137,16 +3087,16 @@ function initAllocationTab() {
     closeSuggest();
     renderRows();
     renderComputed();
-    const quote = await fetchQuote(code);
+    const quote = lookupQuote(code);
     if (quote) {
       row.price = quote.price;
       row.changeRate = quote.changeRate;
-      row.priceSource = quote.source;
+      row.priceSource = "quotes";
       renderRows();
       renderComputed();
-      setQuoteState(`${name} 현재가 ${fmtWon(quote.price)}원 (${quote.source === "live" ? "실시간" : "종가"})`, false);
+      setQuoteState(`${name} 현재가 ${fmtWon(quote.price)}원 · ${quoteAgeLabel()}`, false);
     } else {
-      setQuoteState(`${name}의 현재가를 가져오지 못했습니다. 현재가 칸에 직접 입력해 주세요.`, true);
+      setQuoteState(`${name}의 현재가가 시세 목록에 없습니다. 현재가 칸에 직접 입력해 주세요.`, true);
     }
     persistAllocDoc(state);
   }
@@ -3266,7 +3216,7 @@ function initAllocationTab() {
     refreshQuotes();
   });
 
-  document.getElementById("allocRefreshQuotesBtn").addEventListener("click", () => refreshQuotes());
+  document.getElementById("allocRefreshQuotesBtn").addEventListener("click", () => refreshQuotes({ force: true }));
 
   function updateSyncNote() {
     noteEl.classList.toggle("error", allocSync.state === "error");
