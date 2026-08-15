@@ -760,6 +760,27 @@ async function probeOnce() {
       console.log(`--- ${s.status} ${s.url}`);
       console.log(s.body);
     }
+
+    // 표의 단지명을 어디로 연결할지 정하려면, 단지 페이지의 탭이 실제로 어떤 주소를
+    // 만드는지 봐야 한다. 탭 값을 추측해서 넣으면 엉뚱한 화면이 열린다.
+    console.log(`=== 단지 페이지 탭 주소 조사 ===`);
+    console.log(`진입 후 URL: ${page.url()}`);
+    const tabTexts = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("a,button"))
+        .map((el) => (el.textContent || "").trim())
+        .filter((t) => /^(매물|시세\/실거래가|시세|실거래가|단지정보|학군|주변정보|사진|리뷰)$/.test(t))
+    );
+    console.log(`탭 후보: ${JSON.stringify([...new Set(tabTexts)])}`);
+    for (const label of [...new Set(tabTexts)]) {
+      try {
+        const target = page.locator(`a:text-is("${label}"), button:text-is("${label}")`).first();
+        await target.click({ timeout: 5000 });
+        await page.waitForTimeout(1500);
+        console.log(`[${label}] -> ${page.url()}`);
+      } catch (e) {
+        console.log(`[${label}] 클릭 실패: ${e.message.split("\n")[0]}`);
+      }
+    }
   } finally {
     await context.close();
     await browser.close();
