@@ -101,6 +101,70 @@
     color: var(--text);
   }
   .filter-field select { cursor: pointer; }
+  /* 가격대: 손잡이 두 개짜리 슬라이더. range 입력 두 개를 겹쳐 놓고 트랙만 직접 그린다. */
+  .price-field { min-width: 300px; flex: 1; max-width: 460px; gap: 6px; }
+  .range-chip {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+  .range-slider { position: relative; height: 26px; margin: 2px 11px 0; }
+  .range-track, .range-fill {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    border-radius: 999px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .range-track { left: 0; right: 0; background: var(--panel-border); }
+  .range-fill { background: var(--text); }
+  .range-slider input[type="range"] {
+    position: absolute;
+    left: -11px;
+    width: calc(100% + 22px);
+    top: 0;
+    height: 26px;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    /* 트랙 위 클릭은 통과시키고 손잡이만 잡히게 한다(두 입력이 겹쳐 있으므로). */
+    pointer-events: none;
+  }
+  .range-slider input[type="range"]:focus { outline: none; }
+  .range-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .range-slider input[type="range"]::-moz-range-thumb {
+    pointer-events: auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .range-slider input[type="range"]::-moz-range-track { background: none; border: none; }
+  .range-ticks { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); }
   .filter-field.disabled select, .filter-field.disabled input { background: var(--bg); color: var(--muted); cursor: not-allowed; }
   .region-btn {
     font-size: 0.82rem;
@@ -692,13 +756,17 @@
       <div class="filter-section">
         <h3 class="filter-section-title">매물필터</h3>
         <div class="filter-row">
-          <div class="filter-field">
-            <label>가격대(최저, 만원)</label>
-            <input id="filterPriceMin" type="number" inputmode="numeric" placeholder="예: 50000" />
-          </div>
-          <div class="filter-field">
-            <label>가격대(최고, 만원)</label>
-            <input id="filterPriceMax" type="number" inputmode="numeric" placeholder="예: 150000" />
+          <div class="filter-field price-field">
+            <label>가격대 <span class="range-chip" id="priceRangeLabel">전체</span></label>
+            <div class="range-slider" id="priceRange">
+              <div class="range-track"></div>
+              <div class="range-fill" id="priceRangeFill"></div>
+              <input type="range" id="priceRangeMin" min="0" max="50" step="1" value="0" aria-label="최저 가격" />
+              <input type="range" id="priceRangeMax" min="0" max="50" step="1" value="50" aria-label="최고 가격" />
+            </div>
+            <div class="range-ticks">
+              <span>0</span><span>10억</span><span>20억</span><span>30억</span><span>40억</span><span>최대</span>
+            </div>
           </div>
           <div class="filter-field disabled">
             <label>네이버호가(최저, 만원) <span class="filter-badge-soon">준비 중</span></label>
@@ -2285,13 +2353,87 @@ async function initNaverTab() {
   const pyeongTypeSelect = document.getElementById("filterPyeongType");
   const ageSelect = document.getElementById("filterAge");
   const dealCountSelect = document.getElementById("filterDealCount");
-  const priceMinInput = document.getElementById("filterPriceMin");
-  const priceMaxInput = document.getElementById("filterPriceMax");
+
+  // ---- 가격대 슬라이더 ----
+  // 눈금 한 칸이 1억이고, 오른쪽 끝(50)은 "최대"라서 상한이 없다는 뜻이다.
+  const PRICE_STEP_MANWON = 10000; // 1억
+  const PRICE_MAX_STEP = 50; // 50억 이상은 전부 "최대"
+  const priceMinRange = document.getElementById("priceRangeMin");
+  const priceMaxRange = document.getElementById("priceRangeMax");
+  const priceRangeLabel = document.getElementById("priceRangeLabel");
+  const priceRangeFill = document.getElementById("priceRangeFill");
+
+  function priceBounds() {
+    const lo = Number(priceMinRange.value);
+    const hi = Number(priceMaxRange.value);
+    return {
+      loStep: lo,
+      hiStep: hi,
+      min: lo * PRICE_STEP_MANWON,
+      max: hi >= PRICE_MAX_STEP ? Infinity : hi * PRICE_STEP_MANWON,
+      isAll: lo === 0 && hi >= PRICE_MAX_STEP,
+    };
+  }
+
+  function renderPriceRange() {
+    const b = priceBounds();
+    const pct = (v) => (v / PRICE_MAX_STEP) * 100;
+    priceRangeFill.style.left = `${pct(b.loStep)}%`;
+    priceRangeFill.style.right = `${100 - pct(b.hiStep)}%`;
+    const lo = `${b.loStep}억`;
+    const hi = b.max === Infinity ? "최대" : `${b.hiStep}억`;
+    priceRangeLabel.textContent = b.isAll
+      ? "전체"
+      : b.max === Infinity
+      ? `${lo} 이상`
+      : b.loStep === 0
+      ? `${hi} 이하`
+      : `${lo}~${hi}`;
+  }
+
+  // 두 손잡이가 서로를 지나치지 않도록 붙잡는다.
+  priceMinRange.addEventListener("input", () => {
+    if (Number(priceMinRange.value) > Number(priceMaxRange.value)) priceMinRange.value = priceMaxRange.value;
+    renderPriceRange();
+    schedulePriceRender();
+  });
+  priceMaxRange.addEventListener("input", () => {
+    if (Number(priceMaxRange.value) < Number(priceMinRange.value)) priceMaxRange.value = priceMinRange.value;
+    renderPriceRange();
+    schedulePriceRender();
+  });
 
   // 수집 스크립트는 이제 (단지 × 공급면적)마다 한 줄을 만들어 supplyArea를 넣는다.
   // 아직 재수집되지 않은 지역은 단지 단위로 평균낸 avgArea만 갖고 있으므로 함께 받아준다.
   function rowArea(c) {
     return c.supplyArea ?? c.avgArea ?? null;
+  }
+
+  // 가격대 안에 드는 매물만 남긴 행을 만든다. 한 건도 남지 않으면 null(표에서 제외).
+  // 매물 수·최저가·최고가·평당가를 남은 매물로 다시 계산해서, 표에 보이는 숫자가
+  // 항상 설정한 가격대 안의 매물만 가리키도록 한다.
+  function applyPriceRange(c) {
+    const b = priceBounds();
+    if (b.isAll) return c;
+    if (Array.isArray(c.prices) && c.prices.length) {
+      const kept = c.prices.filter((p) => p >= b.min && p <= b.max);
+      if (kept.length === 0) return null;
+      const area = rowArea(c);
+      const avg = kept.reduce((s, v) => s + v, 0) / kept.length;
+      return {
+        ...c,
+        count: kept.length,
+        minPrice: kept[0],
+        maxPrice: kept[kept.length - 1],
+        avgPrice: avg,
+        avgPyeongPrice: area == null ? null : avg / (area / 3.305785),
+        partial: kept.length !== c.prices.length,
+      };
+    }
+    // 개별 가격이 없는 옛 데이터는 단지의 최저~최고가가 범위와 겹치는지로만 판단한다.
+    if (c.minPrice == null || c.maxPrice == null) return null;
+    if (c.maxPrice < b.min || c.minPrice > b.max) return null;
+    return { ...c, approx: true };
   }
 
   function passesUnitFilters(c) {
@@ -2307,17 +2449,11 @@ async function initNaverTab() {
       if (c.approvalElapsedYear == null) return false;
       if (age === "20+" ? c.approvalElapsedYear <= 20 : c.approvalElapsedYear > Number(age)) return false;
     }
-    const dealCount = dealCountSelect.value;
-    if (dealCount && c.count < Number(dealCount)) return false;
-    const priceMin = priceMinInput.value ? Number(priceMinInput.value) : null;
-    const priceMax = priceMaxInput.value ? Number(priceMaxInput.value) : null;
-    if (priceMin != null && (c.maxPrice == null || c.maxPrice < priceMin)) return false;
-    if (priceMax != null && (c.minPrice == null || c.minPrice > priceMax)) return false;
     return true;
   }
 
   [pyeongTypeSelect, ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
-  [priceMinInput, priceMaxInput].forEach((el) => el.addEventListener("input", debounce(render, 300)));
+  const schedulePriceRender = debounce(() => render(), 120);
 
   function debounce(fn, ms) {
     let t;
@@ -2328,16 +2464,21 @@ async function initNaverTab() {
   }
 
   function currentRows() {
+    const minDeals = dealCountSelect.value ? Number(dealCountSelect.value) : null;
     const seen = new Map();
     for (const region of regions) {
       if (!regionIncluded(region)) continue;
       for (const c of region.complexes) {
         if (c.tradeType !== tradeSelect.value) continue;
         if (!passesUnitFilters(c)) continue;
+        // 가격대를 먼저 적용해 범위 밖 매물을 덜어낸 뒤, 매매건수는 남은 매물 기준으로 센다.
+        const row = applyPriceRange(c);
+        if (!row) continue;
+        if (minDeals != null && row.count < minDeals) continue;
         // 같은 단지라도 공급면적이 다르면 별개의 행으로 남긴다.
-        const area = rowArea(c);
-        const key = `${c.complexNo ?? c.complexName}|${area == null ? "" : area.toFixed(2)}`;
-        if (!seen.has(key)) seen.set(key, c);
+        const area = rowArea(row);
+        const key = `${row.complexNo ?? row.complexName}|${area == null ? "" : area.toFixed(2)}`;
+        if (!seen.has(key)) seen.set(key, row);
       }
     }
     return [...seen.values()];
@@ -2385,8 +2526,10 @@ async function initNaverTab() {
     });
 
     if (rows.length === 0) {
+      const b = priceBounds();
+      const priceHint = b.isAll ? "" : `<br/>가격대 <b>${priceRangeLabel.textContent}</b> 범위를 넓혀보세요.`;
       tbody.innerHTML = includeChips.length
-        ? `<tr><td colspan="6" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.</td></tr>`
+        ? `<tr><td colspan="6" class="naver-empty">선택한 조건에 해당하는 매물이 없습니다.${priceHint}</td></tr>`
         : `<tr><td colspan="6" class="naver-empty">표시할 지역이 없습니다.<br/>위에서 지역을 고르고 <b>지역추가</b>를 눌러 담아주세요.</td></tr>`;
       return;
     }
@@ -2399,7 +2542,9 @@ async function initNaverTab() {
       <tr>
         <td>${r.complexNo ? `<a class="naver-complex-link" href="https://new.land.naver.com/complexes/${r.complexNo}" target="_blank" rel="noopener">${r.complexName}</a>` : r.complexName}</td>
         <td class="num">${areaCell}</td>
-        <td class="num">${r.count.toLocaleString("ko-KR")}</td>
+        <td class="num">${r.count.toLocaleString("ko-KR")}${
+          r.approx ? `<span class="naver-pyeong" title="이 지역은 아직 개별 매물 가격을 수집하지 않아, 단지 최저~최고가가 가격대와 겹치는지로만 걸러집니다.">≈</span>` : ""
+        }</td>
         <td class="num">${fmtManwon(r.minPrice)}</td>
         <td class="num">${fmtManwon(r.maxPrice)}</td>
         <td class="num">${r.avgPyeongPrice == null ? "–" : Math.round(r.avgPyeongPrice).toLocaleString("ko-KR")}</td>
@@ -2421,6 +2566,7 @@ async function initNaverTab() {
     });
   });
   tradeSelect.addEventListener("change", render);
+  renderPriceRange();
   render();
 }
 </script>

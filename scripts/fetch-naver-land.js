@@ -281,6 +281,9 @@ function aggregateComplexes(articles, tradeType) {
       tradeType: bucket.tradeType,
       supplyArea: bucket.supplyArea,
       count: bucket.prices.length,
+      // 개별 매물 가격(오름차순, 만원). 화면의 가격대 슬라이더가 범위에 드는 매물만
+      // 세고 최저/최고/평당가를 다시 계산하려면 집계값만으로는 부족하다.
+      prices: prices.map((p) => Math.round(p)),
       minPrice: prices.length ? prices[0] : null,
       maxPrice: prices.length ? prices[prices.length - 1] : null,
       avgPrice,
@@ -505,7 +508,9 @@ async function main() {
   const merged = mergeRegions(readExistingRegions(outPath), regions);
   const data = { updatedAt: new Date().toISOString(), scope: SCOPE, regions: merged };
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify(data, null, 2));
+  // 개별 매물 가격까지 담으면서 파일이 커졌다. 들여쓰기를 빼면 절반 크기가 되고,
+  // 어차피 기계가 만드는 파일이라 사람이 diff를 읽을 일은 없다.
+  fs.writeFileSync(outPath, JSON.stringify(data));
 
   const keptCount = merged.length - regions.length;
   console.log(
