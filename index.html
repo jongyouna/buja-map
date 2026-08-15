@@ -198,6 +198,35 @@
   .naver-complex-link { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--muted); }
   .naver-pyeong { color: var(--muted); font-size: 11px; margin-left: 2px; }
   .naver-complex-link:hover { border-bottom-style: solid; }
+  .admin-user { display: flex; align-items: center; gap: 8px; }
+  .admin-user img { width: 24px; height: 24px; border-radius: 50%; }
+  .admin-user .avatar-fallback {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--bg); border: 1px solid var(--panel-border);
+    font-size: 0.7rem; color: var(--muted);
+  }
+  .admin-tag {
+    display: inline-block; border-radius: 999px; padding: 2px 9px;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.02em;
+    border: 1px solid var(--panel-border); color: var(--muted); background: var(--bg);
+  }
+  .admin-tag.is-admin { color: #7ee0a6; border-color: rgba(126, 224, 166, 0.45); }
+  .admin-tag.is-blocked { color: #ff8b8b; border-color: rgba(255, 139, 139, 0.45); }
+  .admin-tag.is-me { color: var(--text); }
+  .admin-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .admin-actions button {
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--muted);
+    border-radius: 6px; padding: 3px 9px; font-size: 0.72rem; cursor: pointer;
+  }
+  .admin-actions button:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+  .admin-actions button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .admin-actions button.danger:hover:not(:disabled) { color: #ff8b8b; border-color: rgba(255, 139, 139, 0.5); }
+  .admin-table-row.blocked td { opacity: 0.55; }
+  #adminSearch {
+    background: var(--panel); border: 1px solid var(--panel-border); color: var(--text);
+    border-radius: 6px; padding: 5px 10px; font-size: 0.78rem; min-width: 180px;
+  }
   .topbar-actions { display: flex; align-items: center; gap: 10px; }
   .auth-area { display: flex; align-items: center; gap: 8px; min-height: 36px; }
   .google-btn {
@@ -432,6 +461,9 @@
   <nav class="tabbar" id="tabBar">
     <button class="tab-btn active" data-tab="macro" type="button">거시경제</button>
     <button class="tab-btn" data-tab="naver" type="button">네이버 부동산</button>
+    <!-- 관리자 탭 버튼은 관리자로 로그인했을 때만 나타난다. 다만 이 hidden은 화면 정리일 뿐이고,
+         실제 데이터 접근 차단은 Firestore 보안 규칙(firestore.rules)이 담당한다. -->
+    <button class="tab-btn" data-tab="admin" type="button" id="adminTabBtn" hidden>관리자</button>
   </nav>
 
   <div class="page">
@@ -732,6 +764,50 @@
       </div>
     </div>
   </section>
+
+  <section class="tab-panel" id="tabPanel-admin" hidden>
+    <div class="panel-header">
+      <p class="intro">구글 로그인으로 접속한 사용자 목록입니다. 관리자 권한을 주거나 회수하고, 접속을 차단하고, 사용자가 저장한 그래프를 지울 수 있습니다.</p>
+      <div class="updated" id="adminTopBadge"></div>
+    </div>
+
+    <div class="summary-bar" id="adminSummaryBar"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>사용자 관리</h2>
+        <div class="naver-controls">
+          <input type="search" id="adminSearch" placeholder="이름 · 이메일 검색" />
+          <select id="adminStatusFilter" title="상태">
+            <option value="">전체</option>
+            <option value="admin">관리자만</option>
+            <option value="blocked">차단된 사용자만</option>
+          </select>
+          <button class="region-btn include" id="adminCountViewsBtn" type="button">저장 그래프 수 세기</button>
+          <button class="icon-btn" id="adminReloadBtn" type="button" title="새로고침">⟳</button>
+        </div>
+      </div>
+      <p class="desc" id="adminHint"></p>
+
+      <div class="naver-table-scroll">
+        <table class="naver-table" id="adminTable">
+          <thead>
+            <tr>
+              <th data-sort="name" class="sortable">사용자</th>
+              <th data-sort="email" class="sortable">이메일</th>
+              <th data-sort="createdAt" class="sortable">가입일</th>
+              <th data-sort="lastLoginAt" class="sortable">최근 접속</th>
+              <th data-sort="loginCount" class="sortable num">접속 횟수</th>
+              <th data-sort="viewCount" class="sortable num">저장 그래프</th>
+              <th data-sort="role" class="sortable">권한</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
   </div>
 
 <script type="module">
@@ -747,9 +823,12 @@ import {
   getFirestore,
   collection,
   doc,
+  getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   deleteDoc,
+  increment,
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 // 이 config 값들은 클라이언트에 노출되어도 안전합니다. 실제 접근 제어는
@@ -771,7 +850,19 @@ const googleProvider = new GoogleAuthProvider();
 // 저장된 그래프를 사용자의 구글 드라이브에 스프레드시트로 만들기 위한 추가 권한.
 googleProvider.addScope("https://www.googleapis.com/auth/spreadsheets");
 
+// 최초 관리자. 이 계정은 users 문서가 없어도 항상 관리자로 인정된다(권한 부트스트랩).
+// Firestore 보안 규칙(firestore.rules)에도 같은 주소가 박혀 있어야 실제로 데이터를 읽을 수 있다.
+const ROOT_ADMIN_EMAILS = ["jongyouna@gmail.com"];
+
 let currentUser = null;
+// 로그인한 사용자의 users/{uid} 문서. 관리자 여부·차단 여부를 여기서 읽는다.
+let currentUserDoc = null;
+
+function isAdminUser() {
+  if (!currentUser) return false;
+  if (ROOT_ADMIN_EMAILS.includes((currentUser.email || "").toLowerCase())) return true;
+  return currentUserDoc?.role === "admin";
+}
 // main()이 data.json 로딩을 마친 뒤(또는 로그인 상태가 먼저 확정된 뒤) 저장된 그래프 목록을
 // 다시 그릴 수 있도록 하는 훅. 둘 중 어느 쪽이 먼저 끝나도 항상 최신 상태로 렌더링되도록 함.
 let onAuthChangedHook = null;
@@ -788,6 +879,7 @@ function renderAuthArea() {
       <span class="user-chip">
         ${currentUser.photoURL ? `<img class="user-avatar" src="${currentUser.photoURL}" alt="" referrerpolicy="no-referrer">` : ""}
         <span class="user-name">${currentUser.displayName || currentUser.email || ""}</span>
+        ${isAdminUser() ? `<span class="admin-tag is-admin">관리자</span>` : ""}
       </span>
       <button class="icon-btn" id="signOutBtn" type="button" title="로그아웃">⎋</button>
     `;
@@ -809,10 +901,56 @@ function renderAuthArea() {
 }
 renderAuthArea();
 
+// 로그인할 때마다 users/{uid}에 접속 기록을 남긴다. 관리자 탭은 이 컬렉션을 읽어 목록을 만든다.
+// 보안 규칙상 본인은 role/blocked를 바꿀 수 없고(최초 생성 시 user/false 고정), 관리자만 바꿀 수 있다.
+async function upsertUserRecord(user) {
+  const ref = doc(db, "users", user.uid);
+  const snap = await getDoc(ref);
+  const profile = {
+    uid: user.uid,
+    email: user.email || "",
+    displayName: user.displayName || "",
+    photoURL: user.photoURL || "",
+    lastLoginAt: new Date().toISOString(),
+  };
+  if (!snap.exists()) {
+    await setDoc(ref, { ...profile, role: "user", blocked: false, createdAt: new Date().toISOString(), loginCount: 1 });
+    return { ...profile, role: "user", blocked: false, createdAt: profile.lastLoginAt, loginCount: 1 };
+  }
+  await setDoc(ref, { ...profile, loginCount: increment(1) }, { merge: true });
+  const prev = snap.data();
+  return { ...prev, ...profile, loginCount: (prev.loginCount || 0) + 1 };
+}
+
+function updateAdminTabVisibility() {
+  const btn = document.getElementById("adminTabBtn");
+  const allowed = isAdminUser();
+  btn.hidden = !allowed;
+  // 관리자 탭을 보던 중에 로그아웃/권한 회수가 일어나면 거시경제 탭으로 되돌린다.
+  if (!allowed && !document.getElementById("tabPanel-admin").hidden) activateTab("macro");
+}
+
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  currentUserDoc = null;
   if (!user) googleAccessToken = null;
   renderAuthArea();
+  updateAdminTabVisibility();
+  if (user) {
+    try {
+      currentUserDoc = await upsertUserRecord(user);
+      if (currentUserDoc.blocked) {
+        await signOut(auth);
+        alert("관리자에 의해 차단된 계정입니다.");
+        return;
+      }
+    } catch (err) {
+      // 접속 기록 저장에 실패해도 대시보드 자체는 그대로 쓸 수 있어야 한다.
+      console.error("사용자 정보를 기록하지 못했습니다:", err);
+    }
+    renderAuthArea();
+    updateAdminTabVisibility();
+  }
   if (onAuthChangedHook) await onAuthChangedHook();
 });
 
@@ -1744,20 +1882,259 @@ async function main() {
 main();
 document.getElementById("refreshBtn").addEventListener("click", () => location.reload());
 
-// ---- 상단 탭 (거시경제 / 네이버 부동산) ----
+// ---- 상단 탭 (거시경제 / 네이버 부동산 / 관리자) ----
 // 네이버 탭은 처음 열릴 때 한 번만 데이터를 불러온다.
 let naverLoaded = false;
+function activateTab(tab) {
+  document.querySelectorAll("#tabBar .tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tab-panel").forEach((p) => {
+    p.hidden = p.id !== `tabPanel-${tab}`;
+  });
+  if (tab === "naver" && !naverLoaded) {
+    naverLoaded = true;
+    initNaverTab();
+  }
+  // 관리자 탭은 열 때마다 최신 목록을 다시 읽는다(사용자가 그 사이 늘었을 수 있으므로).
+  if (tab === "admin") loadAdminUsers();
+}
 document.querySelectorAll("#tabBar .tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const tab = btn.dataset.tab;
-    document.querySelectorAll("#tabBar .tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
-    document.querySelectorAll(".tab-panel").forEach((p) => {
-      p.hidden = p.id !== `tabPanel-${tab}`;
-    });
-    if (tab === "naver" && !naverLoaded) {
-      naverLoaded = true;
-      initNaverTab();
+  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+});
+
+// ---- 관리자 탭 ----
+// 화면에서 버튼을 숨기는 것만으로는 접근 제어가 되지 않는다. users 컬렉션 전체 읽기와
+// role/blocked 수정은 Firestore 보안 규칙에서 관리자에게만 허용되어 있고, 여기서는
+// 그 권한을 가진 사람에게 쓰기 편한 화면을 제공할 뿐이다.
+const adminState = { users: [], viewCounts: new Map(), sortKey: "lastLoginAt", sortDir: "desc", loading: false };
+
+// 사용자 이름/이메일은 구글 프로필에서 오는 남의 입력이므로 표에 넣기 전에 반드시 이스케이프한다.
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return "–";
+  const d = new Date(iso);
+  if (isNaN(d)) return "–";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function fmtRelative(iso) {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  if (isNaN(diff) || diff < 0) return "";
+  const h = diff / 3600000;
+  if (h < 1) return "방금";
+  if (h < 24) return `${Math.floor(h)}시간 전`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}일 전` : `${Math.floor(d / 30)}개월 전`;
+}
+
+const isRootAdmin = (email) => ROOT_ADMIN_EMAILS.includes((email || "").toLowerCase());
+
+function adminSetMessage(text) {
+  document.getElementById("adminHint").textContent = text;
+}
+
+async function loadAdminUsers() {
+  if (!isAdminUser() || adminState.loading) return;
+  adminState.loading = true;
+  adminSetMessage("사용자 목록을 불러오는 중입니다...");
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    adminState.users = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+    adminSetMessage(
+      "‘저장 그래프 수 세기’를 누르면 각 사용자가 저장한 그래프 개수를 읽어옵니다. " +
+        "계정 삭제는 Firebase Authentication 콘솔에서만 가능하며, 여기서는 저장 데이터 삭제와 접속 차단을 제공합니다."
+    );
+  } catch (err) {
+    console.error("사용자 목록 조회 실패:", err);
+    adminSetMessage("사용자 목록을 불러오지 못했습니다: " + err.message);
+    adminState.users = [];
+  } finally {
+    adminState.loading = false;
+    renderAdminTable();
+  }
+}
+
+function adminVisibleUsers() {
+  const q = document.getElementById("adminSearch").value.trim().toLowerCase();
+  const status = document.getElementById("adminStatusFilter").value;
+  return adminState.users.filter((u) => {
+    if (status === "admin" && !(u.role === "admin" || isRootAdmin(u.email))) return false;
+    if (status === "blocked" && !u.blocked) return false;
+    if (!q) return true;
+    return `${u.displayName || ""} ${u.email || ""}`.toLowerCase().includes(q);
+  });
+}
+
+function renderAdminSummary(rows) {
+  const weekAgo = Date.now() - 7 * 86400000;
+  const items = [
+    { name: "전체 사용자", value: `${adminState.users.length.toLocaleString("ko-KR")}명` },
+    {
+      name: "최근 7일 접속",
+      value: `${adminState.users.filter((u) => u.lastLoginAt && new Date(u.lastLoginAt).getTime() >= weekAgo).length}명`,
+    },
+    { name: "관리자", value: `${adminState.users.filter((u) => u.role === "admin" || isRootAdmin(u.email)).length}명` },
+    { name: "차단", value: `${adminState.users.filter((u) => u.blocked).length}명` },
+  ];
+  document.getElementById("adminSummaryBar").innerHTML = items
+    .map((i) => `<div class="summary-pill"><span class="name">${i.name}</span><span class="chg">${i.value}</span></div>`)
+    .join("");
+  document.getElementById("adminTopBadge").textContent = rows.length === adminState.users.length ? "" : `${rows.length}명 표시 중`;
+}
+
+function renderAdminTable() {
+  const tbody = document.getElementById("adminTableBody");
+  const rows = adminVisibleUsers();
+  renderAdminSummary(rows);
+
+  const value = (u, key) => {
+    if (key === "name") return u.displayName || u.email || "";
+    if (key === "role") return u.role === "admin" || isRootAdmin(u.email) ? "admin" : "user";
+    if (key === "viewCount") return adminState.viewCounts.get(u.uid) ?? null;
+    return u[key] ?? null;
+  };
+  rows.sort((a, b) => {
+    const va = value(a, adminState.sortKey);
+    const vb = value(b, adminState.sortKey);
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb;
+    return adminState.sortDir === "asc" ? cmp : -cmp;
+  });
+
+  document.querySelectorAll("#adminTable th.sortable").forEach((th) => {
+    th.classList.remove("sorted-asc", "sorted-desc");
+    if (th.dataset.sort === adminState.sortKey) th.classList.add(adminState.sortDir === "asc" ? "sorted-asc" : "sorted-desc");
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="naver-empty">${
+      adminState.users.length ? "조건에 맞는 사용자가 없습니다." : "아직 로그인한 사용자가 없습니다."
+    }</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows
+    .map((u) => {
+      const root = isRootAdmin(u.email);
+      const admin = root || u.role === "admin";
+      const me = currentUser && u.uid === currentUser.uid;
+      const initial = (u.displayName || u.email || "?").trim().charAt(0).toUpperCase();
+      const avatar = u.photoURL
+        ? `<img src="${escapeHtml(u.photoURL)}" alt="" referrerpolicy="no-referrer">`
+        : `<span class="avatar-fallback">${escapeHtml(initial)}</span>`;
+      const views = adminState.viewCounts.get(u.uid);
+      // 최초 관리자와 본인 계정은 스스로 권한을 잃거나 차단되지 않도록 잠가 둔다.
+      const locked = root || me;
+      return `
+      <tr class="admin-table-row${u.blocked ? " blocked" : ""}">
+        <td><span class="admin-user">${avatar}<span>${escapeHtml(u.displayName || "(이름 없음)")}</span>${
+          me ? `<span class="admin-tag is-me">나</span>` : ""
+        }</span></td>
+        <td>${escapeHtml(u.email || "–")}</td>
+        <td>${fmtDateTime(u.createdAt)}</td>
+        <td>${fmtDateTime(u.lastLoginAt)}${
+          fmtRelative(u.lastLoginAt) ? ` <span class="naver-pyeong">${fmtRelative(u.lastLoginAt)}</span>` : ""
+        }</td>
+        <td class="num">${(u.loginCount || 0).toLocaleString("ko-KR")}</td>
+        <td class="num">${views == null ? "–" : views.toLocaleString("ko-KR")}</td>
+        <td>${admin ? `<span class="admin-tag is-admin">${root ? "최초 관리자" : "관리자"}</span>` : `<span class="admin-tag">일반</span>`}${
+          u.blocked ? ` <span class="admin-tag is-blocked">차단됨</span>` : ""
+        }</td>
+        <td>
+          <div class="admin-actions">
+            <button type="button" data-admin-action="role" data-uid="${u.uid}" ${locked ? "disabled" : ""}>${
+              u.role === "admin" ? "권한 회수" : "관리자 지정"
+            }</button>
+            <button type="button" data-admin-action="block" data-uid="${u.uid}" ${locked ? "disabled" : ""}>${
+              u.blocked ? "차단 해제" : "차단"
+            }</button>
+            <button type="button" class="danger" data-admin-action="purge" data-uid="${u.uid}">데이터 삭제</button>
+          </div>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+async function adminSetField(uid, patch) {
+  await updateDoc(doc(db, "users", uid), patch);
+  const u = adminState.users.find((x) => x.uid === uid);
+  if (u) Object.assign(u, patch);
+  if (currentUser && uid === currentUser.uid && currentUserDoc) Object.assign(currentUserDoc, patch);
+  renderAdminTable();
+}
+
+// 저장된 그래프와 사용자 문서를 지운다. Firebase Authentication의 계정 자체는
+// 클라이언트 SDK로 남의 계정을 지울 수 없어 콘솔에서 처리해야 한다.
+async function adminPurgeUser(uid) {
+  const u = adminState.users.find((x) => x.uid === uid);
+  const label = u ? `${u.displayName || ""} <${u.email || uid}>` : uid;
+  if (!confirm(`${label}\n\n이 사용자가 저장한 그래프와 접속 기록을 모두 삭제합니다.\n로그인 계정 자체는 남아 있으며, 다시 접속하면 새 기록이 생깁니다.\n\n계속할까요?`)) return;
+  const snap = await getDocs(collection(db, "savedViews", uid, "views"));
+  for (const d of snap.docs) await deleteDoc(doc(db, "savedViews", uid, "views", d.id));
+  await deleteDoc(doc(db, "users", uid));
+  adminState.users = adminState.users.filter((x) => x.uid !== uid);
+  adminState.viewCounts.delete(uid);
+  renderAdminTable();
+  adminSetMessage(`${label} 의 저장 데이터 ${snap.size}건과 접속 기록을 삭제했습니다.`);
+}
+
+async function adminCountViews() {
+  adminSetMessage("저장된 그래프 수를 세는 중입니다...");
+  for (const u of adminState.users) {
+    try {
+      const snap = await getDocs(collection(db, "savedViews", u.uid, "views"));
+      adminState.viewCounts.set(u.uid, snap.size);
+    } catch (err) {
+      console.error("저장 그래프 조회 실패:", u.uid, err);
     }
+  }
+  renderAdminTable();
+  adminSetMessage("저장된 그래프 수를 갱신했습니다.");
+}
+
+document.getElementById("adminTableBody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-admin-action]");
+  if (!btn) return;
+  const { adminAction, uid } = btn.dataset;
+  const u = adminState.users.find((x) => x.uid === uid);
+  if (!u) return;
+  btn.disabled = true;
+  try {
+    if (adminAction === "role") await adminSetField(uid, { role: u.role === "admin" ? "user" : "admin" });
+    else if (adminAction === "block") await adminSetField(uid, { blocked: !u.blocked });
+    else if (adminAction === "purge") await adminPurgeUser(uid);
+  } catch (err) {
+    console.error("관리자 작업 실패:", err);
+    alert("작업에 실패했습니다: " + err.message);
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("adminSearch").addEventListener("input", renderAdminTable);
+document.getElementById("adminStatusFilter").addEventListener("change", renderAdminTable);
+document.getElementById("adminReloadBtn").addEventListener("click", () => {
+  adminState.viewCounts.clear();
+  loadAdminUsers();
+});
+document.getElementById("adminCountViewsBtn").addEventListener("click", (e) => {
+  e.target.disabled = true;
+  adminCountViews().finally(() => (e.target.disabled = false));
+});
+document.querySelectorAll("#adminTable th.sortable").forEach((th) => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.sort;
+    if (adminState.sortKey === key) adminState.sortDir = adminState.sortDir === "asc" ? "desc" : "asc";
+    else {
+      adminState.sortKey = key;
+      adminState.sortDir = key === "name" || key === "email" || key === "role" ? "asc" : "desc";
+    }
+    renderAdminTable();
   });
 });
 

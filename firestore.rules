@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// buja-map Firestore 보안 규칙
+//
+// 관리자 탭의 버튼을 숨기는 것은 화면 정리일 뿐이고, 실제 접근 제어는 전부 여기서 이뤄진다.
+// Firebase 콘솔 > Firestore Database > 규칙 에 이 내용을 붙여넣고 "게시"해야 적용된다.
+//
+// 최초 관리자 이메일은 index.html 의 ROOT_ADMIN_EMAILS 와 반드시 같아야 한다.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // 구글 로그인만 쓰므로 email 은 항상 검증된 값이지만, 다른 제공업체가 추가될 때를
+    // 대비해 email_verified 까지 확인한다.
+    function isRootAdmin() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() == 'jongyouna@gmail.com';
+    }
+
+    function userDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(userDocPath());
+    }
+
+    // 최초 관리자가 관리자 탭에서 role 을 'admin' 으로 바꿔준 사람도 관리자가 된다.
+    function isAdmin() {
+      return isRootAdmin() || (hasUserDoc() && get(userDocPath()).data.role == 'admin');
+    }
+
+    function isBlocked() {
+      return !isRootAdmin() && hasUserDoc() && get(userDocPath()).data.blocked == true;
+    }
+
+    // 접속한 사용자 목록. 목록 전체 읽기는 관리자만, 본인 문서는 본인도 읽을 수 있다.
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+
+      // 첫 로그인 시 스스로 만든다. 이때 관리자 권한이나 차단 해제를 심을 수 없도록
+      // role/blocked 초기값을 고정한다.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'user'
+        && request.resource.data.blocked == false;
+
+      // 본인은 프로필과 접속 기록만 갱신할 수 있고, 권한/차단 상태는 건드릴 수 없다.
+      allow update: if isAdmin()
+        || (signedIn()
+            && request.auth.uid == uid
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.blocked == resource.data.blocked);
+
+      allow delete: if isAdmin();
+    }
+
+    // 사용자가 저장한 그래프. 본인만 읽고 쓸 수 있으며, 차단된 계정은 접근할 수 없다.
+    // 관리자는 정리(삭제)를 위해 접근할 수 있다.
+    match /savedViews/{uid}/views/{viewId} {
+      allow read, write: if (signedIn() && request.auth.uid == uid && !isBlocked()) || isAdmin();
+    }
+
+    // 그 외 경로는 모두 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
