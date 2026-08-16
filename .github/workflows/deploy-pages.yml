@@ -69,9 +69,13 @@ jobs:
         run: |
           set -eu
 
+          # 아직 공개 배포 저장소를 만들지 않았다면(= PAGES_REPO 미설정) 조용히 건너뛴다.
+          # 이 구조를 켜기 전까지는 main 저장소가 그대로 Pages를 서빙하므로, 데이터가
+          # 갱신될 때마다 실패 알림이 오는 게 더 성가시다. 설정을 시작한 뒤(변수는 넣었는데
+          # 인증 수단이 없는 상태)에는 아래에서 확실히 실패시킨다.
           if [ -z "${TARGET_REPO:-}" ]; then
-            echo "::error::저장소 변수 PAGES_REPO 가 비어 있습니다. Settings → Secrets and variables → Actions → Variables 에 'owner/repo' 형식으로 추가하세요."
-            exit 1
+            echo "::notice::PAGES_REPO 가 설정되지 않아 배포를 건너뜁니다. 설정 방법은 docs/private-repo-pages.md 참고."
+            exit 0
           fi
 
           # 인증 수단은 배포 키(권장) 우선, 없으면 fine-grained PAT.
