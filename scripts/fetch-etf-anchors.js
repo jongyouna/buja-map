@@ -23,8 +23,9 @@ const CONCURRENCY = 8;
 const RETRIES = 2;
 
 // 기준 시점. 값은 "며칠 전"이다. 주말·공휴일이면 그 이전 거래일 종가를 쓴다.
+// 일간(d1)은 날짜를 빼서 구하면 안 된다. 현재가가 이미 "가장 최근 종가"이므로 하루를 빼면
+// 같은 날이 잡혀 수익률이 항상 0이 된다. 일간은 가장 최근 거래일의 '직전' 거래일을 쓴다.
 const PERIODS = [
-  { key: "d1", label: "일간", daysAgo: 1 },
   { key: "w1", label: "주간", daysAgo: 7 },
   { key: "m1", label: "월간", daysAgo: 30 },
   { key: "y1", label: "연간", daysAgo: 365 },
@@ -115,6 +116,8 @@ async function main() {
     try {
       const series = await withRetry(() => fetchDaily(code), RETRIES);
       const entry = {};
+      // 일간: 마지막에서 두 번째 거래일 종가(=직전 거래일). 거래일이 하나뿐이면 없다.
+      entry.d1 = series.length >= 2 ? series[series.length - 2].close : null;
       for (const t of targets) {
         const hit = closeOnOrBefore(series, t.ymd);
         // 상장한 지 얼마 안 된 종목은 1년 전 종가가 없다. 그런 칸은 null로 두고
@@ -134,8 +137,8 @@ async function main() {
     updatedAt: new Date().toISOString(),
     source: "네이버 금융 일별 시세",
     // 어느 날짜의 종가를 기준으로 삼았는지 화면에서 그대로 보여 준다.
-    baseDates: Object.fromEntries(targets.map((t) => [t.key, t.ymd])),
-    labels: Object.fromEntries(targets.map((t) => [t.key, t.label])),
+    baseDates: { d1: "직전 거래일", ...Object.fromEntries(targets.map((t) => [t.key, t.ymd])) },
+    labels: { d1: "일간", ...Object.fromEntries(targets.map((t) => [t.key, t.label])) },
     count: Object.keys(items).length,
     items,
   };

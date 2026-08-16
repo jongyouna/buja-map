@@ -1690,6 +1690,22 @@
     </div>
   </div>
 
+  <!-- 아직 한 번도 자산을 넣지 않은 사용자에게 표 붙여넣기를 안내한다. -->
+  <div class="modal-backdrop" id="allocWelcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
+    <div class="modal-card">
+      <h2 id="welcomeTitle">보유 자산을 한 번에 넣어 보세요</h2>
+      <p class="desc">
+        스프레드시트로 관리하던 표가 있다면 옮겨 적을 필요 없습니다.
+        표를 복사해 <b>표 붙여넣기</b>에 그대로 넣으면 종목·목표비중·평균매입가·잔고수량이 한 번에 채워지고,
+        종목명으로 현재가까지 자동으로 붙습니다.
+      </p>
+      <div class="modal-actions">
+        <button class="google-btn" id="welcomeImportBtn" type="button">표 붙여넣기</button>
+        <button class="toggle-btn" id="welcomeCloseBtn" type="button">직접 입력할게요</button>
+      </div>
+    </div>
+  </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
@@ -3213,6 +3229,12 @@ function normalizeAllocBook(raw) {
   return null;
 }
 
+// 이 계정으로 자산을 한 번도 저장한 적이 없는지. 탭을 열면 기본 구성이 곧바로 저장되므로,
+// 저장이 일어나기 전에 미리 봐 두어야 한다.
+function isFirstTimeAllocUser() {
+  return !!currentUser && !currentUserDoc?.assetAllocation;
+}
+
 function currentAllocBook() {
   if (currentUser) {
     const saved = normalizeAllocBook(currentUserDoc?.assetAllocation);
@@ -4204,6 +4226,28 @@ function initAllocationTab() {
     refreshQuotes();
   }
 
+  // ---- 처음 쓰는 사용자 안내 ----
+  // 탭을 열면 기본 구성이 곧바로 계정에 저장되므로, 저장이 일어나기 전에 판단해 둔다.
+  const welcomeModal = document.getElementById("allocWelcomeModal");
+  function closeWelcome() {
+    welcomeModal.hidden = true;
+  }
+  function maybeShowWelcome(firstTime) {
+    if (!firstTime) return;
+    welcomeModal.hidden = false;
+  }
+  document.getElementById("welcomeCloseBtn").addEventListener("click", closeWelcome);
+  document.getElementById("welcomeImportBtn").addEventListener("click", () => {
+    closeWelcome();
+    openImport();
+  });
+  welcomeModal.addEventListener("click", (e) => {
+    if (e.target === welcomeModal) closeWelcome();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !welcomeModal.hidden) closeWelcome();
+  });
+
   document.getElementById("allocImportBtn").addEventListener("click", openImport);
   document.getElementById("allocImportCancel").addEventListener("click", closeImport);
   document.getElementById("allocImportApply").addEventListener("click", applyImport);
@@ -4238,6 +4282,8 @@ function initAllocationTab() {
     clearTimeout(saveTimer);
     closeSuggest();
     renamingId = null;
+    // book을 만들기 전에 봐야 한다. 아래 refreshQuotes가 곧 기본 구성을 저장해 버린다.
+    const firstTime = isFirstTimeAllocUser();
     book = currentAllocBook();
     state = activeAccount();
     setAllocSync({ state: currentUser ? "ready" : "idle", error: null, at: null });
@@ -4247,6 +4293,7 @@ function initAllocationTab() {
     renderComputed();
     updateSyncNote();
     if (currentUser) refreshQuotes();
+    maybeShowWelcome(firstTime);
   };
 
   renderAccountTabs();
@@ -4254,8 +4301,11 @@ function initAllocationTab() {
   renderRows();
   renderComputed();
   updateSyncNote();
-  // 탭을 처음 열면 바로 현재가를 채운다.
+  // 탭을 처음 열면 바로 현재가를 채운다. 그 과정에서 기본 구성이 계정에 저장되므로
+  // "처음 쓰는 사용자인지"는 그 전에 정해 둔다.
+  const firstTimeOnOpen = isFirstTimeAllocUser();
   refreshQuotes();
+  maybeShowWelcome(firstTimeOnOpen);
 }
 
 // ---- 관리자 탭 ----
