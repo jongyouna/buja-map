@@ -101,7 +101,11 @@
   @media (prefers-reduced-motion: reduce) {
     .tab-btn.hot.active .tab-icon { animation: none; }
   }
-  .naver-controls { display: flex; gap: 8px; flex-shrink: 0; }
+  .tab-panel[hidden] { display: none; }
+  .naver-controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+  .naver-limit { display: inline-flex; align-items: center; gap: 6px; }
+  .naver-limit > span { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+  .naver-more { font-size: 0.76rem; color: var(--muted); margin: 10px 0 0; }
   .naver-controls select {
     font-size: 0.8rem;
     border: 1px solid var(--panel-border);
@@ -1357,6 +1361,18 @@
           <select id="naverTradeSelect" title="거래 유형">
             <option value="A1" selected>매매</option>
           </select>
+          <label class="naver-limit">
+            <span>결과개수</span>
+            <select id="naverLimitSelect" title="표에 그릴 행 수">
+              <option value="10">10개</option>
+              <option value="30">30개</option>
+              <option value="50">50개</option>
+              <option value="100" selected>100개</option>
+              <option value="300">300개</option>
+              <option value="1000">1,000개</option>
+              <option value="0">전체</option>
+            </select>
+          </label>
         </div>
       </div>
       <p class="desc" id="naverUpdatedAt">데이터를 불러오는 중입니다...</p>
@@ -1379,6 +1395,7 @@
           <tbody id="naverTableBody"></tbody>
         </table>
       </div>
+      <p class="naver-more" id="naverMoreNote" hidden></p>
     </div>
   </section>
 
@@ -4336,6 +4353,8 @@ async function initNaverTab() {
   }
 
   const tradeSelect = document.getElementById("naverTradeSelect");
+  const limitSelect = document.getElementById("naverLimitSelect");
+  const moreNote = document.getElementById("naverMoreNote");
   const regions = payload.regions || [];
 
   const totalCount = regions.reduce((s, r) => s + r.complexes.reduce((s2, c) => s2 + c.count, 0), 0);
@@ -4694,6 +4713,7 @@ async function initNaverTab() {
     });
 
     if (rows.length === 0) {
+      moreNote.hidden = true;
       const b = priceBounds();
       const priceHint = b.isAll ? "" : `<br/>가격대 <b>${priceRangeLabel.textContent}</b> 범위를 넓혀보세요.`;
       tbody.innerHTML = includeChips.length
@@ -4702,7 +4722,22 @@ async function initNaverTab() {
       return;
     }
 
-    tbody.innerHTML = rows
+    // 서울 전체를 담으면 행이 만 단위로 나온다. 그만큼의 <tr>을 만들면 브라우저가
+    // 몇 초씩 멈추므로, 정렬한 뒤 앞에서부터 고른 개수만 그린다.
+    // 요약 지표는 잘라내기 전 전체를 기준으로 계산한다(보이는 것만 세면 숫자가 거짓말이 된다).
+    const limit = Number(limitSelect.value) || 0;
+    const shown = limit > 0 ? rows.slice(0, limit) : rows;
+    if (shown.length < rows.length) {
+      moreNote.hidden = false;
+      moreNote.textContent =
+        `정렬 기준 상위 ${shown.length.toLocaleString("ko-KR")}개만 표시했습니다. ` +
+        `조건에 맞는 항목은 ${rows.length.toLocaleString("ko-KR")}개입니다. ` +
+        `더 보려면 위 결과개수를 늘리거나 지역·가격대를 좁혀 주세요.`;
+    } else {
+      moreNote.hidden = true;
+    }
+
+    tbody.innerHTML = shown
       .map((r) => {
         const area = rowArea(r);
         const areaCell =
@@ -4773,6 +4808,7 @@ async function initNaverTab() {
     dealCount: "",
     priceMin: 0,
     priceMax: PRICE_MAX_STEP,
+    limit: "100",
     sortKey: "count",
     sortDir: "desc",
   });
@@ -4814,6 +4850,7 @@ async function initNaverTab() {
       pyeongType: pyeongTypeSelect.value,
       age: ageSelect.value,
       dealCount: dealCountSelect.value,
+      limit: limitSelect.value,
       priceMin: Number(priceMinRange.value),
       priceMax: Number(priceMaxRange.value),
       sortKey,
@@ -4837,6 +4874,9 @@ async function initNaverTab() {
       pyeongTypeSelect.value = typeof p.pyeongType === "string" ? p.pyeongType : "";
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
+      limitSelect.value = typeof p.limit === "string" ? p.limit : d.limit;
+      // 저장된 값이 목록에 없으면 select가 ""로 떨어진다. 그러면 전체가 그려져 느려지므로 기본값으로 되돌린다.
+      if (limitSelect.value === "" && p.limit !== "0") limitSelect.value = d.limit;
       const clampStep = (v, fallback) =>
         Number.isFinite(v) ? Math.min(PRICE_MAX_STEP, Math.max(0, Math.round(v))) : fallback;
       const lo = clampStep(p.priceMin, 0);
@@ -4898,6 +4938,7 @@ async function initNaverTab() {
   });
 
   tradeSelect.addEventListener("change", render);
+  limitSelect.addEventListener("change", render);
   // 드롭다운 선택도 기억해야 하므로, 표를 다시 그리지 않는 변경에도 저장을 걸어둔다.
   [gugunSelect, dongSelect].forEach((el) => el.addEventListener("change", () => prefsReady && persistPrefsSoon()));
 
