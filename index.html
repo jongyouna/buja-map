@@ -1105,6 +1105,13 @@
     .acct-tab { max-width: 100%; }
   }
 
+  /* 기간별 수익률 (분류별 비중 패널 아래) */
+  .alloc-period { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--panel-border); }
+  .alloc-period h3 { font-size: 0.9rem; font-weight: 700; margin: 0 0 10px; }
+  .alloc-period-wrap { position: relative; height: 190px; }
+  .alloc-period-note { font-size: 0.72rem; color: var(--muted); line-height: 1.6; margin: 10px 0 0; }
+  .alloc-period-note.error { color: var(--bad); }
+
   .alloc-quote-state { font-size: 0.74rem; color: var(--muted); }
   .alloc-quote-state.error { color: var(--bad); }
 </style>
@@ -1597,6 +1604,14 @@
         <p class="desc">목표 비중과 실제 보유 비중을 분류별로 비교합니다.</p>
         <div class="alloc-donut-wrap">
           <canvas id="allocCatChart"></canvas>
+        </div>
+
+        <div class="alloc-period">
+          <h3>기간별 수익률</h3>
+          <div class="alloc-period-wrap">
+            <canvas id="allocPeriodChart"></canvas>
+          </div>
+          <p class="alloc-period-note" id="allocPeriodNote"></p>
         </div>
       </div>
 
@@ -3308,6 +3323,31 @@ function loadEtfQuotes(force = false) {
   return etfQuotesPromise;
 }
 
+// 기간별 수익률에 쓰는 기준 시점 종가. 하루 한 번 갱신되므로 시세와 따로 받는다.
+// (scripts/fetch-etf-anchors.js)
+let etfAnchors = null;
+let etfAnchorsPromise = null;
+
+function loadEtfAnchors() {
+  if (etfAnchorsPromise) return etfAnchorsPromise;
+  etfAnchorsPromise = fetch("./data/etf-anchors.json")
+    .then((res) => {
+      if (!res.ok) throw new Error(`기준 종가를 불러오지 못했습니다 (${res.status})`);
+      return res.json();
+    })
+    .then((json) => {
+      if (!json || !json.items) throw new Error("기준 종가 형식이 올바르지 않습니다");
+      etfAnchors = json;
+      return json;
+    })
+    .catch((err) => {
+      // 기간별 수익률만 못 그릴 뿐 나머지 화면은 그대로 쓸 수 있다.
+      console.error("기준 종가를 불러오지 못했습니다:", err);
+      return null;
+    });
+  return etfAnchorsPromise;
+}
+
 function searchEtf(query, limit = 12) {
   if (!etfQuotes) return [];
   const q = query.trim().toLowerCase().replace(/\s+/g, "");
@@ -3505,6 +3545,7 @@ function initAllocationTab() {
   let state = activeAccount();
   let donut = null;
   let catChart = null;
+  let periodChart = null;
   let saveTimer = null;
   let suggestRow = null; // 검색 드롭다운이 열려 있는 행 번호
 
@@ -3833,6 +3874,7 @@ function initAllocationTab() {
 
     renderSummary(c);
     renderCharts(c);
+    renderPeriodChart();
   }
 
   function renderSummary(c) {
@@ -3908,6 +3950,111 @@ function initAllocationTab() {
       catChart.data = catData;
       catChart.update();
     }
+  }
+
+  // ---- 기간별 수익률 ----
+  // 지금 보유한 종목·수량이 그 기간 내내 그대로였다고 가정하고 계산한다.
+  //   수익률 = (Σ 수량×현재가 − Σ 수량×기준시점 종가) / (Σ 수량×기준시점 종가)
+  // 기간 중에 사고판 내역은 반영되지 않는다(그 기록을 갖고 있지 않다). 화면에 그대로 밝힌다.
+  const ALLOC_PERIODS = [
+    { key: "d1", label: "일간" },
+    { key: "w1", label: "주간" },
+    { key: "m1", label: "월간" },
+    { key: "y1", label: "연간" },
+  ];
+
+  function computePeriodReturns() {
+    if (!etfAnchors) return null;
+    const rows = state.rows.filter((r) => r.code && r.qty > 0 && Number.isFinite(r.price));
+    if (!rows.length) return { empty: true };
+
+    const out = [];
+    let missingMax = 0;
+    for (const period of ALLOC_PERIODS) {
+      let base = 0;
+      let now = 0;
+      let missing = 0;
+      for (const r of rows) {
+        const past = etfAnchors.items[r.code]?.[period.key];
+        if (!(past > 0)) {
+          // 그 시점에 아직 상장하지 않았거나 값이 없는 종목은 이 기간 계산에서 뺀다.
+          // 기준가 없이 현재가만 더하면 수익률이 부풀려진다.
+          missing++;
+          continue;
+        }
+        base += past * r.qty;
+        now += r.price * r.qty;
+      }
+      missingMax = Math.max(missingMax, missing);
+      out.push({ ...period, rate: base > 0 ? ((now - base) / base) * 100 : null, missing });
+    }
+    return { periods: out, missingMax, total: rows.length };
+  }
+
+  function renderPeriodChart() {
+    const noteEl = document.getElementById("allocPeriodNote");
+    const result = computePeriodReturns();
+
+    if (!result) {
+      noteEl.className = "alloc-period-note";
+      noteEl.textContent = "기준 종가를 불러오는 중입니다...";
+      return;
+    }
+    if (result.empty) {
+      noteEl.className = "alloc-period-note";
+      noteEl.textContent = "종목과 잔고수량을 넣으면 기간별 수익률이 표시됩니다.";
+      if (periodChart) {
+        periodChart.data.datasets[0].data = [];
+        periodChart.update();
+      }
+      return;
+    }
+
+    const labels = result.periods.map((p) => p.label);
+    const values = result.periods.map((p) => (p.rate === null ? null : Number(p.rate.toFixed(2))));
+    // 오르면 빨강, 내리면 파랑. 표의 수익률 색과 같은 규칙이다.
+    const colors = values.map((v) => (v === null ? "#cbd5e1" : v >= 0 ? "#d92d20" : "#1849a9"));
+
+    const data = { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 46 }] };
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const p = result.periods[ctx.dataIndex];
+              if (p.rate === null) return "계산할 수 없음";
+              const base = etfAnchors.baseDates?.[p.key];
+              const when = base && /^\d{8}$/.test(base) ? `${base.slice(0, 4)}-${base.slice(4, 6)}-${base.slice(6, 8)} 종가 대비` : "직전 거래일 종가 대비";
+              return `${p.rate >= 0 ? "+" : ""}${p.rate.toFixed(2)}% (${when})`;
+            },
+          },
+        },
+      },
+      scales: {
+        y: { ticks: { callback: (v) => `${v}%`, font: { size: 10 } }, grid: { color: "#eef0f3" } },
+        x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+      },
+    };
+
+    if (!periodChart) {
+      periodChart = new Chart(document.getElementById("allocPeriodChart"), { type: "bar", data, options });
+    } else {
+      periodChart.data = data;
+      periodChart.options = options;
+      periodChart.update();
+    }
+
+    const notes = ["지금 보유한 종목·수량 기준입니다. 기간 중에 사고판 내역은 반영되지 않습니다."];
+    if (result.missingMax) notes.push(`그 시점 시세가 없는 ${result.missingMax}종목은 해당 기간에서 제외했습니다.`);
+    if (etfAnchors.updatedAt) {
+      const at = new Date(etfAnchors.updatedAt);
+      if (!isNaN(at)) notes.push(`기준 종가 갱신 ${at.toLocaleDateString("ko-KR")}`);
+    }
+    noteEl.className = "alloc-period-note";
+    noteEl.textContent = notes.join(" ");
   }
 
   function renderHeader() {
@@ -4249,6 +4396,10 @@ function initAllocationTab() {
   }
   function maybeShowWelcome(firstTime) {
     if (!firstTime) return;
+    // 자산 배분 화면을 보고 있을 때만 띄운다. 거시경제 탭을 보다가 로그인했는데 자산 배분
+    // 안내가 뜨면 뜬금없다. 이 경우 나중에 탭을 처음 열 때 뜬다.
+    const panel = document.getElementById("tabPanel-allocation");
+    if (!panel || panel.hidden) return;
     welcomeModal.hidden = false;
   }
   document.getElementById("welcomeCloseBtn").addEventListener("click", closeWelcome);
@@ -4320,6 +4471,8 @@ function initAllocationTab() {
   // "처음 쓰는 사용자인지"는 그 전에 정해 둔다.
   const firstTimeOnOpen = isFirstTimeAllocUser();
   refreshQuotes();
+  // 기준 종가는 시세와 별개 파일이라 따로 받는다. 받아온 뒤 기간별 수익률을 다시 그린다.
+  loadEtfAnchors().then(() => renderPeriodChart());
   maybeShowWelcome(firstTimeOnOpen);
 }
 
