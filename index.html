@@ -105,7 +105,30 @@
   .naver-controls { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
   .naver-limit { display: inline-flex; align-items: center; gap: 6px; }
   .naver-limit > span { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-  .naver-more { font-size: 0.76rem; color: var(--muted); margin: 10px 0 0; }
+  .naver-more { font-size: 0.76rem; color: var(--muted); margin: 8px 0 0; text-align: center; }
+  .pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; }
+  .pager-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 8px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .pager-btn:hover:not(:disabled):not(.current) { border-color: var(--muted); }
+  .pager-btn.current {
+    background: var(--accent-include);
+    border-color: var(--accent-include);
+    color: #fff;
+    font-weight: 700;
+  }
+  /* 양 끝 화살표는 더 갈 곳이 없으면 흐리게 두어 눌러도 소용없다는 걸 보여 준다. */
+  .pager-btn:disabled { color: var(--panel-border); cursor: default; }
+  .pager-btn.pager-edge { color: var(--muted); }
+  .pager-btn.pager-edge:disabled { color: var(--panel-border); }
   .naver-controls select {
     font-size: 0.8rem;
     border: 1px solid var(--panel-border);
@@ -1396,6 +1419,7 @@
           <tbody id="naverTableBody"></tbody>
         </table>
       </div>
+      <nav class="pager" id="naverPager" aria-label="매물 목록 페이지" hidden></nav>
       <p class="naver-more" id="naverMoreNote" hidden></p>
     </div>
   </section>
@@ -4356,6 +4380,8 @@ async function initNaverTab() {
   const tradeSelect = document.getElementById("naverTradeSelect");
   const limitSelect = document.getElementById("naverLimitSelect");
   const moreNote = document.getElementById("naverMoreNote");
+  const pager = document.getElementById("naverPager");
+  let pageNo = 1;
   const regions = payload.regions || [];
 
   const totalCount = regions.reduce((s, r) => s + r.complexes.reduce((s2, c) => s2 + c.count, 0), 0);
@@ -4693,7 +4719,59 @@ async function initNaverTab() {
       .join("");
   }
 
+  // 페이지 번호 버튼은 한 번에 최대 10개까지만 보여 주고 현재 페이지를 가운데 둔다.
+  // 서울 전체 + 10개씩 보기면 1,400 페이지가 넘어 전부 그릴 수 없다.
+  const PAGER_WINDOW = 10;
+  function renderPager(pageCount) {
+    if (pageCount <= 1) {
+      pager.hidden = true;
+      pager.innerHTML = "";
+      return;
+    }
+    pager.hidden = false;
+    let start = Math.max(1, pageNo - Math.floor(PAGER_WINDOW / 2));
+    const end = Math.min(pageCount, start + PAGER_WINDOW - 1);
+    start = Math.max(1, end - PAGER_WINDOW + 1);
+
+    const edge = (label, target, aria, off) =>
+      `<button type="button" class="pager-btn pager-edge" data-page="${target}" aria-label="${aria}"${
+        off ? " disabled" : ""
+      }>${label}</button>`;
+    const html = [
+      edge("|‹", 1, "첫 페이지", pageNo === 1),
+      edge("‹", pageNo - 1, "이전 페이지", pageNo === 1),
+    ];
+    for (let p = start; p <= end; p++) {
+      html.push(
+        `<button type="button" class="pager-btn${p === pageNo ? " current" : ""}" data-page="${p}"${
+          p === pageNo ? ' aria-current="page"' : ""
+        }>${p}</button>`
+      );
+    }
+    html.push(edge("›", pageNo + 1, "다음 페이지", pageNo === pageCount));
+    html.push(edge("›|", pageCount, "마지막 페이지", pageNo === pageCount));
+    pager.innerHTML = html.join("");
+  }
+
+  pager.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+    const target = Number(btn.dataset.page);
+    if (!Number.isFinite(target) || target === pageNo) return;
+    pageNo = Math.max(1, target);
+    redraw();
+    // 페이지를 넘기면 표 윗줄부터 보이도록 올려 준다.
+    document.getElementById("naverTable").scrollIntoView({ block: "start", behavior: "smooth" });
+  });
+
+  // 조건이나 정렬이 바뀌면 보고 있던 페이지 번호는 의미가 없다. 필터 쪽에서 부르는
+  // 입구는 render()로 두고, 페이지 이동만 redraw()를 직접 불러 번호를 유지한다.
   function render() {
+    pageNo = 1;
+    redraw();
+  }
+
+  function redraw() {
     // 필터를 건드리면 어떤 경로로든 render()를 거치므로, 설정 저장은 여기 한 곳에서만 건다.
     if (prefsReady && !applyingPrefs) persistPrefsSoon();
     const sortValue = (r) =>
@@ -4715,6 +4793,8 @@ async function initNaverTab() {
 
     if (rows.length === 0) {
       moreNote.hidden = true;
+      pager.hidden = true;
+      pager.innerHTML = "";
       const b = priceBounds();
       const priceHint = b.isAll ? "" : `<br/>가격대 <b>${priceRangeLabel.textContent}</b> 범위를 넓혀보세요.`;
       tbody.innerHTML = includeChips.length
@@ -4724,16 +4804,23 @@ async function initNaverTab() {
     }
 
     // 서울 전체를 담으면 행이 만 단위로 나온다. 그만큼의 <tr>을 만들면 브라우저가
-    // 몇 초씩 멈추므로, 정렬한 뒤 앞에서부터 고른 개수만 그린다.
+    // 몇 초씩 멈추므로, 정렬한 뒤 한 페이지 분량만 그린다.
     // 요약 지표는 잘라내기 전 전체를 기준으로 계산한다(보이는 것만 세면 숫자가 거짓말이 된다).
     const limit = Number(limitSelect.value) || 0;
-    const shown = limit > 0 ? rows.slice(0, limit) : rows;
-    if (shown.length < rows.length) {
+    const pageSize = limit > 0 ? limit : rows.length;
+    const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+    // 결과가 줄어 지금 페이지가 사라졌으면 마지막 페이지로 당긴다.
+    if (pageNo > pageCount) pageNo = pageCount;
+    const from = (pageNo - 1) * pageSize;
+    const shown = rows.slice(from, from + pageSize);
+
+    renderPager(pageCount);
+    if (rows.length > shown.length) {
       moreNote.hidden = false;
       moreNote.textContent =
-        `정렬 기준 상위 ${shown.length.toLocaleString("ko-KR")}개만 표시했습니다. ` +
-        `조건에 맞는 항목은 ${rows.length.toLocaleString("ko-KR")}개입니다. ` +
-        `더 보려면 위 결과개수를 늘리거나 지역·가격대를 좁혀 주세요.`;
+        `${rows.length.toLocaleString("ko-KR")}개 중 ` +
+        `${(from + 1).toLocaleString("ko-KR")}–${(from + shown.length).toLocaleString("ko-KR")}번째 ` +
+        `(${pageNo}/${pageCount} 페이지)`;
     } else {
       moreNote.hidden = true;
     }
