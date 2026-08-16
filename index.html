@@ -24,6 +24,11 @@
     --bad-bg: #fef3f2;
   }
   * { box-sizing: border-box; }
+  /* hidden 속성은 브라우저 기본 스타일(display:none)로 동작하는데, 그 요소에
+     display를 지정하는 규칙이 하나라도 있으면 기본 스타일을 이겨서 hidden이 무시된다.
+     실제로 .tab-btn에 display:inline-flex를 준 순간 관리자 탭 버튼이 로그인 없이도
+     보이게 됐다. 앞으로 같은 일이 생기지 않도록 여기서 한 번에 못 박는다. */
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     font-family: -apple-system, "Segoe UI", "Pretendard", "Noto Sans KR", sans-serif;
@@ -96,7 +101,6 @@
   @media (prefers-reduced-motion: reduce) {
     .tab-btn.hot.active .tab-icon { animation: none; }
   }
-  .tab-panel[hidden] { display: none; }
   .naver-controls { display: flex; gap: 8px; flex-shrink: 0; }
   .naver-controls select {
     font-size: 0.8rem;
@@ -548,7 +552,6 @@
   .period-btn:hover { border-color: var(--text); color: var(--text); }
   .period-btn.active { background: var(--accent-nasdaq); color: #fff; border-color: var(--accent-nasdaq); }
   .rebase-note { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); margin-left: 4px; }
-  .rebase-note[hidden] { display: none; }
   .reset-btn { padding: 4px 10px; font-size: 0.75rem; }
   .chart-wrap { position: relative; height: 340px; cursor: crosshair; }
   .chart-wrap.small { height: 220px; }
@@ -569,7 +572,6 @@
     padding: 20px;
     z-index: 100;
   }
-  .modal-backdrop[hidden] { display: none; }
   .modal-card {
     background: var(--panel);
     border: 1px solid var(--panel-border);
@@ -586,7 +588,6 @@
   .modal-actions .google-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
   .modal-actions .toggle-btn { padding: 8px 14px; }
   .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; }
-  .modal-error[hidden] { display: none; }
 
   /* ---- 자산 배분 탭 ---- */
   /* 계좌 탭 줄: 자산 배분 안에서 여러 계좌(연금저축·IRP·ISA…)를 오간다. */
@@ -768,7 +769,6 @@
     box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
     padding: 4px;
   }
-  .alloc-suggest[hidden] { display: none; }
   .alloc-suggest-item {
     display: flex;
     justify-content: space-between;
@@ -822,7 +822,6 @@
     padding: 8px 12px;
     margin: 12px 0 0;
   }
-  .alloc-warn[hidden] { display: none; }
   /* 가져오기 팝업: 스프레드시트에서 복사한 표를 그대로 붙여넣는다. */
   .import-card { max-width: 640px; text-align: left; }
   .import-card h2 { text-align: left; }
