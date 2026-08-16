@@ -873,6 +873,131 @@
   }
   .alloc-summary .cell input:focus { outline: none; border-color: var(--text); }
 
+  /* AI 대화창 */
+  .ai-panel { margin-bottom: 20px; }
+  .ai-setup {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--bg);
+  }
+  .ai-provider { display: flex; gap: 6px; }
+  .ai-pick {
+    padding: 7px 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ai-pick[aria-checked="true"] { border-color: var(--text); color: var(--text); background: var(--panel); box-shadow: inset 0 0 0 1px var(--text); }
+  .ai-key { display: flex; flex-direction: column; gap: 4px; flex: 1 1 260px; min-width: 0; }
+  .ai-key > span { font-size: 0.72rem; color: var(--muted); }
+  .ai-key input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+  .ai-key input:focus { outline: none; border-color: var(--text); }
+  .ai-key-note { flex: 1 1 100%; margin: 0; font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+  .ai-key-note a { color: var(--text); }
+
+  .ai-thread {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 4px 2px 8px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ai-msg { max-width: 100%; }
+  .ai-msg .ai-who { font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; }
+  .ai-msg .ai-body {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    font-size: 0.88rem;
+    line-height: 1.65;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ai-msg.me { align-self: flex-end; max-width: 90%; }
+  .ai-msg.me .ai-who { text-align: right; }
+  .ai-msg.me .ai-body { background: var(--bg); }
+  .ai-msg.err .ai-body { border-color: var(--bad); color: var(--bad); background: var(--bad-bg); }
+  .ai-body code { background: var(--bg); border: 1px solid var(--panel-border); border-radius: 4px; padding: 0 4px; font-size: 0.85em; }
+  .ai-body ul { margin: 6px 0; padding-left: 18px; }
+  .ai-body h4 { margin: 10px 0 4px; font-size: 0.9rem; }
+  .ai-body .ai-caret { opacity: 0.5; }
+
+  .ai-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .ai-chip {
+    padding: 6px 11px;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 0.76rem;
+    cursor: pointer;
+  }
+  .ai-chip:hover { border-color: var(--text); color: var(--text); }
+
+  .ai-form { display: flex; gap: 8px; align-items: stretch; }
+  .ai-form textarea {
+    flex: 1 1 auto;
+    min-width: 0;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  .ai-form textarea:focus { outline: none; border-color: var(--text); }
+  .ai-form-btns { display: flex; flex-direction: column; gap: 6px; }
+  .ai-form-btns button { white-space: nowrap; }
+  .ai-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
+  .ai-ctx { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--muted); cursor: pointer; }
+  .ai-state { font-size: 0.74rem; color: var(--muted); flex: 1 1 auto; }
+  .ai-state.error { color: var(--bad); }
+  .ai-clear {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 0.74rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  @media (max-width: 640px) {
+    .ai-form { flex-direction: column; }
+    .ai-form-btns { flex-direction: row; }
+    .ai-form-btns button { flex: 1 1 0; }
+    /* 좁은 화면에서 예시 질문이 세로로 쌓이면 화면 한 판을 다 먹는다.
+       옆으로 미는 띠로 바꿔 입력칸이 첫 화면에 보이게 한다. */
+    .ai-quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .ai-quick::-webkit-scrollbar { display: none; }
+    .ai-chip { flex: 0 0 auto; }
+    .ai-thread { max-height: 300px; }
+  }
+
   .alloc-layout { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
   .alloc-layout > .panel { flex: 1 1 100%; min-width: 0; }
   .alloc-layout > .panel.alloc-chart-panel { flex: 1 1 300px; align-self: stretch; }
@@ -1805,6 +1930,49 @@
       <div class="cell">
         <div class="label">Threshold(%)</div>
         <input type="number" id="allocThreshold" min="0" max="100" step="1" placeholder="8" />
+      </div>
+    </div>
+
+    <!-- AI 대화창. 지금 보고 있는 계좌 내용을 그대로 얹어 클로드/제미나이에게 묻는다.
+         API 키는 사용자의 브라우저(localStorage)에만 둔다. 계정 문서(Firestore)에 저장하면
+         관리자가 다른 사람의 문서까지 읽을 수 있으므로(firestore.rules 참고) 넣지 않는다. -->
+    <div class="panel ai-panel">
+      <div class="panel-header">
+        <div>
+          <h2>AI에게 물어보기</h2>
+          <p class="desc">지금 보고 있는 계좌의 종목·비중·손익을 함께 보내 포트폴리오와 주식시장에 대해 물어봅니다. API 키는 이 브라우저에만 저장되며 서버로 보내지 않습니다.</p>
+        </div>
+        <button class="toggle-btn" id="aiSettingsBtn" type="button" aria-expanded="false">AI 설정</button>
+      </div>
+
+      <div class="ai-setup" id="aiSetup" hidden>
+        <div class="ai-provider" role="radiogroup" aria-label="AI 선택">
+          <button class="ai-pick" type="button" role="radio" aria-checked="false" data-provider="claude">Claude</button>
+          <button class="ai-pick" type="button" role="radio" aria-checked="false" data-provider="gemini">Gemini</button>
+        </div>
+        <label class="ai-key">
+          <span id="aiKeyLabel">Claude API 키</span>
+          <input type="password" id="aiKeyInput" autocomplete="off" spellcheck="false" placeholder="sk-ant-..." />
+        </label>
+        <p class="ai-key-note" id="aiKeyNote"></p>
+      </div>
+
+      <div class="ai-thread" id="aiThread" hidden></div>
+
+      <div class="ai-quick" id="aiQuick"></div>
+
+      <form class="ai-form" id="aiForm">
+        <textarea id="aiInput" rows="2" maxlength="2000" placeholder="예: 지금 리밸런싱이 필요한 종목과 그 이유를 알려줘"></textarea>
+        <div class="ai-form-btns">
+          <button class="region-btn include" id="aiSendBtn" type="submit">보내기</button>
+          <button class="toggle-btn" id="aiStopBtn" type="button" hidden>중지</button>
+        </div>
+      </form>
+
+      <div class="ai-foot">
+        <label class="ai-ctx"><input type="checkbox" id="aiIncludeCtx" checked /> 내 계좌 내용 함께 보내기</label>
+        <span class="ai-state" id="aiState"></span>
+        <button class="ai-clear" id="aiClearBtn" type="button" hidden>대화 지우기</button>
       </div>
     </div>
 
@@ -4012,6 +4180,283 @@ function openAiAskFor(name, code) {
   window.open(aiAskUrl(label, code), "_blank", "noopener,noreferrer");
 }
 
+// ---- AI 대화창 (클로드 / 제미나이) ----
+// 정적 사이트라 서버가 없다. 그래서 브라우저가 AI 회사의 API를 직접 부르고,
+// 그때 필요한 API 키는 사용자가 자기 것을 넣는다(비용도 그 사용자에게 청구된다).
+//
+// 키를 계정 문서(Firestore)에 저장하지 않는 이유:
+//   firestore.rules 에서 관리자는 모든 users/{uid} 문서를 읽을 수 있다. 자산 내역이야
+//   관리 목적상 그렇다 쳐도, 남의 API 키까지 읽히면 그 사람 이름으로 요금이 나갈 수 있다.
+//   그래서 키는 이 브라우저의 localStorage 에만 두고 기기 간 동기화도 하지 않는다.
+const AI_PROVIDERS = {
+  claude: {
+    label: "Claude",
+    keyLabel: "Claude API 키",
+    placeholder: "sk-ant-...",
+    issueUrl: "https://console.anthropic.com/settings/keys",
+    storeKey: "buja-map.ai.key.claude",
+    // 키가 없을 때 웹으로 넘겨 주는 곳
+    webUrl: (q) => `https://claude.ai/new?q=${encodeURIComponent(q)}`,
+  },
+  gemini: {
+    label: "Gemini",
+    keyLabel: "Gemini API 키",
+    placeholder: "AIza...",
+    issueUrl: "https://aistudio.google.com/app/apikey",
+    storeKey: "buja-map.ai.key.gemini",
+    // 제미나이 웹은 주소로 질문을 미리 채우지 못한다. 구글 AI 모드(udm=50)가 같은 모델이다.
+    webUrl: (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}&udm=50`,
+  },
+};
+const AI_PROVIDER_STORE = "buja-map.ai.provider";
+
+// 사생활 보호 모드 등에서 localStorage 접근이 예외를 던질 수 있다. 그래도 화면은 살아야 한다.
+function aiStoreGet(key) {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function aiStoreSet(key, value) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch (e) {
+    /* 저장하지 못해도 이번 세션 동안은 쓸 수 있다 */
+  }
+}
+
+// 응답 본문에서 사람이 읽을 만한 오류 문구를 뽑아낸다.
+async function aiErrorText(res) {
+  let detail = "";
+  try {
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text);
+      detail = json?.error?.message || json?.[0]?.error?.message || json?.message || "";
+    } catch (e) {
+      detail = text.slice(0, 200);
+    }
+  } catch (e) {
+    /* 본문을 못 읽는 경우도 있다 */
+  }
+  if (res.status === 401 || res.status === 403) {
+    return `API 키가 올바르지 않거나 권한이 없습니다 (${res.status}). ${detail}`.trim();
+  }
+  if (res.status === 429) return `요청이 너무 잦거나 사용 한도를 넘었습니다 (429). ${detail}`.trim();
+  if (res.status >= 500) return `AI 서버 오류입니다 (${res.status}). 잠시 후 다시 시도해 주세요. ${detail}`.trim();
+  return `요청이 거절됐습니다 (${res.status}). ${detail}`.trim();
+}
+
+// fetch 자체가 실패하면 원인이 네트워크인지 CORS인지 브라우저가 알려 주지 않는다.
+// 둘 다 사용자가 할 수 있는 일이 다르므로 가능성을 같이 적어 준다.
+function aiNetworkMessage(provider) {
+  return (
+    `${AI_PROVIDERS[provider].label}에 연결하지 못했습니다. ` +
+    `인터넷 연결, 광고 차단 확장 프로그램, 회사·학교 네트워크의 차단 여부를 확인해 주세요.`
+  );
+}
+
+// 스트리밍 응답(SSE)을 한 덩어리씩 읽어 JSON으로 넘긴다. 두 회사 형식이 같아서 함께 쓴다.
+async function* aiSseEvents(res) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        yield JSON.parse(data);
+      } catch (e) {
+        /* 조각난 줄은 버린다 */
+      }
+    }
+  }
+}
+
+// ---- Claude ----
+// 브라우저에서 직접 부르려면 anthropic-dangerous-direct-browser-access 헤더가 있어야 한다
+// (이 헤더가 있을 때만 CORS 응답을 준다). "dangerous"라는 이름은 키가 브라우저에 노출된다는
+// 뜻이고, 여기서는 사용자가 자기 키를 자기 브라우저에 넣는 것이므로 의도한 사용법이다.
+async function aiPostClaude(key, body, signal) {
+  return fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+async function aiStreamClaude({ key, system, messages, signal, onText, onNote }) {
+  const body = {
+    model: "claude-opus-5",
+    max_tokens: 8000,
+    // 포트폴리오 판단은 단순 요약이 아니라 계산과 비교가 섞여 있어 생각할 시간이 필요하다.
+    thinking: { type: "adaptive" },
+    system,
+    messages,
+    stream: true,
+    // 시장 이야기는 오늘 자 정보가 있어야 쓸모가 있다. 웹 검색은 서버 쪽에서 돌아간다.
+    tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
+  };
+
+  let res = await aiPostClaude(key, body, signal);
+  // 웹 검색을 못 쓰는 키·플랜이면 400이 온다. 그때는 검색 없이 한 번 더 시도한다.
+  if (res.status === 400 && body.tools) {
+    const first = await aiErrorText(res);
+    delete body.tools;
+    res = await aiPostClaude(key, body, signal);
+    if (!res.ok) throw new Error(first);
+  }
+  if (!res.ok) throw new Error(await aiErrorText(res));
+
+  let sawText = false;
+  for await (const ev of aiSseEvents(res)) {
+    if (ev.type === "error") throw new Error(ev.error?.message || "AI 응답 중 오류가 났습니다.");
+    if (ev.type === "content_block_start" && ev.content_block?.type === "server_tool_use") {
+      onNote("웹에서 최신 정보를 찾는 중…");
+    }
+    if (ev.type !== "content_block_delta") continue;
+    const d = ev.delta || {};
+    if (d.type === "thinking_delta") onNote("생각하는 중…");
+    if (d.type === "text_delta" && d.text) {
+      sawText = true;
+      onText(d.text);
+    }
+  }
+  if (!sawText) throw new Error("AI가 빈 답을 보냈습니다. 질문을 조금 더 구체적으로 적어 주세요.");
+}
+
+// ---- Gemini ----
+// 모델 이름은 자주 바뀌므로 코드에 박아 두지 않는다. 키로 쓸 수 있는 모델 목록을 받아
+// 그중 가장 나은 것을 고른다. 박아 뒀다가 이름이 바뀌면 어느 날 갑자기 404가 난다.
+let aiGeminiModel = null;
+async function aiPickGeminiModel(key, signal) {
+  if (aiGeminiModel) return aiGeminiModel;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=200`,
+    { signal }
+  );
+  if (!res.ok) throw new Error(await aiErrorText(res));
+  const json = await res.json();
+  const usable = (json.models || []).filter(
+    (m) =>
+      /^models\/gemini-/.test(m.name || "") &&
+      (m.supportedGenerationMethods || []).includes("streamGenerateContent") &&
+      !/(embedding|aqa|vision|image|audio|tts|live|learnlm|robotics)/i.test(m.name)
+  );
+  if (!usable.length) throw new Error("이 키로 쓸 수 있는 Gemini 모델을 찾지 못했습니다.");
+  const score = (m) => {
+    const n = m.name;
+    const ver = parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || "0");
+    let s = ver * 10;
+    if (/pro/.test(n)) s += 5;
+    else if (/flash/.test(n)) s += 3;
+    if (/lite/.test(n)) s -= 2;
+    // 미리보기(preview·exp) 모델은 한도가 낮거나 갑자기 없어질 수 있어 정식 모델을 먼저 고른다.
+    if (/preview|exp/.test(n)) s -= 8;
+    return s;
+  };
+  usable.sort((a, b) => score(b) - score(a));
+  aiGeminiModel = usable[0].name; // 예: "models/gemini-2.5-pro"
+  return aiGeminiModel;
+}
+
+async function aiStreamGemini({ key, system, messages, signal, onText, onNote }) {
+  const model = await aiPickGeminiModel(key, signal);
+  onNote(`${model.replace("models/", "")} 에게 묻는 중…`);
+  const url = `https://generativelanguage.googleapis.com/v1beta/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
+  const body = {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: messages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    // 클로드의 웹 검색에 해당한다. 최신 시세·뉴스를 참고하게 한다.
+    tools: [{ google_search: {} }],
+  };
+
+  const post = () =>
+    fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
+  let res = await post();
+  if (res.status === 400 && body.tools) {
+    const first = await aiErrorText(res);
+    delete body.tools;
+    res = await post();
+    if (!res.ok) throw new Error(first);
+  }
+  if (!res.ok) throw new Error(await aiErrorText(res));
+
+  let sawText = false;
+  for await (const ev of aiSseEvents(res)) {
+    if (ev.error) throw new Error(ev.error.message || "AI 응답 중 오류가 났습니다.");
+    const parts = ev.candidates?.[0]?.content?.parts || [];
+    for (const p of parts) {
+      if (typeof p.text === "string" && p.text) {
+        sawText = true;
+        onText(p.text);
+      }
+    }
+  }
+  if (!sawText) throw new Error("AI가 빈 답을 보냈습니다. 질문을 조금 더 구체적으로 적어 주세요.");
+}
+
+// 답을 아주 간단한 서식으로만 보여 준다. 라이브러리를 하나 더 얹을 만한 일이 아니고,
+// HTML을 그대로 넣으면 AI가 만든 태그가 화면에 섞이므로 반드시 이스케이프부터 한다.
+function aiRenderMarkdown(text) {
+  const lines = escapeHtml(text).split("\n");
+  const out = [];
+  let inList = false;
+  const closeList = () => {
+    if (inList) {
+      out.push("</ul>");
+      inList = false;
+    }
+  };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const heading = line.match(/^#{1,6}\s+(.*)$/);
+    const bullet = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)$/);
+    if (heading) {
+      closeList();
+      out.push(`<h4>${heading[1]}</h4>`);
+    } else if (bullet) {
+      if (!inList) {
+        out.push("<ul>");
+        inList = true;
+      }
+      out.push(`<li>${bullet[1]}</li>`);
+    } else if (!line.trim()) {
+      closeList();
+      out.push("<br />");
+    } else {
+      closeList();
+      out.push(`${line}<br />`);
+    }
+  }
+  closeList();
+  return out
+    .join("")
+    .replace(/(?:<br \/>)+$/, "")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
 // ---- 트리맵 (종목별 비중) ----
 // 칸 넓이가 비중, 색이 등락을 나타내는 시장 지도. 외부 라이브러리를 쓰지 않고 직접 배치한다.
 // 정사각화(squarified) 방식: 남은 자리의 짧은 변을 기준으로 한 줄씩 채우되, 칸들이 정사각형에
@@ -5008,6 +5453,257 @@ function initAllocationTab() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !importModal.hidden) closeImport();
   });
+
+  // ---- AI 대화창 ----
+  const aiSetup = document.getElementById("aiSetup");
+  const aiKeyInput = document.getElementById("aiKeyInput");
+  const aiKeyLabel = document.getElementById("aiKeyLabel");
+  const aiKeyNote = document.getElementById("aiKeyNote");
+  const aiThread = document.getElementById("aiThread");
+  const aiForm = document.getElementById("aiForm");
+  const aiInput = document.getElementById("aiInput");
+  const aiSendBtn = document.getElementById("aiSendBtn");
+  const aiStopBtn = document.getElementById("aiStopBtn");
+  const aiStateEl = document.getElementById("aiState");
+  const aiClearBtn = document.getElementById("aiClearBtn");
+  const aiSettingsBtn = document.getElementById("aiSettingsBtn");
+  const aiIncludeCtx = document.getElementById("aiIncludeCtx");
+
+  let aiProvider = AI_PROVIDERS[aiStoreGet(AI_PROVIDER_STORE)] ? aiStoreGet(AI_PROVIDER_STORE) : "claude";
+  // 주고받은 내용은 이 화면에서만 들고 있는다. 새로고침하면 사라진다.
+  let aiHistory = [];
+  let aiAbort = null;
+
+  const AI_QUICK = [
+    "내 포트폴리오를 진단해줘",
+    "지금 리밸런싱이 필요한 종목과 이유는?",
+    "분류별 비중을 어떻게 조정하면 좋을까?",
+    "이 포트폴리오의 가장 큰 약점은?",
+    "오늘 국내외 증시 흐름을 요약해줘",
+  ];
+  document.getElementById("aiQuick").innerHTML = AI_QUICK.map(
+    (q) => `<button class="ai-chip" type="button" data-q="${escapeHtml(q)}">${escapeHtml(q)}</button>`
+  ).join("");
+
+  function aiCurrentKey() {
+    return aiStoreGet(AI_PROVIDERS[aiProvider].storeKey).trim();
+  }
+
+  function renderAiSetup() {
+    const p = AI_PROVIDERS[aiProvider];
+    aiSetup.querySelectorAll(".ai-pick").forEach((b) => {
+      b.setAttribute("aria-checked", String(b.dataset.provider === aiProvider));
+    });
+    aiKeyLabel.textContent = p.keyLabel;
+    aiKeyInput.placeholder = p.placeholder;
+    aiKeyInput.value = aiCurrentKey();
+    aiKeyNote.innerHTML =
+      `키는 <b>이 브라우저에만</b> 저장되고 buja-map 서버나 구글 계정에는 저장하지 않습니다. ` +
+      `요금은 키 주인에게 청구됩니다. 키 발급: <a href="${p.issueUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.issueUrl)}</a>`;
+    aiSendBtn.textContent = aiCurrentKey() ? "보내기" : `${p.label}에 물어보기`;
+  }
+
+  function setAiState(text, isError) {
+    aiStateEl.textContent = text || "";
+    aiStateEl.classList.toggle("error", !!isError);
+  }
+
+  function aiAppend(role, text) {
+    aiThread.hidden = false;
+    aiClearBtn.hidden = false;
+    const wrap = document.createElement("div");
+    wrap.className = `ai-msg ${role === "user" ? "me" : role === "error" ? "err" : ""}`;
+    const who = document.createElement("div");
+    who.className = "ai-who";
+    who.textContent = role === "user" ? "나" : AI_PROVIDERS[aiProvider].label;
+    const body = document.createElement("div");
+    body.className = "ai-body";
+    body.innerHTML = aiRenderMarkdown(text || "");
+    wrap.append(who, body);
+    aiThread.append(wrap);
+    aiThread.scrollTop = aiThread.scrollHeight;
+    return body;
+  }
+
+  // 계좌 내용을 AI가 읽기 좋은 표로 만든다. 화면에 보이는 값과 같은 계산 결과를 쓴다.
+  function aiPortfolioContext() {
+    const c = compute();
+    const head = [
+      `계좌명: ${state.name}`,
+      `Threshold: ${state.threshold}%`,
+      `총입금액: ${fmtWon(state.deposit)}원`,
+      `현재총자산: ${fmtWon(c.nowTotal)}원`,
+      `총매입액: ${fmtWon(c.buyTotal)}원`,
+      `평가손익: ${fmtSignedWon(c.profit)}원 (${c.evalRate === null ? "–" : `${c.evalRate.toFixed(2)}%`})`,
+      `입금 대비 수익률: ${c.returnRate === null ? "–" : `${c.returnRate.toFixed(2)}%`}`,
+      `리밸런싱 필요 종목 수: ${c.rebalCount}`,
+      `시세 기준: ${quoteAgeLabel() || "알 수 없음"}`,
+    ];
+    const cols = "분류\t종목\t코드\t목표비중%\t보유비중%\t포트편차%\tThreshold기준%\t리밸런싱필요\t현재가\t평균매입가\t잔고수량\t수익률%\t평가손익";
+    const rows = c.rows.map((r) =>
+      [
+        r.cat,
+        r.name || "(이름 없음)",
+        r.code || "-",
+        r.target,
+        r.price === null ? "-" : r.weight.toFixed(2),
+        r.price === null ? "-" : r.gap.toFixed(2),
+        r.thresholdBase.toFixed(2),
+        r.needRebal ? "예" : "아니오",
+        r.price === null ? "-" : fmtWon(r.price),
+        fmtWon(r.avgPrice),
+        fmtWon(r.qty),
+        Number.isFinite(r.profitRate) ? r.profitRate.toFixed(2) : "-",
+        Number.isFinite(r.profit) ? fmtSignedWon(r.profit) : "-",
+      ].join("\t")
+    );
+    return `[사용자의 현재 포트폴리오]\n${head.join("\n")}\n\n${cols}\n${rows.join("\n")}`;
+  }
+
+  function aiSystemPrompt() {
+    const lines = [
+      "당신은 한국의 개인 투자자를 돕는 자산배분 도우미입니다. 답은 한국어로, 군더더기 없이 씁니다.",
+      "금액은 148,076,715 처럼 콤마를 찍은 원 단위로 쓰고, 비중·수익률은 소수 둘째 자리까지 씁니다.",
+      "포트폴리오가 주어지면 그 숫자를 근거로 삼아 계산해서 답하고, 추측한 값과 주어진 값을 구분해 말합니다.",
+      "리밸런싱 판단 기준은 포트편차(|보유비중 − 목표비중|)가 Threshold 기준(목표비중 × Threshold%)을 넘는지입니다.",
+      "확정적인 매수·매도 지시 대신 근거와 선택지를 제시하고, 투자 판단과 책임은 사용자에게 있음을 필요할 때 짧게 덧붙입니다.",
+      "시세는 최대 10분 지연될 수 있습니다.",
+      `오늘 날짜: ${new Date().toLocaleDateString("ko-KR")}`,
+    ];
+    if (aiIncludeCtx.checked) lines.push("", aiPortfolioContext());
+    return lines.join("\n");
+  }
+
+  // 키가 없을 때는 같은 질문을 웹 챗으로 넘긴다. 주소로 질문이 채워지지 않는 경우가 있어
+  // 클립보드에도 넣어 둔다(붙여넣기만 하면 되도록).
+  function aiFallbackToWeb(question) {
+    const p = AI_PROVIDERS[aiProvider];
+    const full = aiIncludeCtx.checked ? `${question}\n\n${aiPortfolioContext()}` : question;
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(full).catch(() => {});
+    window.open(p.webUrl(question), "_blank", "noopener,noreferrer");
+    setAiState(`${p.label} 웹을 열었습니다. 질문을 클립보드에 복사해 뒀으니 입력란에 붙여넣어 주세요.`);
+  }
+
+  function setAiBusy(busy) {
+    aiSendBtn.disabled = busy;
+    aiInput.disabled = busy;
+    aiStopBtn.hidden = !busy;
+  }
+
+  async function aiSend(question) {
+    const q = (question || "").trim();
+    if (!q || aiAbort) return;
+
+    const key = aiCurrentKey();
+    if (!key) {
+      aiSetup.hidden = false;
+      aiSettingsBtn.setAttribute("aria-expanded", "true");
+      aiAppend(
+        "error",
+        `${AI_PROVIDERS[aiProvider].label} API 키를 넣으면 이 화면에서 바로 답을 받을 수 있습니다. ` +
+          `키 없이 물어보려면 아래 안내대로 웹 챗으로 열립니다.`
+      );
+      aiFallbackToWeb(q);
+      return;
+    }
+
+    aiAppend("user", q);
+    aiInput.value = "";
+    // 문맥은 매번 새로 만들어 붙인다(값이 바뀌었을 수 있다). 그래서 시스템 프롬프트에만 둔다.
+    aiHistory.push({ role: "user", content: q });
+
+    const body = aiAppend("assistant", "");
+    body.innerHTML = '<span class="ai-caret">…</span>';
+    let acc = "";
+    const onText = (t) => {
+      acc += t;
+      body.innerHTML = `${aiRenderMarkdown(acc)}<span class="ai-caret">▍</span>`;
+      aiThread.scrollTop = aiThread.scrollHeight;
+    };
+    const onNote = (t) => setAiState(t);
+
+    aiAbort = new AbortController();
+    setAiBusy(true);
+    setAiState("답을 기다리는 중…");
+    try {
+      const args = {
+        key,
+        system: aiSystemPrompt(),
+        messages: aiHistory,
+        signal: aiAbort.signal,
+        onText,
+        onNote,
+      };
+      if (aiProvider === "claude") await aiStreamClaude(args);
+      else await aiStreamGemini(args);
+      body.innerHTML = aiRenderMarkdown(acc);
+      aiHistory.push({ role: "assistant", content: acc });
+      // 오래된 대화까지 매번 다시 보내면 요금만 늘고 답은 나아지지 않는다.
+      // 최근 여섯 번의 주고받음만 남긴다(화면의 말풍선은 그대로 둔다).
+      // 반드시 사용자 차례부터 시작해야 하므로 앞에서 두 개씩(질문+답) 덜어낸다.
+      while (aiHistory.length > 12) aiHistory.splice(0, 2);
+      setAiState("");
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        body.innerHTML = acc ? aiRenderMarkdown(acc) : "(중지했습니다)";
+        // 중간에 끊긴 답을 대화에 남기면 다음 질문의 맥락이 어긋난다.
+        aiHistory.pop();
+        setAiState("중지했습니다.");
+      } else {
+        body.parentElement.remove();
+        aiHistory.pop();
+        const msg = err instanceof TypeError ? aiNetworkMessage(aiProvider) : err?.message || String(err);
+        aiAppend("error", msg);
+        setAiState("답을 받지 못했습니다.", true);
+      }
+    } finally {
+      aiAbort = null;
+      setAiBusy(false);
+      aiInput.focus();
+    }
+  }
+
+  aiSettingsBtn.addEventListener("click", () => {
+    aiSetup.hidden = !aiSetup.hidden;
+    aiSettingsBtn.setAttribute("aria-expanded", String(!aiSetup.hidden));
+  });
+  aiSetup.addEventListener("click", (e) => {
+    const pick = e.target.closest(".ai-pick");
+    if (!pick) return;
+    aiProvider = pick.dataset.provider;
+    aiStoreSet(AI_PROVIDER_STORE, aiProvider);
+    // 회사가 바뀌면 앞선 대화의 맥락도 같이 넘길 수 없다(형식이 다르다). 새로 시작한다.
+    aiHistory = [];
+    renderAiSetup();
+  });
+  aiKeyInput.addEventListener("input", () => {
+    aiStoreSet(AI_PROVIDERS[aiProvider].storeKey, aiKeyInput.value.trim());
+    aiSendBtn.textContent = aiKeyInput.value.trim() ? "보내기" : `${AI_PROVIDERS[aiProvider].label}에 물어보기`;
+  });
+  aiForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    aiSend(aiInput.value);
+  });
+  aiInput.addEventListener("keydown", (e) => {
+    // 줄바꿈은 Shift+Enter. 그냥 Enter는 바로 보낸다(대화창의 관례).
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      aiSend(aiInput.value);
+    }
+  });
+  document.getElementById("aiQuick").addEventListener("click", (e) => {
+    const chip = e.target.closest(".ai-chip");
+    if (chip) aiSend(chip.dataset.q);
+  });
+  aiStopBtn.addEventListener("click", () => aiAbort?.abort());
+  aiClearBtn.addEventListener("click", () => {
+    aiHistory = [];
+    aiThread.innerHTML = "";
+    aiThread.hidden = true;
+    aiClearBtn.hidden = true;
+    setAiState("");
+  });
+  renderAiSetup();
 
   function updateSyncNote() {
     noteEl.classList.toggle("error", allocSync.state === "error");
