@@ -129,6 +129,14 @@
   .bargain-count { font-size: 0.78rem; color: var(--text); }
   .bargain-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; margin-left: auto; }
   .bargain-toggle input { accent-color: #ff6b6b; cursor: pointer; }
+  .bargain-toggle.locked > span:first-of-type { color: var(--muted); }
+  .bargain-lock {
+    font-size: 0.68rem;
+    color: var(--muted);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
   .naver-table tr.row-bargain td { background: rgba(255, 107, 107, 0.07); }
   .naver-table tr.row-bargain td:first-child { box-shadow: inset 3px 0 0 #ff6b6b; }
   .bargain-icon {
@@ -1550,6 +1558,7 @@
         <label class="bargain-toggle">
           <input type="checkbox" id="naverBargainOnly" />
           <span>급매만 보기</span>
+          <span class="bargain-lock" id="bargainLockHint" hidden>로그인 필요</span>
         </label>
       </div>
 
@@ -1926,10 +1935,17 @@ const LOGIN_REQUIRED_TABS = new Set(["allocation"]);
 // 로그인 팝업에서 로그인에 성공하면 열어 줄 탭. 새로고침 직후처럼 로그인 상태가 아직
 // 확정되지 않았을 때 눌린 탭도 여기에 담아 두었다가 확정된 뒤에 다시 판단한다.
 let pendingGatedTab = null;
+// 탭 말고 "급매만 보기"처럼 로그인 뒤 이어서 해야 할 동작도 담아 둔다.
+let pendingGatedAction = null;
 
-function openLoginModal(tab) {
+const LOGIN_MODAL_DEFAULT_DESC =
+  "자산 배분 탭은 로그인한 사용자만 이용할 수 있습니다. 구글 계정으로 로그인하면 입력한 자산 배분이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있습니다.";
+
+function openLoginModal(tab, options = {}) {
   pendingGatedTab = tab;
+  pendingGatedAction = options.onSuccess || null;
   const modal = document.getElementById("loginModal");
+  document.getElementById("loginModalDesc").textContent = options.desc || LOGIN_MODAL_DEFAULT_DESC;
   document.getElementById("loginModalError").hidden = true;
   modal.hidden = false;
   document.getElementById("loginModalSignInBtn").focus();
@@ -1938,6 +1954,7 @@ function openLoginModal(tab) {
 function closeLoginModal() {
   document.getElementById("loginModal").hidden = true;
   pendingGatedTab = null;
+  pendingGatedAction = null;
 }
 
 document.getElementById("loginModalCloseBtn").addEventListener("click", closeLoginModal);
@@ -2029,12 +2046,16 @@ function syncGatedTabAccess() {
     });
     if (open) activateTab("macro", { remember: false });
     // 로그인 상태가 확정되기 전에 눌러 둔 탭이 있으면(새로고침 직후) 이제 안내 팝업을 띄운다.
-    if (pendingGatedTab && document.getElementById("loginModal").hidden) openLoginModal(pendingGatedTab);
+    if ((pendingGatedTab || pendingGatedAction) && document.getElementById("loginModal").hidden) {
+      openLoginModal(pendingGatedTab, { onSuccess: pendingGatedAction });
+    }
     return;
   }
   const target = pendingGatedTab;
+  const action = pendingGatedAction;
   closeLoginModal();
   if (target) activateTab(target);
+  if (action) action();
 }
 
 // 로그인할 때마다 users/{uid}에 접속 기록을 남긴다. 관리자 탭은 이 컬렉션을 읽어 목록을 만든다.
@@ -4936,6 +4957,15 @@ async function initNaverTab() {
   function syncBargainPctSelect() {
     if (!bargainPctUserSet) bargainPctSelect.value = String(snapTo5(bargainPct));
   }
+
+  // 로그인하지 않았으면 "급매만 보기"가 켜져 있지 않도록 하고, 왜 못 쓰는지 알려 준다.
+  function updateBargainGate() {
+    const locked = !currentUser;
+    if (locked && bargainOnly.checked) bargainOnly.checked = false;
+    bargainOnly.closest(".bargain-toggle").classList.toggle("locked", locked);
+    const hint = document.getElementById("bargainLockHint");
+    if (hint) hint.hidden = !locked;
+  }
   let pageNo = 1;
 
   // 급매 판정: 최저 호가가 실거래 최고가보다 이 비율 이상 싼 경우.
@@ -5642,7 +5672,8 @@ async function initNaverTab() {
       pyeongMaxRange.value = String(Math.max(pyLo, pyHi));
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
-      bargainOnly.checked = p.bargainOnly === true;
+      // 로그인하지 않았으면 저장돼 있던 값이라도 켜지 않는다.
+      bargainOnly.checked = p.bargainOnly === true && !!currentUser;
       // 저장된 값이 있으면 사용자가 고른 것으로 보고 그대로 쓴다. 없으면 관리자 기준을 따른다.
       const savedPct = typeof p.bargainPct === "string" && p.bargainPct ? Number(p.bargainPct) : null;
       bargainPctUserSet = savedPct != null && savedPct >= 5 && savedPct <= 50 && savedPct % 5 === 0;
@@ -5708,6 +5739,7 @@ async function initNaverTab() {
   // 로그인 상태가 바뀌면 그 계정의 설정으로 갈아끼운다.
   naverPrefsHook = () => {
     applyPrefs(currentNaverPrefs());
+    updateBargainGate();
     updateSyncNote();
     // 계정에 저장된 설정이 아직 없으면, 로그인 직전까지 쓰던 설정을 그대로 계정에 올려준다.
     if (currentUser && !currentUserDoc?.naverFilters) persistNaverPrefs(collectPrefs());
@@ -5719,9 +5751,26 @@ async function initNaverTab() {
   });
 
   renderPyeongRange();
+  updateBargainGate();
   tradeSelect.addEventListener("change", render);
   limitSelect.addEventListener("change", render);
-  bargainOnly.addEventListener("change", render);
+  // "급매만 보기"는 로그인한 사용자에게만 연다. 로그인하지 않고 켜면 되돌리고 안내를 띄운다.
+  bargainOnly.addEventListener("change", () => {
+    if (bargainOnly.checked && !currentUser) {
+      bargainOnly.checked = false;
+      updateBargainGate();
+      openLoginModal(null, {
+        desc: "급매만 모아 보는 기능은 로그인한 사용자에게 제공합니다. 구글 계정으로 로그인하면 바로 켜 드리고, 급매 기준과 지역 설정도 계정에 저장돼 다른 기기에서 이어집니다.",
+        onSuccess: () => {
+          bargainOnly.checked = true;
+          updateBargainGate();
+          render();
+        },
+      });
+      return;
+    }
+    render();
+  });
   bargainPctSelect.addEventListener("change", () => {
     bargainPctUserSet = true;
     render();
