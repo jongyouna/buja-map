@@ -671,6 +671,44 @@
   .modal-actions .google-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
   .modal-actions .toggle-btn { padding: 8px 14px; }
   .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; white-space: pre-line; text-align: left; }
+  .modal-note { color: var(--good); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; text-align: left; }
+
+  /* ---- 문의 팝업 ---- */
+  /* 상단 오른쪽 "문의" 버튼 → 500자 이내 메시지를 관리자 이메일로 보낸다. */
+  .inquiry-btn { padding: 8px 14px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+  .inquiry-card { max-width: 460px; text-align: left; }
+  .inquiry-card h2 { text-align: left; }
+  .inquiry-card .desc { margin-bottom: 12px; }
+  #inquiryText {
+    width: 100%;
+    min-height: 150px;
+    resize: vertical;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--panel);
+  }
+  #inquiryText:focus { outline: none; border-color: var(--text); }
+  #inquiryText:disabled { opacity: 0.6; }
+  .inquiry-meta {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    margin-top: 6px; font-size: 0.74rem; color: var(--muted);
+  }
+  .inquiry-meta .inquiry-count.over { color: var(--bad); font-weight: 700; }
+  .inquiry-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .inquiry-actions .google-btn { padding: 8px 16px; font-size: 0.84rem; }
+
+  /* 좁은 화면에서 상단 줄(이름 + 문의 + 새로고침)이 넘치지 않게 한다. */
+  @media (max-width: 480px) {
+    .topbar { padding: 12px 14px; }
+    .topbar-actions { gap: 6px; }
+    .user-name { max-width: 72px; }
+    .inquiry-btn { padding: 8px 10px; }
+  }
 
   /* ---- 자산 배분 탭 ---- */
   /* 계좌 탭 줄: 자산 배분 안에서 여러 계좌(연금저축·IRP·ISA…)를 오간다. */
@@ -1124,6 +1162,7 @@
     </div>
     <div class="topbar-actions">
       <div class="auth-area" id="authArea"></div>
+      <button class="toggle-btn inquiry-btn" id="inquiryBtn" type="button" title="관리자에게 문의 보내기">문의</button>
       <button class="icon-btn" id="refreshBtn" type="button" title="새로고침">⟳</button>
     </div>
   </div>
@@ -1703,6 +1742,25 @@
     </div>
   </div>
 
+  <!-- 관리자에게 문의 보내기. 내용은 Apps Script 웹앱을 거쳐 관리자 메일로 전달된다. -->
+  <div class="modal-backdrop" id="inquiryModal" role="dialog" aria-modal="true" aria-labelledby="inquiryTitle" hidden>
+    <div class="modal-card inquiry-card">
+      <h2 id="inquiryTitle">관리자에게 문의</h2>
+      <p class="desc">개선 요청, 오류 제보, 궁금한 점을 남겨 주세요. 답장을 드릴 수 있도록 로그인한 계정의 이름과 이메일이 함께 전달됩니다.</p>
+      <textarea id="inquiryText" maxlength="500" placeholder="문의 내용을 500자 이내로 적어 주세요." aria-describedby="inquiryCount"></textarea>
+      <div class="inquiry-meta">
+        <span id="inquiryFrom"></span>
+        <span class="inquiry-count" id="inquiryCount">0 / 500자</span>
+      </div>
+      <p class="modal-error" id="inquiryError" hidden></p>
+      <p class="modal-note" id="inquiryNote" hidden></p>
+      <div class="inquiry-actions">
+        <button class="toggle-btn" id="inquiryCancelBtn" type="button">취소</button>
+        <button class="google-btn" id="inquirySendBtn" type="button" disabled>보내기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 스프레드시트에서 복사한 표를 붙여넣어 지금 보고 있는 계좌를 채운다. -->
   <div class="modal-backdrop" id="allocImportModal" role="dialog" aria-modal="true" aria-labelledby="importTitle" hidden>
     <div class="modal-card import-card">
@@ -1866,10 +1924,20 @@ const LOGIN_REQUIRED_TABS = new Set(["allocation"]);
 // 로그인 팝업에서 로그인에 성공하면 열어 줄 탭. 새로고침 직후처럼 로그인 상태가 아직
 // 확정되지 않았을 때 눌린 탭도 여기에 담아 두었다가 확정된 뒤에 다시 판단한다.
 let pendingGatedTab = null;
+// 문의하려고 로그인 팝업을 띄운 상태인지. 로그인이 끝나면 문의창을 이어서 연다.
+let pendingInquiry = false;
 
-function openLoginModal(tab) {
+// 팝업의 기본 문구(자산 배분 탭 기준). 문의처럼 다른 이유로 띄울 때는 문구만 갈아 끼운다.
+const LOGIN_MODAL_DEFAULTS = {
+  title: document.getElementById("loginModalTitle").textContent,
+  desc: document.getElementById("loginModalDesc").textContent,
+};
+
+function openLoginModal(tab, texts) {
   pendingGatedTab = tab;
   const modal = document.getElementById("loginModal");
+  document.getElementById("loginModalTitle").textContent = texts?.title || LOGIN_MODAL_DEFAULTS.title;
+  document.getElementById("loginModalDesc").textContent = texts?.desc || LOGIN_MODAL_DEFAULTS.desc;
   document.getElementById("loginModalError").hidden = true;
   modal.hidden = false;
   document.getElementById("loginModalSignInBtn").focus();
@@ -1878,6 +1946,7 @@ function openLoginModal(tab) {
 function closeLoginModal() {
   document.getElementById("loginModal").hidden = true;
   pendingGatedTab = null;
+  pendingInquiry = false;
 }
 
 document.getElementById("loginModalCloseBtn").addEventListener("click", closeLoginModal);
@@ -1903,6 +1972,136 @@ document.getElementById("loginModalSignInBtn").addEventListener("click", () => {
     .finally(() => {
       btn.disabled = false;
     });
+});
+
+// ---- 관리자에게 문의 ----
+// 정적 사이트라 브라우저에서 메일을 바로 보낼 수 없어, 관리자 구글 계정에 배포해 둔
+// Apps Script 웹앱에 내용을 넘기고 그쪽에서 MailApp으로 관리자 메일함에 넣는다.
+//
+// 웹앱은 "누구나 접근"으로 배포되므로 URL만 알면 아무나 호출할 수 있다. 그래서 보내는
+// 사람 확인은 클라이언트가 아니라 웹앱이 한다 — 여기서 Firebase ID 토큰을 함께 보내면
+// 웹앱이 Identity Toolkit에 물어 진짜 로그인한 사용자인지 검증한다(inquiry-mailer.gs 참고).
+//
+// 배포 절차는 docs/inquiry-setup.md. 배포 후 받은 /exec URL을 아래에 붙여넣으면 켜진다.
+const INQUIRY_ENDPOINT = "";
+const INQUIRY_MAX_LEN = 500;
+
+const inquiryEls = {
+  modal: document.getElementById("inquiryModal"),
+  text: document.getElementById("inquiryText"),
+  from: document.getElementById("inquiryFrom"),
+  count: document.getElementById("inquiryCount"),
+  error: document.getElementById("inquiryError"),
+  note: document.getElementById("inquiryNote"),
+  send: document.getElementById("inquirySendBtn"),
+  cancel: document.getElementById("inquiryCancelBtn"),
+};
+
+function syncInquiryCount() {
+  // maxlength가 막아 주지만, 붙여넣기·IME 조합 중에는 잠깐 넘칠 수 있어 여기서도 확인한다.
+  const len = inquiryEls.text.value.length;
+  inquiryEls.count.textContent = `${len} / ${INQUIRY_MAX_LEN}자`;
+  inquiryEls.count.classList.toggle("over", len > INQUIRY_MAX_LEN);
+  inquiryEls.send.disabled = len === 0 || len > INQUIRY_MAX_LEN;
+}
+
+function openInquiryModal() {
+  if (!currentUser) {
+    // 로그인 팝업을 대신 띄우고, 로그인에 성공하면 syncGatedTabAccess가 여기로 돌아온다.
+    pendingInquiry = true;
+    openLoginModal(null, {
+      title: "문의하려면 로그인해주세요",
+      desc: "답장을 드리려면 보내는 분의 이메일이 필요합니다. 구글 계정으로 로그인하면 바로 문의를 남길 수 있습니다.",
+    });
+    return;
+  }
+  inquiryEls.from.textContent = `보내는 사람: ${currentUser.displayName || ""} ${currentUser.email || ""}`.trim();
+  inquiryEls.error.hidden = true;
+  inquiryEls.note.hidden = true;
+  inquiryEls.text.disabled = false;
+  inquiryEls.cancel.textContent = "취소";
+  syncInquiryCount();
+  inquiryEls.modal.hidden = false;
+  inquiryEls.text.focus();
+}
+
+function closeInquiryModal() {
+  inquiryEls.modal.hidden = true;
+}
+
+async function sendInquiry(message) {
+  if (!INQUIRY_ENDPOINT) {
+    throw new Error(
+      "문의 전송 주소가 아직 설정되지 않았습니다. 관리자에게 알려 주세요.\n(index.html의 INQUIRY_ENDPOINT)"
+    );
+  }
+  // 웹앱이 사용자를 검증할 수 있도록 Firebase ID 토큰을 함께 보낸다.
+  const idToken = await currentUser.getIdToken();
+  let res;
+  try {
+    res = await fetch(INQUIRY_ENDPOINT, {
+      method: "POST",
+      // Apps Script 웹앱은 CORS 사전요청(OPTIONS)에 응답하지 않는다. text/plain은 사전요청
+      // 없이 보낼 수 있는 타입이라, 본문은 JSON이지만 헤더는 text/plain으로 둔다.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ idToken, message, page: location.href }),
+    });
+  } catch (err) {
+    console.error("문의 전송 실패:", err);
+    throw new Error("네트워크 오류로 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  }
+  // Apps Script는 오류일 때도 200으로 JSON을 돌려주므로 본문을 봐야 한다.
+  const raw = await res.text();
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch (e) {
+    console.error("문의 전송 응답을 읽지 못했습니다:", raw);
+    throw new Error("전송 결과를 확인하지 못했습니다. 관리자에게 문의해 주세요.");
+  }
+  if (!body.ok) throw new Error(body.error || "보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+}
+
+document.getElementById("inquiryBtn").addEventListener("click", openInquiryModal);
+inquiryEls.cancel.addEventListener("click", closeInquiryModal);
+inquiryEls.text.addEventListener("input", syncInquiryCount);
+inquiryEls.modal.addEventListener("click", (e) => {
+  if (e.target.id === "inquiryModal") closeInquiryModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !inquiryEls.modal.hidden) closeInquiryModal();
+});
+
+inquiryEls.send.addEventListener("click", async () => {
+  const message = inquiryEls.text.value.trim();
+  if (!message) return;
+  if (message.length > INQUIRY_MAX_LEN) {
+    inquiryEls.error.textContent = `${INQUIRY_MAX_LEN}자 이내로 줄여 주세요.`;
+    inquiryEls.error.hidden = false;
+    return;
+  }
+  inquiryEls.send.disabled = true;
+  inquiryEls.text.disabled = true;
+  inquiryEls.error.hidden = true;
+  inquiryEls.note.hidden = true;
+  const label = inquiryEls.send.textContent;
+  inquiryEls.send.textContent = "보내는 중...";
+  try {
+    await sendInquiry(message);
+    inquiryEls.text.value = "";
+    inquiryEls.text.disabled = false;
+    inquiryEls.note.textContent = "보냈습니다. 확인 후 답장드리겠습니다. 감사합니다.";
+    inquiryEls.note.hidden = false;
+    inquiryEls.cancel.textContent = "닫기";
+    syncInquiryCount();
+  } catch (err) {
+    inquiryEls.error.textContent = err.message;
+    inquiryEls.error.hidden = false;
+    inquiryEls.text.disabled = false;
+    syncInquiryCount();
+  } finally {
+    inquiryEls.send.textContent = label;
+  }
 });
 
 // 로그인 상태가 바뀔 때마다 호출된다. 로그아웃하면 로그인이 필요한 탭에서 빠져나오고,
@@ -1973,8 +2172,11 @@ function syncGatedTabAccess() {
     return;
   }
   const target = pendingGatedTab;
+  // 로그인하려고 팝업을 띄운 이유가 문의였다면, 로그인이 끝난 뒤 문의창을 이어서 연다.
+  const wantsInquiry = pendingInquiry;
   closeLoginModal();
   if (target) activateTab(target);
+  if (wantsInquiry) openInquiryModal();
 }
 
 // 로그인할 때마다 users/{uid}에 접속 기록을 남긴다. 관리자 탭은 이 컬렉션을 읽어 목록을 만든다.

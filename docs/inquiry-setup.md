@@ -1,0 +1,105 @@
+# 문의 버튼 설정 (Apps Script 메일 발송기)
+
+화면 오른쪽 위 **문의** 버튼 → 500자 이내 메시지 → 관리자 메일함(`jongyouna@gmail.com`)으로 전달.
+
+## 어떻게 동작하나
+
+사이트는 GitHub Pages에 올라간 정적 파일이라 브라우저에서 메일을 바로 보낼 수 없다.
+그래서 관리자 구글 계정에 **Apps Script 웹앱**을 하나 띄워 두고 거기서 대신 보낸다.
+
+```
+[브라우저] 문의창                     [Apps Script 웹앱]              [Gmail]
+  로그인한 사용자                        doPost()
+  500자 이내 메시지          POST         1. ID 토큰 검증 (Identity Toolkit)
+  + Firebase ID 토큰      ──────────▶     2. 발송 한도 확인            MailApp
+                          ◀──────────     3. 메일 발송            ──────────▶ 관리자 메일함
+                          {ok:true}                                (답장 주소 = 문의한 사람)
+```
+
+웹앱 URL은 `index.html`에 그대로 들어가고 그 파일은 공개된다. 즉 **URL만 알면 아무나 호출할 수
+있다.** 그래서 "누가 보냈는지"는 화면이 아니라 웹앱이 판단한다 — 브라우저가 Firebase ID 토큰을
+같이 보내고, 웹앱이 Google Identity Toolkit에 물어 실제 로그인한 사용자인지 확인한 뒤에만 메일을
+보낸다. 토큰이 없거나 위조면 거절한다.
+
+## 설정 절차 (한 번만)
+
+### 1. Apps Script 프로젝트 만들기
+
+1. 관리자 구글 계정으로 [script.google.com](https://script.google.com) 접속 → **새 프로젝트**
+2. 프로젝트 이름을 `buja-map 문의 메일` 정도로 바꾼다
+3. 편집기의 `Code.gs` 내용을 모두 지우고 저장소의
+   [`scripts/inquiry-mailer.gs`](../scripts/inquiry-mailer.gs) 내용을 그대로 붙여넣는다
+
+### 2. 설정값 채우기
+
+붙여넣은 코드 위쪽 설정 부분에서:
+
+```js
+var ADMIN_EMAIL = 'jongyouna@gmail.com';              // 받을 주소
+var FIREBASE_API_KEY = 'PASTE_FIREBASE_WEB_API_KEY';  // ← 여기를 바꿔야 한다
+```
+
+`FIREBASE_API_KEY`는 `index.html`의 `firebaseConfig.apiKey`와 **같은 값**을 넣는다.
+(원래 브라우저에 노출되는 공개 값이고, 여기서는 "이 토큰이 우리 프로젝트 것인지" 확인에만 쓴다.)
+
+### 3. 웹앱으로 배포
+
+1. 오른쪽 위 **배포 → 새 배포**
+2. 유형 선택(톱니바퀴) → **웹 앱**
+3. 설정:
+   - 설명: `문의 메일 발송기`
+   - **다음 사용자로 실행: 나** (메일이 관리자 계정에서 나가야 하므로 반드시 "나")
+   - **액세스 권한이 있는 사용자: 모든 사용자** (비로그인 브라우저에서 호출하므로 필요)
+4. **배포** → 권한 승인 화면이 뜬다
+   - "이 앱은 Google에서 확인하지 않았습니다" 경고가 나오면
+     **고급 → (프로젝트 이름)(으)로 이동** → 허용
+   - 메일 발송(`MailApp`)과 외부 요청(`UrlFetchApp`) 권한을 요구한다
+5. 나온 **웹 앱 URL**을 복사한다. `https://script.google.com/macros/s/AKfy.../exec` 형태다
+
+### 4. 사이트에 URL 연결
+
+`index.html`에서 `INQUIRY_ENDPOINT`를 찾아 복사한 URL을 넣는다.
+
+```js
+const INQUIRY_ENDPOINT = "https://script.google.com/macros/s/AKfy.../exec";
+```
+
+커밋해서 main에 push하면 배포 워크플로가 사이트에 반영한다.
+
+### 5. 확인
+
+1. 브라우저에서 웹앱 URL을 그냥 열어 본다 → `{"ok":true,"service":"buja-map inquiry mailer"}`
+   가 보이면 배포는 정상이다
+2. 사이트에서 로그인 → **문의** → 아무 내용이나 보내 본다
+3. 관리자 메일함에 `[buja-map 문의] ...` 제목으로 도착하는지 확인 (답장 주소가 문의한 사람인지도)
+
+## 코드를 고친 뒤에는
+
+`scripts/inquiry-mailer.gs`를 고쳐도 **Apps Script 편집기에 붙여넣고 다시 배포해야** 반영된다.
+이때 URL을 그대로 유지하려면 새 배포가 아니라 기존 배포를 갱신해야 한다:
+
+**배포 → 배포 관리 → (해당 배포) 연필 아이콘 → 버전: 새 버전 → 배포**
+
+**새 배포**로 만들면 URL이 바뀌어서 `INQUIRY_ENDPOINT`도 같이 고쳐야 한다.
+
+## 발송 한도
+
+| 한도 | 값 | 어디서 정하나 |
+|---|---|---|
+| 같은 사람 연속 발송 간격 | 60초 | `SENDER_COOLDOWN_SEC` |
+| 같은 사람 하루 발송 수 | 10통 | `SENDER_DAILY_LIMIT` |
+| 전체 하루 발송 수 | 50통 | `TOTAL_DAILY_LIMIT` |
+| Gmail 계정 자체의 하루 한도 | 100통 (무료 계정 기준) | 구글 정책 |
+
+전체 한도를 Gmail 한도보다 낮게 잡아 둔 이유는, 누가 몰아서 보내더라도 그날 관리자 계정의
+메일 발송 자체가 막히는 일은 없게 하기 위해서다.
+
+## 문제 해결
+
+| 증상 | 원인과 조치 |
+|---|---|
+| "네트워크 오류로 보내지 못했습니다" | 배포의 액세스 권한이 **모든 사용자**가 아닐 가능성이 높다. 배포 관리에서 확인 |
+| "로그인 정보가 확인되지 않았습니다" | `FIREBASE_API_KEY`가 비었거나 다른 프로젝트 값이다. `index.html`의 `firebaseConfig.apiKey`와 맞춘다 |
+| "문의 전송 주소가 아직 설정되지 않았습니다" | `index.html`의 `INQUIRY_ENDPOINT`가 비어 있다 |
+| 메일이 안 온다 | Apps Script 편집기 왼쪽 **실행** 탭에서 `doPost` 실행 기록과 오류를 확인. 스팸함도 확인 |
+| 응답은 되는데 "전송 결과를 확인하지 못했습니다" | 배포가 오래된 버전일 수 있다. 새 버전으로 다시 배포 |
