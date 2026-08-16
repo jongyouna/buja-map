@@ -66,6 +66,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 모두에게 같은 값을 보여 줘야 하는 공용 설정(급매 판정 기준 등).
+    // 로그인하지 않아도 표에 급매 표시가 나와야 하므로 읽기는 열어 두고, 쓰기는 관리자만.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 사용자가 저장한 그래프. 본인만 읽고 쓸 수 있으며, 차단된 계정은 접근할 수 없다.
     // 관리자는 정리(삭제)를 위해 접근할 수 있다.
     match /savedViews/{uid}/views/{viewId} {
