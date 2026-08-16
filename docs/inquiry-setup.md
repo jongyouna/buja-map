@@ -39,8 +39,20 @@ var ADMIN_EMAIL = 'jongyouna@gmail.com';              // 받을 주소
 var FIREBASE_API_KEY = 'PASTE_FIREBASE_WEB_API_KEY';  // ← 여기를 바꿔야 한다
 ```
 
-`FIREBASE_API_KEY`는 `index.html`의 `firebaseConfig.apiKey`와 **같은 값**을 넣는다.
-(원래 브라우저에 노출되는 공개 값이고, 여기서는 "이 토큰이 우리 프로젝트 것인지" 확인에만 쓴다.)
+`FIREBASE_API_KEY`에는 `index.html`의 `firebaseConfig.apiKey`와 **같은 값**을 넣는다.
+`index.html`에서 `firebaseConfig`를 검색하면 나온다(1820번째 줄 부근).
+
+```js
+const firebaseConfig = {
+  apiKey: "AIzaSy...",   // ← 이 값을 Apps Script의 FIREBASE_API_KEY 에 넣는다
+  authDomain: "buja-map-b52eb.firebaseapp.com",
+  ...
+};
+```
+
+이 키는 비밀이 아니다. Firebase 웹 API 키는 원래 브라우저에 노출되는 공개 값으로, 프로젝트를
+식별할 뿐 접근 권한을 주지 않는다(실제 방어선은 Firestore 보안 규칙이다). 여기서도 "이 토큰이
+우리 프로젝트에서 발급된 것인지" 확인하는 데만 쓴다.
 
 ### 3. 웹앱으로 배포
 
