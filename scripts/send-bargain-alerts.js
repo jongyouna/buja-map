@@ -114,9 +114,19 @@ function pickBargains(regions, f) {
       });
     }
   }
-  // 많이 빠진 순으로. 같은 단지의 다른 평형이 여러 줄 나올 수 있다.
+  // 여기서는 "많이 빠진 순"으로만 세운다. 메일 한 통에 50줄까지만 싣기 때문에
+  // 이 순서가 곧 무엇을 실을지 고르는 기준이 된다(= 가장 많이 빠진 50건).
+  // 실제로 표에 늘어놓는 순서는 아래 sortForMail 이 따로 정한다.
+  // 같은 단지의 다른 평형이 여러 줄 나올 수 있다.
   out.sort((a, b) => b.off - a.off);
   return out;
+}
+
+// 메일 표에 늘어놓을 순서: 최저가 오름차순(같으면 많이 빠진 순).
+// 고르는 기준(하락률)과 늘어놓는 기준(가격)을 나눠 둬야, 값싼 매물 50건만 실리고
+// 정작 크게 빠진 매물이 잘려 나가는 일이 없다.
+function sortForMail(rows) {
+  return rows.slice().sort((a, b) => a.minPrice - b.minPrice || b.off - a.off);
 }
 
 function buildHtml(rows, f, updatedAt, total) {
@@ -217,7 +227,7 @@ async function main() {
       console.log(`  보낼 것 없음: ${to}`);
       continue;
     }
-    const html = buildHtml(rows.slice(0, MAX_ROWS_PER_MAIL), alert.filters || {}, updatedAt, rows.length);
+    const html = buildHtml(sortForMail(rows.slice(0, MAX_ROWS_PER_MAIL)), alert.filters || {}, updatedAt, rows.length);
     if (DRY_RUN) {
       console.log(`  [연습] ${to} <- 급매 ${rows.length}건`);
       sent++;
