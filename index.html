@@ -2048,8 +2048,14 @@ async function sendInquiry(message) {
       body: JSON.stringify({ idToken, message, page: location.href }),
     });
   } catch (err) {
-    console.error("문의 전송 실패:", err);
-    throw new Error("네트워크 오류로 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    // 여기로 오는 경우는 두 가지다. 진짜 네트워크 문제이거나, 웹앱 주소가 살아 있지 않아
+    // 구글이 CORS 헤더 없는 오류 페이지를 돌려준 경우(배포 유형·액세스 권한 문제).
+    // 브라우저는 둘을 구분해 주지 않으므로 양쪽을 다 알려 준다.
+    console.error("문의 전송 실패:", err, INQUIRY_ENDPOINT);
+    throw new Error(
+      "보내지 못했습니다. 잠시 후 다시 시도해 주세요.\n" +
+        "계속 실패하면 문의 접수 주소가 열려 있지 않은 상태이니 관리자에게 알려 주세요."
+    );
   }
   // Apps Script는 오류일 때도 200으로 JSON을 돌려주므로 본문을 봐야 한다.
   const raw = await res.text();
