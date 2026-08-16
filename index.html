@@ -790,6 +790,31 @@
   .alloc-layout > .panel { flex: 1 1 100%; min-width: 0; }
   .alloc-layout > .panel.alloc-chart-panel { flex: 1 1 300px; align-self: stretch; }
   .alloc-donut-wrap { position: relative; height: 280px; }
+  /* 종목별 비중 트리맵. 칸 크기는 비중, 색은 전일대비 등락을 나타낸다.
+     외부 라이브러리 없이 직접 배치한다(Chart.js에는 트리맵이 없다). */
+  .alloc-treemap {
+    position: relative;
+    height: 300px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .tm-cell {
+    position: absolute;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    line-height: 1.15;
+  }
+  .tm-cell .tm-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .tm-cell .tm-rate { font-weight: 600; opacity: 0.95; }
+  .tm-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 0.82rem; }
   .alloc-total { text-align: center; margin-top: 14px; }
   .alloc-total .label { color: var(--muted); font-size: 0.78rem; }
   .alloc-total .value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
@@ -1654,10 +1679,8 @@
 
       <div class="panel alloc-chart-panel">
         <h2>종목별 비중</h2>
-        <p class="desc">평가금액 기준 종목별 비중입니다.</p>
-        <div class="alloc-donut-wrap">
-          <canvas id="allocDonut"></canvas>
-        </div>
+        <p class="desc">칸의 크기는 평가금액 비중, 색은 전일대비 등락입니다. 오르면 빨강, 내리면 파랑이며 많이 움직일수록 진해집니다.</p>
+        <div class="alloc-treemap" id="allocTreemap"></div>
         <div class="alloc-total">
           <div class="label">현재총액</div>
           <div class="value" id="allocTotalValue">–</div>
@@ -3567,6 +3590,79 @@ function parsePastedRows(text) {
   return { rows, errors, skipped };
 }
 
+// ---- 트리맵 (종목별 비중) ----
+// 칸 넓이가 비중, 색이 등락을 나타내는 시장 지도. 외부 라이브러리를 쓰지 않고 직접 배치한다.
+// 정사각화(squarified) 방식: 남은 자리의 짧은 변을 기준으로 한 줄씩 채우되, 칸들이 정사각형에
+// 가까워지도록 줄을 끊는다. 길쭉한 칸이 나오면 이름이 안 보여 지도로서 쓸모가 없어진다.
+function treemapWorstRatio(areas, sum, shortSide) {
+  const max = Math.max(...areas);
+  const min = Math.min(...areas);
+  const s2 = shortSide * shortSide;
+  const sum2 = sum * sum;
+  return Math.max((s2 * max) / sum2, sum2 / (s2 * min));
+}
+
+function squarifyTreemap(data, width, height) {
+  const items = data.filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+  if (!items.length || width <= 0 || height <= 0) return [];
+  const totalValue = items.reduce((sum, d) => sum + d.value, 0);
+  const scale = (width * height) / totalValue;
+
+  const out = [];
+  const queue = items.map((d) => ({ ...d, area: d.value * scale }));
+  let free = { x: 0, y: 0, w: width, h: height };
+
+  while (queue.length) {
+    const shortSide = Math.min(free.w, free.h);
+    if (shortSide <= 0) break;
+    const row = [];
+    let rowArea = 0;
+    let prevWorst = Infinity;
+    while (queue.length) {
+      const nextArea = queue[0].area;
+      const worst = treemapWorstRatio(row.map((r) => r.area).concat(nextArea), rowArea + nextArea, shortSide);
+      if (row.length && worst > prevWorst) break;
+      row.push(queue.shift());
+      rowArea += nextArea;
+      prevWorst = worst;
+    }
+    // 짧은 변이 가로면 줄은 가로로, 세로면 세로로 눕는다.
+    const alongHeight = free.w >= free.h;
+    const thickness = rowArea / shortSide;
+    let pos = 0;
+    for (const cell of row) {
+      const len = cell.area / thickness;
+      if (alongHeight) out.push({ ...cell, x: free.x, y: free.y + pos, w: thickness, h: len });
+      else out.push({ ...cell, x: free.x + pos, y: free.y, w: len, h: thickness });
+      pos += len;
+    }
+    if (alongHeight) {
+      free.x += thickness;
+      free.w -= thickness;
+    } else {
+      free.y += thickness;
+      free.h -= thickness;
+    }
+    if (free.w < 0.5 || free.h < 0.5) break;
+  }
+  return out;
+}
+
+// 등락률에 따른 칸 색. 오르면 빨강, 내리면 파랑(국내 증시 관례).
+// 3%를 넘어가면 더 진해지지 않게 잘라 둔다. 그러지 않으면 한 종목이 크게 튀었을 때
+// 나머지가 전부 옅은 색으로 뭉개져 서로 구분이 안 된다.
+function treemapColor(rate) {
+  if (!Number.isFinite(rate) || Math.abs(rate) < 0.05) return { bg: "#8b95a5", fg: "#fff" };
+  const t = Math.min(Math.abs(rate) / 3, 1);
+  // 옅은 쪽 → 진한 쪽으로 섞는다.
+  const from = rate > 0 ? [231, 138, 128] : [138, 168, 224];
+  const to = rate > 0 ? [155, 22, 15] : [16, 55, 128];
+  const mix = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+  // 배경이 어두워질수록 흰 글씨가 읽히고, 옅으면 검은 글씨가 낫다.
+  const luminance = (0.299 * mix[0] + 0.587 * mix[1] + 0.114 * mix[2]) / 255;
+  return { bg: `rgb(${mix.join(",")})`, fg: luminance > 0.62 ? "#101828" : "#fff" };
+}
+
 function initAllocationTab() {
   const tbody = document.getElementById("allocTableBody");
   const tfoot = document.getElementById("allocTableFoot");
@@ -3580,7 +3676,6 @@ function initAllocationTab() {
   // book = 계좌 묶음, state = 지금 보고 있는 계좌. 아래 계산·렌더 코드는 전부 state만 본다.
   let book = currentAllocBook();
   let state = activeAccount();
-  let donut = null;
   let catChart = null;
   let periodChart = null;
   let saveTimer = null;
@@ -3919,36 +4014,44 @@ function initAllocationTab() {
     document.getElementById("allocTotalValue").textContent = c.nowTotal > 0 ? fmtWon(c.nowTotal) : "–";
   }
 
-  function renderCharts(c) {
-    // 종목별 도넛
-    const visible = c.rows.map((r, i) => ({ ...r, color: ALLOC_COLORS[i % ALLOC_COLORS.length] })).filter((r) => r.value > 0);
-    const donutData = {
-      labels: visible.map((r) => r.name || "(이름 없음)"),
-      datasets: [{ data: visible.map((r) => r.value), backgroundColor: visible.map((r) => r.color), borderColor: "#fff", borderWidth: 2 }],
-    };
-    const donutOpts = {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "58%",
-      plugins: {
-        legend: { position: "bottom", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 }, padding: 8 } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const sum = ctx.dataset.data.reduce((s, v) => s + v, 0);
-              const pct = sum > 0 ? ((ctx.parsed / sum) * 100).toFixed(2) : "0.00";
-              return `${ctx.label}: ${fmtWon(ctx.parsed)}원 (${pct}%)`;
-            },
-          },
-        },
-      },
-    };
-    if (!donut) {
-      donut = new Chart(document.getElementById("allocDonut"), { type: "doughnut", data: donutData, options: donutOpts });
-    } else {
-      donut.data = donutData;
-      donut.update();
+  // 종목별 비중을 시장 지도처럼 그린다. 칸 크기는 평가금액, 색은 전일대비 등락이다.
+  function renderTreemap(c) {
+    const box = document.getElementById("allocTreemap");
+    const cells = c.rows.filter((r) => r.value > 0);
+    if (!cells.length) {
+      box.innerHTML = `<div class="tm-empty">종목과 잔고수량을 넣으면 비중 지도가 표시됩니다.</div>`;
+      return;
     }
+    // 화면에 실제로 그려진 크기를 재서 배치한다. 탭이 숨겨져 있으면 0이 나오므로 그때는 건너뛴다.
+    const width = box.clientWidth;
+    const height = box.clientHeight;
+    if (!width || !height) return;
+
+    const laid = squarifyTreemap(
+      cells.map((r) => ({ value: r.value, name: r.name || "(이름 없음)", rate: r.changeRate, weight: r.weight })),
+      width,
+      height
+    );
+
+    box.innerHTML = laid
+      .map((cell) => {
+        const { bg, fg } = treemapColor(cell.rate);
+        // 칸이 작으면 글자가 넘쳐 지저분해진다. 들어갈 자리가 있을 때만 적는다.
+        const showName = cell.w > 54 && cell.h > 24;
+        const showRate = cell.w > 54 && cell.h > 40;
+        const nameSize = Math.max(9, Math.min(15, cell.w / 7, cell.h / 3));
+        const rateText = Number.isFinite(cell.rate) ? `${cell.rate > 0 ? "+" : ""}${cell.rate.toFixed(2)}%` : "–";
+        const title = `${cell.name} · 비중 ${cell.weight.toFixed(2)}% · 전일대비 ${rateText}`;
+        return `<div class="tm-cell" style="left:${cell.x}px;top:${cell.y}px;width:${cell.w}px;height:${cell.h}px;background:${bg};color:${fg}" title="${escapeHtml(title)}">
+            ${showName ? `<span class="tm-name" style="font-size:${nameSize.toFixed(1)}px">${escapeHtml(cell.name)}</span>` : ""}
+            ${showRate ? `<span class="tm-rate" style="font-size:${(nameSize * 0.85).toFixed(1)}px">${rateText}</span>` : ""}
+          </div>`;
+      })
+      .join("");
+  }
+
+  function renderCharts(c) {
+    renderTreemap(c);
 
     // 분류별 목표 vs 보유 막대
     const cats = ALLOC_CATEGORIES.filter((cat) => c.rows.some((r) => r.cat === cat));
@@ -4343,6 +4446,14 @@ function initAllocationTab() {
     renderComputed();
     persistAllocBook(book);
     refreshQuotes();
+  });
+
+  // 트리맵은 픽셀 좌표로 배치하므로 창 크기가 바뀌면 다시 그려야 한다.
+  // (막대·도넛과 달리 Chart.js가 알아서 맞춰 주지 않는다.)
+  let treemapResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(treemapResizeTimer);
+    treemapResizeTimer = setTimeout(() => renderTreemap(compute()), 150);
   });
 
   document.getElementById("allocRefreshQuotesBtn").addEventListener("click", () => refreshQuotes({ force: true }));
