@@ -106,6 +106,37 @@
   .naver-limit { display: inline-flex; align-items: center; gap: 6px; }
   .naver-limit > span { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
   .naver-more { font-size: 0.76rem; color: var(--muted); margin: 8px 0 0; text-align: center; }
+  /* 급매: 최저 호가가 실거래 최고가보다 기준치 이상 싼 행 */
+  .bargain-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 107, 107, 0.35);
+    background: rgba(255, 107, 107, 0.08);
+    border-radius: 10px;
+  }
+  .bargain-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    background: #ff6b6b;
+    border-radius: 999px;
+    padding: 2px 9px;
+  }
+  .bargain-count { font-size: 0.78rem; color: var(--text); }
+  .bargain-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; margin-left: auto; }
+  .bargain-toggle input { accent-color: #ff6b6b; cursor: pointer; }
+  .naver-table tr.row-bargain td { background: rgba(255, 107, 107, 0.07); }
+  .naver-table tr.row-bargain td:first-child { box-shadow: inset 3px 0 0 #ff6b6b; }
+  .bargain-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ff6b6b;
+    margin-left: 3px;
+  }
   .pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; }
   .pager-btn {
     min-width: 38px;
@@ -1404,6 +1435,16 @@
         </div>
       </div>
       <p class="desc" id="naverUpdatedAt">데이터를 불러오는 중입니다...</p>
+
+      <!-- 최저 호가가 실거래 최고가보다 많이 싼 행을 급매로 본다. -->
+      <div class="bargain-bar" id="naverBargainBar">
+        <span class="bargain-tag">급매</span>
+        <span class="bargain-count" id="naverBargainCount"></span>
+        <label class="bargain-toggle">
+          <input type="checkbox" id="naverBargainOnly" />
+          <span>급매만 보기</span>
+        </label>
+      </div>
 
       <div class="naver-table-scroll">
         <table class="naver-table" id="naverTable">
@@ -4415,7 +4456,22 @@ async function initNaverTab() {
   const limitSelect = document.getElementById("naverLimitSelect");
   const moreNote = document.getElementById("naverMoreNote");
   const pager = document.getElementById("naverPager");
+  const bargainOnly = document.getElementById("naverBargainOnly");
+  const bargainCountEl = document.getElementById("naverBargainCount");
   let pageNo = 1;
+
+  // 급매 판정: 최저 호가가 실거래 최고가보다 이 비율 이상 싼 경우.
+  // 비교 대상인 "실거래 최고가"는 최근 3년 중 가장 비싸게 팔린 값이라 직전 거래가와는
+  // 다르다. 고점 대비 얼마나 빠졌는지를 보는 값으로 읽어야 한다.
+  const BARGAIN_PCT = 5;
+  function bargainDiscount(c) {
+    if (!(c.realMaxPrice > 0) || c.minPrice == null) return null;
+    return ((c.realMaxPrice - c.minPrice) / c.realMaxPrice) * 100;
+  }
+  const isBargain = (c) => {
+    const d = bargainDiscount(c);
+    return d != null && d >= BARGAIN_PCT;
+  };
   const regions = payload.regions || [];
 
   const totalCount = regions.reduce((s, r) => s + r.complexes.reduce((s2, c) => s2 + c.count, 0), 0);
@@ -4810,13 +4866,22 @@ async function initNaverTab() {
     if (prefsReady && !applyingPrefs) persistPrefsSoon();
     const sortValue = (r) =>
       sortKey === "supplyArea" ? rowArea(r) : sortKey === "pyeongAskMin" ? pyeongAskMin(r) : r[sortKey];
-    const rows = currentRows().slice().sort((a, b) => {
+    const matched = currentRows().slice().sort((a, b) => {
       const va = sortValue(a), vb = sortValue(b);
       if (va == null) return 1;
       if (vb == null) return -1;
       const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb;
       return sortDir === "asc" ? cmp : -cmp;
     });
+
+    // 급매 개수는 "급매만 보기"를 켜도 달라지면 안 되므로 거르기 전에 센다.
+    const bargainCount = matched.filter(isBargain).length;
+    bargainCountEl.textContent = bargainCount
+      ? `실거래 최고가보다 ${BARGAIN_PCT}% 이상 싼 매물 ${bargainCount.toLocaleString("ko-KR")}건`
+      : `실거래 최고가보다 ${BARGAIN_PCT}% 이상 싼 매물이 없습니다`;
+    bargainOnly.disabled = bargainCount === 0 && !bargainOnly.checked;
+
+    const rows = bargainOnly.checked ? matched.filter(isBargain) : matched;
 
     renderSummary(rows);
 
@@ -4870,15 +4935,21 @@ async function initNaverTab() {
                   ? `<span class="naver-pyeong" title="이 지역은 아직 재수집되지 않아 전용면적 대신 공급면적입니다.">공</span>`
                   : ""
               }`;
+        const off = bargainDiscount(r);
+        const bargain = off != null && off >= BARGAIN_PCT;
         return `
-      <tr>
+      <tr${bargain ? ' class="row-bargain"' : ""}>
         <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
         <td>${
           r.complexNo
             ? `<a class="naver-complex-link" href="${complexUrl(r)}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>`
             : escapeHtml(r.complexName)
         }</td>
-        <td class="num">${fmtManwon(r.minPrice)}</td>
+        <td class="num">${fmtManwon(r.minPrice)}${
+          bargain
+            ? `<span class="bargain-badge" title="실거래 최고가 ${fmtManwon(r.realMaxPrice)} 대비">-${off.toFixed(1)}%</span>`
+            : ""
+        }</td>
         <td class="num">${fmtManwon(r.maxPrice)}</td>
         <td class="num">${
           r.householdCount == null
@@ -4931,6 +5002,7 @@ async function initNaverTab() {
     priceMin: 0,
     priceMax: PRICE_MAX_STEP,
     limit: "100",
+    bargainOnly: false,
     sortKey: "count",
     sortDir: "desc",
   });
@@ -4973,6 +5045,7 @@ async function initNaverTab() {
       age: ageSelect.value,
       dealCount: dealCountSelect.value,
       limit: limitSelect.value,
+      bargainOnly: bargainOnly.checked,
       priceMin: Number(priceMinRange.value),
       priceMax: Number(priceMaxRange.value),
       sortKey,
@@ -4996,6 +5069,7 @@ async function initNaverTab() {
       pyeongTypeSelect.value = typeof p.pyeongType === "string" ? p.pyeongType : "";
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
+      bargainOnly.checked = p.bargainOnly === true;
       limitSelect.value = typeof p.limit === "string" ? p.limit : d.limit;
       // 저장된 값이 목록에 없으면 select가 ""로 떨어진다. 그러면 전체가 그려져 느려지므로 기본값으로 되돌린다.
       if (limitSelect.value === "" && p.limit !== "0") limitSelect.value = d.limit;
@@ -5061,6 +5135,7 @@ async function initNaverTab() {
 
   tradeSelect.addEventListener("change", render);
   limitSelect.addEventListener("change", render);
+  bargainOnly.addEventListener("change", render);
   // 드롭다운 선택도 기억해야 하므로, 표를 다시 그리지 않는 변경에도 저장을 걸어둔다.
   [gugunSelect, dongSelect].forEach((el) => el.addEventListener("change", () => prefsReady && persistPrefsSoon()));
 
