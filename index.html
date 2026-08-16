@@ -1438,6 +1438,21 @@
       <div class="panel-header">
         <h2>단지별 매물 분석</h2>
         <div class="naver-controls">
+          <label class="naver-limit">
+            <span>급매 기준</span>
+            <select id="naverBargainPctSelect" title="최저 호가가 실거래 최고가보다 이 비율 이상 낮으면 급매">
+              <option value="5">5%</option>
+              <option value="10">10%</option>
+              <option value="15">15%</option>
+              <option value="20">20%</option>
+              <option value="25">25%</option>
+              <option value="30">30%</option>
+              <option value="35">35%</option>
+              <option value="40">40%</option>
+              <option value="45">45%</option>
+              <option value="50">50%</option>
+            </select>
+          </label>
           <select id="naverTradeSelect" title="거래 유형">
             <option value="A1" selected>매매</option>
           </select>
@@ -4620,6 +4635,15 @@ async function initNaverTab() {
   const pager = document.getElementById("naverPager");
   const bargainOnly = document.getElementById("naverBargainOnly");
   const bargainCountEl = document.getElementById("naverBargainCount");
+  const bargainPctSelect = document.getElementById("naverBargainPctSelect");
+  // 관리자 기준을 그대로 따를지, 사용자가 직접 고른 값을 쓸지 구분한다.
+  // 한 번도 고르지 않았으면 관리자가 기준을 바꿀 때 같이 따라간다.
+  let bargainPctUserSet = false;
+  const snapTo5 = (v) => Math.min(50, Math.max(5, Math.round(Number(v) / 5) * 5));
+  const effectiveBargainPct = () => Number(bargainPctSelect.value) || snapTo5(bargainPct);
+  function syncBargainPctSelect() {
+    if (!bargainPctUserSet) bargainPctSelect.value = String(snapTo5(bargainPct));
+  }
   let pageNo = 1;
 
   // 급매 판정: 최저 호가가 실거래 최고가보다 이 비율 이상 싼 경우.
@@ -4637,7 +4661,7 @@ async function initNaverTab() {
   }
   const isBargain = (c) => {
     const d = bargainDiscount(c);
-    return d != null && d >= bargainPct;
+    return d != null && d >= effectiveBargainPct();
   };
   const regions = payload.regions || [];
 
@@ -4691,11 +4715,25 @@ async function initNaverTab() {
   const gugunList = [...new Set(regions.map((r) => r.gugun).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
   gugunSelect.innerHTML = `<option value="">전체</option>` + gugunList.map((g) => `<option value="${g}">${g}</option>`).join("");
 
+  // 동 목록은 매물 주소에서 만든다.
+  // 예전에는 "동 단위 지역"이 따로 있는 곳(흑석동 하나뿐)만 뽑아 써서, 나머지 구에서는
+  // 목록이 비어 드롭다운이 아예 잠겨 있었다. 지금은 행마다 dong이 들어 있으므로 그걸 쓴다.
   function refreshDongOptions() {
     const gugun = gugunSelect.value;
-    const dongList = regions.filter((r) => r.gugun === gugun && r.dong).map((r) => r.dong);
-    dongSelect.innerHTML = `<option value="">전체</option>` + dongList.map((d) => `<option value="${d}">${d}</option>`).join("");
+    const keep = dongSelect.value;
+    const names = new Set();
+    for (const r of regions) {
+      if (r.gugun !== gugun) continue;
+      if (r.dong) names.add(r.dong);
+      for (const c of r.complexes) if (c.dong) names.add(c.dong);
+    }
+    const dongList = [...names].sort((a, b) => a.localeCompare(b, "ko"));
+    dongSelect.innerHTML =
+      `<option value="">전체</option>` +
+      dongList.map((d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
     dongSelect.disabled = dongList.length === 0;
+    // 구를 바꿔도 같은 이름의 동이 있으면 고르고 있던 값을 지키지 않는다(다른 구의 동이므로).
+    if (keep && dongList.includes(keep)) dongSelect.value = keep;
   }
   // 드롭다운은 어느 지역을 담을지 고르기만 한다. 실제로 표에 나오는 지역은
   // 아래 "지역추가"로 담은 핀(칩)이 정한다.
@@ -4730,20 +4768,26 @@ async function initNaverTab() {
     renderRow(excludeChipRow, excludeChips, "exclude");
   }
 
-  function regionMatchesChip(region, c) {
+  // 칩 판정은 행 단위로 한다. 동 칩은 지역이 아니라 그 매물의 주소를 봐야 하기 때문이다.
+  // (구 단위 지역 하나에 여러 동의 매물이 섞여 들어 있다.)
+  function matchesChip(region, row, c) {
     if (region.si !== c.si) return false;
     if (c.level === "si") return true;
-    // 구 단위 칩은 그 구의 동 단위 지역까지 포함한다(동작구처럼 동 데이터만 있는 경우가 있고,
-    // 구·동이 겹쳐도 currentRows()에서 complexNo로 중복을 제거함).
-    if (c.level === "gugun") return region.gugun === c.gugun;
-    return region.gugun === c.gugun && region.dong === c.dong;
+    if (region.gugun !== c.gugun) return false;
+    if (c.level === "gugun") return true;
+    return (row?.dong || region.dong) === c.dong;
   }
 
   // 핀으로 담은 지역만 표에 나온다. 핀을 모두 지우면 아무것도 표시하지 않는다.
-  function regionIncluded(region) {
-    const included = includeChips.some((c) => regionMatchesChip(region, c));
-    const excluded = excludeChips.some((c) => regionMatchesChip(region, c));
+  function rowIncluded(region, row) {
+    const included = includeChips.some((c) => matchesChip(region, row, c));
+    const excluded = excludeChips.some((c) => matchesChip(region, row, c));
     return included && !excluded;
+  }
+
+  // 구·시 칩만 볼 때 지역 전체를 통째로 건너뛰기 위한 빠른 판정(행 수가 많아 값어치가 있다).
+  function regionPossiblyIncluded(region) {
+    return includeChips.some((c) => c.level === "si" || (region.si === c.si && region.gugun === c.gugun));
   }
 
   document.getElementById("addIncludeRegionBtn").addEventListener("click", () => {
@@ -4932,8 +4976,9 @@ async function initNaverTab() {
     const minDeals = dealCountSelect.value ? Number(dealCountSelect.value) : null;
     const seen = new Map();
     for (const region of regions) {
-      if (!regionIncluded(region)) continue;
+      if (!regionPossiblyIncluded(region)) continue;
       for (const c of region.complexes) {
+        if (!rowIncluded(region, c)) continue;
         if (c.tradeType !== tradeSelect.value) continue;
         if (!passesUnitFilters(c)) continue;
         if (!passesPriceRange(c)) continue;
@@ -5044,8 +5089,8 @@ async function initNaverTab() {
     // 급매 개수는 "급매만 보기"를 켜도 달라지면 안 되므로 거르기 전에 센다.
     const bargainCount = matched.filter(isBargain).length;
     bargainCountEl.textContent = bargainCount
-      ? `실거래 최고가보다 ${bargainPct}% 이상 싼 매물 ${bargainCount.toLocaleString("ko-KR")}건`
-      : `실거래 최고가보다 ${bargainPct}% 이상 싼 매물이 없습니다`;
+      ? `실거래 최고가보다 ${effectiveBargainPct()}% 이상 싼 매물 ${bargainCount.toLocaleString("ko-KR")}건`
+      : `실거래 최고가보다 ${effectiveBargainPct()}% 이상 싼 매물이 없습니다`;
     bargainOnly.disabled = bargainCount === 0 && !bargainOnly.checked;
 
     const rows = bargainOnly.checked ? matched.filter(isBargain) : matched;
@@ -5103,7 +5148,7 @@ async function initNaverTab() {
                   : ""
               }`;
         const off = bargainDiscount(r);
-        const bargain = off != null && off >= bargainPct;
+        const bargain = off != null && off >= effectiveBargainPct();
         return `
       <tr${bargain ? ' class="row-bargain"' : ""}>
         <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
@@ -5170,6 +5215,7 @@ async function initNaverTab() {
     priceMax: PRICE_MAX_STEP,
     limit: "100",
     bargainOnly: false,
+    bargainPct: "",
     sortKey: "count",
     sortDir: "desc",
   });
@@ -5213,6 +5259,7 @@ async function initNaverTab() {
       dealCount: dealCountSelect.value,
       limit: limitSelect.value,
       bargainOnly: bargainOnly.checked,
+      bargainPct: bargainPctUserSet ? bargainPctSelect.value : "",
       priceMin: Number(priceMinRange.value),
       priceMax: Number(priceMaxRange.value),
       sortKey,
@@ -5237,6 +5284,10 @@ async function initNaverTab() {
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
       bargainOnly.checked = p.bargainOnly === true;
+      // 저장된 값이 있으면 사용자가 고른 것으로 보고 그대로 쓴다. 없으면 관리자 기준을 따른다.
+      const savedPct = typeof p.bargainPct === "string" && p.bargainPct ? Number(p.bargainPct) : null;
+      bargainPctUserSet = savedPct != null && savedPct >= 5 && savedPct <= 50 && savedPct % 5 === 0;
+      bargainPctSelect.value = bargainPctUserSet ? String(savedPct) : String(snapTo5(bargainPct));
       limitSelect.value = typeof p.limit === "string" ? p.limit : d.limit;
       // 저장된 값이 목록에 없으면 select가 ""로 떨어진다. 그러면 전체가 그려져 느려지므로 기본값으로 되돌린다.
       if (limitSelect.value === "" && p.limit !== "0") limitSelect.value = d.limit;
@@ -5289,7 +5340,10 @@ async function initNaverTab() {
 
   // 공용 설정(급매 판정 기준)이 늦게 도착하거나 관리자가 바꾸면 표를 다시 그린다.
   // 페이지 번호는 유지한다 — 기준만 바뀌었지 보던 자리가 달라질 이유는 없다.
-  bargainPctHook = () => redraw();
+  bargainPctHook = () => {
+    syncBargainPctSelect();
+    redraw();
+  };
 
   // 로그인 상태가 바뀌면 그 계정의 설정으로 갈아끼운다.
   naverPrefsHook = () => {
@@ -5307,6 +5361,10 @@ async function initNaverTab() {
   tradeSelect.addEventListener("change", render);
   limitSelect.addEventListener("change", render);
   bargainOnly.addEventListener("change", render);
+  bargainPctSelect.addEventListener("change", () => {
+    bargainPctUserSet = true;
+    render();
+  });
   // 드롭다운 선택도 기억해야 하므로, 표를 다시 그리지 않는 변경에도 저장을 걸어둔다.
   [gugunSelect, dongSelect].forEach((el) => el.addEventListener("change", () => prefsReady && persistPrefsSoon()));
 
