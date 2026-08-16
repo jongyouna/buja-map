@@ -61,6 +61,16 @@ buja-map 프로젝트를 GitHub에 올리고 GitHub Pages로 호스팅하며 겪
 - 배포 확인: `GET /repos/{owner}/{repo}/pages` API 응답의 `"status": "built"` 및 `html_url` 확인, 또는 `curl -o /dev/null -w "%{http_code}" {html_url}` 로 200 확인
 - URL 형태: project page면 `https://{계정명}.github.io/{repo}/`
 
+### 소스는 비공개로 두고 싶다면
+
+무료 플랜에서 Pages는 public 저장소에서만 켜지지만, **소스 저장소를 private으로 두고 결과물
+(index.html + data/*.json)만 별도의 public 저장소로 밀어 넣으면** 무료로 그대로 호스팅할 수 있다.
+현재 buja-map이 이 구조를 쓴다 — `.github/workflows/deploy-pages.yml`, 설정 절차는
+[docs/private-repo-pages.md](docs/private-repo-pages.md).
+
+주의할 점 하나: private으로 바꾸면 Actions 실행 시간이 **무제한 → 월 2,000분**으로 바뀐다.
+분 단위로 도는 크론이 있으면 한도를 먼저 계산해 볼 것.
+
 ## 5. 매일 자동 갱신 (GitHub Actions)
 
 `.github/workflows/update-data.yml` 핵심 구조:

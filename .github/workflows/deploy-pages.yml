@@ -1,0 +1,115 @@
+name: Deploy site
+
+# 이 저장소를 private으로 두면서도 GitHub Pages를 무료로 쓰기 위한 배포 워크플로.
+#
+# 개인 무료 플랜에서 GitHub Pages는 public 저장소에서만 켤 수 있다(private 저장소 Pages는 Pro 이상).
+# 그래서 저장소를 둘로 나눈다.
+#   - private 저장소(여기): index.html 원본, 수집 스크립트, 워크플로, 문서, 커밋 히스토리
+#   - public 저장소(배포 전용): 브라우저가 어차피 내려받는 결과물만 = index.html + data/*.json + CNAME
+# 이 워크플로가 결과물만 골라 public 저장소의 배포 브랜치로 force push하고, Pages는 그 브랜치를 서빙한다.
+# 커스텀 도메인(CNAME)도 같이 옮겨가므로 bujamap.kr 주소는 그대로 유지된다.
+#
+# 배포 브랜치는 매번 "고아 커밋 1개"로 덮어쓴다. 시세 갱신이 하루 수십 번 커밋을 만들어도
+# 공개 저장소 히스토리가 무한정 불어나지 않게 하기 위해서다.
+#
+# 최초 1회 설정(공개 저장소 만들기, 배포 키/토큰, Pages 켜기, 도메인 이전 순서)은
+# docs/private-repo-pages.md 참고.
+
+on:
+  # 데이터 갱신 워크플로들이 커밋한 뒤 이 워크플로를 호출한다.
+  # (Actions의 기본 GITHUB_TOKEN으로 만든 push는 다른 워크플로의 push 트리거를 발동시키지 않으므로
+  #  데이터 갱신 → 배포를 push 이벤트로 엮을 수 없다. 그래서 workflow_call로 직접 부른다.)
+  workflow_call: {}
+  workflow_dispatch: {}
+  # 사람이 직접 index.html 등을 push한 경우엔 이 트리거로 배포된다.
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "data/**"
+      - "CNAME"
+      - ".github/workflows/deploy-pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  # 10분마다 도는 시세 갱신이 배포를 밀어넣어도 마지막 것만 살아남게 한다.
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 배포할 정적 파일만 추리기
+        run: |
+          set -eu
+          SITE="$RUNNER_TEMP/site"
+          rm -rf "$SITE"
+          mkdir -p "$SITE"
+          cp index.html "$SITE/"
+          cp -R data "$SITE/data"
+          # 커스텀 도메인은 배포 저장소에 CNAME 파일이 있어야 유지된다.
+          if [ -f CNAME ]; then cp CNAME "$SITE/"; fi
+          # data/ 아래 파일명이 _로 시작할 일은 없지만, Jekyll 처리를 아예 끄는 편이 안전하다.
+          touch "$SITE/.nojekyll"
+          echo "배포 대상:"
+          find "$SITE" -type f | sed "s|$SITE|.|"
+
+      - name: 공개 저장소로 배포
+        env:
+          TARGET_REPO: ${{ vars.PAGES_REPO }}
+          TARGET_BRANCH: ${{ vars.PAGES_BRANCH || 'gh-pages' }}
+          DEPLOY_KEY: ${{ secrets.PAGES_DEPLOY_KEY }}
+          DEPLOY_TOKEN: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+        run: |
+          set -eu
+
+          if [ -z "${TARGET_REPO:-}" ]; then
+            echo "::error::저장소 변수 PAGES_REPO 가 비어 있습니다. Settings → Secrets and variables → Actions → Variables 에 'owner/repo' 형식으로 추가하세요."
+            exit 1
+          fi
+
+          # 인증 수단은 배포 키(권장) 우선, 없으면 fine-grained PAT.
+          # 어느 쪽이든 토큰이 remote URL이나 로그에 남지 않도록 자격증명 파일/SSH 키로만 넘긴다.
+          if [ -n "${DEPLOY_KEY:-}" ]; then
+            install -m 700 -d ~/.ssh
+            printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+            chmod 600 ~/.ssh/deploy_key
+            ssh-keyscan -t rsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+            export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes"
+            REMOTE="git@github.com:${TARGET_REPO}.git"
+          elif [ -n "${DEPLOY_TOKEN:-}" ]; then
+            printf 'https://x-access-token:%s@github.com\n' "$DEPLOY_TOKEN" > ~/.git-credentials
+            chmod 600 ~/.git-credentials
+            git config --global credential.helper store
+            REMOTE="https://github.com/${TARGET_REPO}.git"
+          else
+            echo "::error::PAGES_DEPLOY_KEY(배포 키) 또는 PAGES_DEPLOY_TOKEN(PAT) 시크릿 중 하나가 필요합니다."
+            exit 1
+          fi
+
+          cd "$RUNNER_TEMP/site"
+          git init -q -b "$TARGET_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "deploy: ${GITHUB_REPOSITORY}@$(echo "$GITHUB_SHA" | cut -c1-7)"
+
+          # 네트워크 문제로 실패할 수 있으니 지수 백오프로 재시도한다.
+          delay=2
+          for attempt in 1 2 3 4 5; do
+            if git push -q --force "$REMOTE" "HEAD:refs/heads/${TARGET_BRANCH}"; then
+              echo "배포 완료: ${TARGET_REPO}#${TARGET_BRANCH}"
+              exit 0
+            fi
+            echo "push 실패 (시도 ${attempt}). ${delay}초 후 재시도합니다."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done
+          echo "::error::공개 저장소 push에 실패했습니다."
+          exit 1

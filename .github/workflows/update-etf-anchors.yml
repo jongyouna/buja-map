@@ -21,6 +21,8 @@ jobs:
   update-etf-anchors:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,11 +34,23 @@ jobs:
       - name: Fetch ETF anchors
         run: node scripts/fetch-etf-anchors.js
       - name: Commit updated data
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/etf-quotes.json data/etf-anchors.json
-          git diff --cached --quiet && echo "no changes" && exit 0
+          if git diff --cached --quiet; then
+            echo "no changes"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           git commit -m "chore: ETF 기간별 기준 종가 갱신"
           git pull --rebase origin main
           git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: update-etf-anchors
+    if: needs.update-etf-anchors.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy-pages.yml
+    secrets: inherit

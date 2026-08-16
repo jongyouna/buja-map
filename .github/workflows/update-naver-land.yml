@@ -30,6 +30,8 @@ jobs:
   update-naver-land:
     # 집 회선에 붙은 러너에서 실행 (라벨은 러너 등록 시 지정한 값과 맞춰야 함)
     runs-on: [self-hosted, naver-scraper]
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     defaults:
       run:
         # 윈도우 러너에서 shell 선택 시 주의점:
@@ -57,6 +59,7 @@ jobs:
           NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
         run: node scripts/fetch-naver-land.js
       - name: Commit updated data
+        id: commit
         # git diff --cached --quiet 는 변경이 있을 때 1을 반환한다(= errorlevel 1).
         # if 블록 안의 괄호가 커밋 메시지와 얽히지 않도록 goto로 분기한다.
         run: |
@@ -68,6 +71,7 @@ jobs:
           git diff --cached --quiet
           if errorlevel 1 goto commit
           echo no changes
+          echo changed=false>>%GITHUB_OUTPUT%
           exit /b 0
           :commit
           git commit -m "chore: 네이버 부동산 매물 갱신 - %NAVER_SCOPE%"
@@ -76,6 +80,13 @@ jobs:
           if errorlevel 1 exit /b 1
           git push
           if errorlevel 1 exit /b 1
+          echo changed=true>>%GITHUB_OUTPUT%
           exit /b 0
         env:
           NAVER_SCOPE: ${{ github.event.inputs.scope || 'seoul' }}
+
+  deploy:
+    needs: update-naver-land
+    if: needs.update-naver-land.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy-pages.yml
+    secrets: inherit

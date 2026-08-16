@@ -7,16 +7,16 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: update-data
   cancel-in-progress: false
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,9 +27,23 @@ jobs:
           BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
         run: node scripts/fetch-data.js
       - name: Commit updated data
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/data.json
-          git diff --cached --quiet && echo "no changes" || git commit -m "chore: daily data update"
+          if git diff --cached --quiet; then
+            echo "no changes"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "chore: daily data update"
           git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+  # 데이터가 실제로 바뀐 경우에만 공개 저장소(Pages)로 결과물을 밀어 넣는다.
+  deploy:
+    needs: update-data
+    if: needs.update-data.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy-pages.yml
+    secrets: inherit
