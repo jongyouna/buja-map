@@ -843,12 +843,13 @@
   /* 입력 가능한 칸임이 보이도록 옅은 바탕을 깐다(이미지의 노란 칸과 같은 역할). */
   .alloc-cell-input { background: #fffaeb; }
   .alloc-cell-price { background: #fff; }
-  /* 종목 칸은 표에서 가장 먼저 찾게 되는 칸이라 옅은 빨간 바탕으로 구분한다.
-     색은 리밸런싱 "필요"에 쓰는 것과 같은 값(--bad-bg)이다. */
-  .alloc-name-td { background: var(--bad-bg); }
-  /* 아래 .alloc-table input 규칙이 색을 덮으므로 같은 수준으로 맞춰 쓴다. */
-  .alloc-table .alloc-name-input { font-weight: 700; color: var(--bad); }
-  .alloc-table .alloc-name-input::placeholder { color: #d98077; font-weight: 400; }
+  /* 종목 칸 강조는 리밸런싱이 필요한 행에만 준다. 모든 행을 칠하면 표시가 표시로서
+     기능하지 못하고, 어느 종목을 손봐야 하는지 한눈에 찾을 수 없다.
+     색은 다른 곳에서 쓰는 것과 같은 값(--bad-bg / --bad)이다. */
+  .alloc-table .alloc-name-input { font-weight: 700; }
+  .alloc-table tbody tr.needs-rebal .alloc-name-td { background: var(--bad-bg); }
+  .alloc-table tbody tr.needs-rebal .alloc-name-input { color: var(--bad); }
+  .alloc-table tbody tr.needs-rebal .alloc-name-input::placeholder { color: #d98077; font-weight: 400; }
   /* 입력 중일 때는 흰 바탕으로 바꿔 커서와 글자가 또렷하게 보이도록 한다. */
   .alloc-table .alloc-name-input:focus { background: var(--panel); }
 
@@ -1022,8 +1023,9 @@
     .alloc-table tbody tr[data-idx] td.alloc-name-td::before { content: none; }
     .alloc-name-cell { width: 100%; }
     .alloc-name-input { font-size: 0.9rem !important; flex: 1 1 auto; min-width: 0; }
-    /* 카드에서도 종목은 같은 옅은 빨간 바탕으로 둔다. */
-    .alloc-table tbody tr[data-idx] td.alloc-name-td { background: var(--bad-bg); border-radius: 8px; padding: 6px 26px 6px 8px; }
+    /* 카드에서도 리밸런싱이 필요한 종목만 옅은 빨간 바탕으로 둔다. */
+    .alloc-table tbody tr[data-idx] td.alloc-name-td { border-radius: 8px; padding: 6px 26px 6px 8px; }
+    .alloc-table tbody tr[data-idx].needs-rebal td.alloc-name-td { background: var(--bad-bg); }
     .alloc-table tbody tr[data-idx] input.alloc-name-input { background: transparent; border-color: transparent; }
     .alloc-table tbody tr[data-idx] input.alloc-name-input:focus { background: var(--panel); border-color: var(--bad); }
 
@@ -1595,7 +1597,7 @@
         <div class="panel-header">
           <div>
             <h2>보유 종목</h2>
-            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱이 필요한 종목이며, 그 수는 위 요약의 리밸런싱 칸에 나옵니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
+            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱이 필요한 종목이며, 그 종목만 <b>빨간색</b>으로 표시됩니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
           </div>
           <button class="toggle-btn" id="allocRefreshQuotesBtn" type="button">시세 새로고침</button>
         </div>
@@ -3854,6 +3856,8 @@ function initAllocationTab() {
         el.className = el.classList.contains("alloc-more") ? `${cls} alloc-more` : cls;
       };
       const hasPrice = r.price !== null;
+      // 리밸런싱이 필요한 행에만 표시를 남긴다. 종목 칸 강조가 이 표시를 따라간다.
+      tr.classList.toggle("needs-rebal", r.needRebal);
       set("weight1", hasPrice ? r.weight.toFixed(1) : "–", "num");
       set("gap", hasPrice ? r.gap.toFixed(2) : "–", "num");
       set("thresholdBase", r.thresholdBase.toFixed(2), "num");
