@@ -255,6 +255,24 @@
   }
   .range-slider input[type="range"]::-moz-range-track { background: none; border: none; }
   .range-ticks { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); }
+  /* 자주 쓰는 구간을 한 번에 집는 버튼. 슬라이더를 두 번 끄는 수고를 덜어 준다. */
+  .quick-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 2px; }
+  .quick-row button {
+    font-size: 0.72rem;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 3px 10px;
+    cursor: pointer;
+  }
+  .quick-row button:hover { color: var(--text); border-color: var(--muted); }
+  .quick-row button.active {
+    background: var(--accent-include);
+    border-color: var(--accent-include);
+    color: #fff;
+    font-weight: 700;
+  }
   .filter-footer {
     display: flex;
     align-items: center;
@@ -1357,16 +1375,24 @@
       <div class="filter-section">
         <h3 class="filter-section-title">단지필터</h3>
         <div class="filter-row">
-          <div class="filter-field">
-            <label>평형타입</label>
-            <select id="filterPyeongType">
-              <option value="">전체</option>
-              <option value="20">20평대 이하</option>
-              <option value="30">30평대</option>
-              <option value="40">40평대</option>
-              <option value="50">50평대</option>
-              <option value="60">60평대 이상</option>
-            </select>
+          <div class="filter-field price-field">
+            <label>평형타입 <span class="range-chip" id="pyeongRangeLabel">전체</span></label>
+            <div class="quick-row" id="pyeongQuickRow">
+              <button type="button" data-lo="10" data-hi="20">10평대</button>
+              <button type="button" data-lo="20" data-hi="30">20평대</button>
+              <button type="button" data-lo="30" data-hi="40">30평대</button>
+              <button type="button" data-lo="40" data-hi="50">40평대</button>
+              <button type="button" data-lo="0" data-hi="60">전체</button>
+            </div>
+            <div class="range-slider" id="pyeongRange">
+              <div class="range-track"></div>
+              <div class="range-fill" id="pyeongRangeFill"></div>
+              <input type="range" id="pyeongRangeMin" min="0" max="60" step="1" value="0" aria-label="최소 평형" />
+              <input type="range" id="pyeongRangeMax" min="0" max="60" step="1" value="60" aria-label="최대 평형" />
+            </div>
+            <div class="range-ticks">
+              <span>0</span><span>10평</span><span>20평</span><span>30평</span><span>40평</span><span>50평</span><span>최대</span>
+            </div>
           </div>
           <div class="filter-field disabled admin-only">
             <label>세대수 <span class="filter-badge-soon">준비 중</span></label>
@@ -4969,9 +4995,61 @@ async function initNaverTab() {
   renderChips();
 
   // ---- 단지필터 / 매물필터 (구현 가능한 항목만) ----
-  const pyeongTypeSelect = document.getElementById("filterPyeongType");
   const ageSelect = document.getElementById("filterAge");
   const dealCountSelect = document.getElementById("filterDealCount");
+
+  // ---- 평형 슬라이더 ----
+  // 눈금 한 칸이 1평이고, 오른쪽 끝(60)은 "최대"라서 상한이 없다는 뜻이다.
+  // 위쪽 경계는 열린 구간으로 본다. "10평대"가 10.0~19.9평을 뜻해야 하기 때문이다.
+  const PYEONG_MAX_STEP = 60;
+  const pyeongMinRange = document.getElementById("pyeongRangeMin");
+  const pyeongMaxRange = document.getElementById("pyeongRangeMax");
+  const pyeongRangeLabel = document.getElementById("pyeongRangeLabel");
+  const pyeongRangeFill = document.getElementById("pyeongRangeFill");
+  const pyeongQuickRow = document.getElementById("pyeongQuickRow");
+
+  function pyeongBounds() {
+    const lo = Number(pyeongMinRange.value);
+    const hi = Number(pyeongMaxRange.value);
+    return { lo, hi, openTop: hi >= PYEONG_MAX_STEP, isAll: lo === 0 && hi >= PYEONG_MAX_STEP };
+  }
+
+  function renderPyeongRange() {
+    const b = pyeongBounds();
+    const pct = (v) => (v / PYEONG_MAX_STEP) * 100;
+    pyeongRangeFill.style.left = `${pct(b.lo)}%`;
+    pyeongRangeFill.style.right = `${100 - pct(b.hi)}%`;
+    pyeongRangeLabel.textContent = b.isAll
+      ? "전체"
+      : b.openTop
+      ? `${b.lo}평 이상`
+      : b.lo === 0
+      ? `${b.hi}평 미만`
+      : `${b.lo}~${b.hi}평`;
+    // 지금 범위와 정확히 같은 빠른 버튼이 있으면 눌린 상태로 보여 준다.
+    pyeongQuickRow.querySelectorAll("button").forEach((btn) => {
+      btn.classList.toggle("active", Number(btn.dataset.lo) === b.lo && Number(btn.dataset.hi) === b.hi);
+    });
+  }
+
+  pyeongMinRange.addEventListener("input", () => {
+    if (Number(pyeongMinRange.value) > Number(pyeongMaxRange.value)) pyeongMinRange.value = pyeongMaxRange.value;
+    renderPyeongRange();
+    render();
+  });
+  pyeongMaxRange.addEventListener("input", () => {
+    if (Number(pyeongMaxRange.value) < Number(pyeongMinRange.value)) pyeongMaxRange.value = pyeongMinRange.value;
+    renderPyeongRange();
+    render();
+  });
+  pyeongQuickRow.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-lo]");
+    if (!btn) return;
+    pyeongMinRange.value = btn.dataset.lo;
+    pyeongMaxRange.value = btn.dataset.hi;
+    renderPyeongRange();
+    render();
+  });
 
   // ---- 가격대 슬라이더 ----
   // 눈금 한 칸이 1억이고, 오른쪽 끝(50)은 "최대"라서 상한이 없다는 뜻이다.
@@ -5092,12 +5170,14 @@ async function initNaverTab() {
   }
 
   function passesUnitFilters(c) {
-    const pyeongType = pyeongTypeSelect.value;
-    if (pyeongType) {
+    const py = pyeongBounds();
+    if (!py.isAll) {
       const area = rowArea(c);
-      const pyeong = area == null ? null : area / 3.305785;
-      if (pyeong == null) return false;
-      if (pyeongType === "60" ? pyeong < 60 : Math.floor(pyeong / 10) * 10 !== Number(pyeongType)) return false;
+      if (area == null) return false;
+      const pyeong = area / 3.305785;
+      // 위쪽은 열린 구간(미만). 10평대 버튼이 20.0평을 데려오지 않게 한다.
+      if (pyeong < py.lo) return false;
+      if (!py.openTop && pyeong >= py.hi) return false;
     }
     const age = ageSelect.value;
     if (age) {
@@ -5107,7 +5187,7 @@ async function initNaverTab() {
     return true;
   }
 
-  [pyeongTypeSelect, ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
+  [ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
   const schedulePriceRender = debounce(() => render(), 120);
 
   function debounce(fn, ms) {
@@ -5359,7 +5439,8 @@ async function initNaverTab() {
     gugun: "",
     dong: "",
     trade: "A1",
-    pyeongType: "",
+    pyeongMin: 0,
+    pyeongMax: 60,
     age: "",
     dealCount: "",
     priceMin: 0,
@@ -5405,7 +5486,8 @@ async function initNaverTab() {
       gugun: gugunSelect.value,
       dong: dongSelect.value,
       trade: tradeSelect.value,
-      pyeongType: pyeongTypeSelect.value,
+      pyeongMin: Number(pyeongMinRange.value),
+      pyeongMax: Number(pyeongMaxRange.value),
       age: ageSelect.value,
       dealCount: dealCountSelect.value,
       limit: limitSelect.value,
@@ -5431,7 +5513,18 @@ async function initNaverTab() {
       dongSelect.value = typeof p.dong === "string" ? p.dong : "";
       tradeSelect.value = typeof p.trade === "string" ? p.trade : d.trade;
       if (!tradeSelect.value) tradeSelect.value = d.trade;
-      pyeongTypeSelect.value = typeof p.pyeongType === "string" ? p.pyeongType : "";
+      // 예전 저장값(pyeongType: "30" = 30평대)도 받아 슬라이더 범위로 옮긴다.
+      const legacy = typeof p.pyeongType === "string" && p.pyeongType ? Number(p.pyeongType) : null;
+      const clampPy = (v, fb) =>
+        Number.isFinite(v) ? Math.min(PYEONG_MAX_STEP, Math.max(0, Math.round(v))) : fb;
+      let pyLo = clampPy(p.pyeongMin, d.pyeongMin);
+      let pyHi = clampPy(p.pyeongMax, d.pyeongMax);
+      if (legacy != null && p.pyeongMin === undefined) {
+        pyLo = legacy >= 60 ? 60 : legacy === 20 ? 0 : legacy;
+        pyHi = legacy >= 60 ? PYEONG_MAX_STEP : legacy === 20 ? 30 : legacy + 10;
+      }
+      pyeongMinRange.value = String(Math.min(pyLo, pyHi));
+      pyeongMaxRange.value = String(Math.max(pyLo, pyHi));
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
       bargainOnly.checked = p.bargainOnly === true;
@@ -5454,6 +5547,7 @@ async function initNaverTab() {
       // 사용자의 변경이 아니므로 저장을 걸면 안 된다(특히 로그인 전 기본값을 그릴 때).
       renderChips();
       renderPriceRange();
+      renderPyeongRange();
       render();
     } finally {
       applyingPrefs = false;
@@ -5509,6 +5603,7 @@ async function initNaverTab() {
     persistNaverPrefs(collectPrefs());
   });
 
+  renderPyeongRange();
   tradeSelect.addEventListener("change", render);
   limitSelect.addEventListener("change", render);
   bargainOnly.addEventListener("change", render);
