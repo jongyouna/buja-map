@@ -34,7 +34,7 @@ jobs:
           node-version: "20"
       - name: Install dependencies
         run: |
-          call npm install --no-save firebase-admin nodemailer
+          call npm install --no-save firebase-admin@14 nodemailer@9
           if errorlevel 1 exit /b 1
       - name: Send
         env:

@@ -181,10 +181,13 @@ async function main() {
     return;
   }
 
-  const admin = require("firebase-admin");
+  // firebase-admin은 버전마다 루트 export가 다르다(v11은 admin.credential.cert,
+  // v14는 admin.cert). 어느 쪽이든 있는 서브패스 진입점을 쓴다.
+  const { initializeApp, cert } = require("firebase-admin/app");
+  const { getFirestore } = require("firebase-admin/firestore");
   const nodemailer = require("nodemailer");
-  admin.initializeApp({ credential: admin.cert(JSON.parse(sa)) });
-  const db = admin.firestore();
+  initializeApp({ credential: cert(JSON.parse(sa)) });
+  const db = getFirestore();
 
   const { regions, updatedAt } = readData();
   const snap = await db.collection("users").get();
