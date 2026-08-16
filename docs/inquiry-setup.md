@@ -112,7 +112,7 @@ const INQUIRY_ENDPOINT = "https://script.google.com/macros/s/AKfy.../exec";
 |---|---|
 | 웹앱 URL을 열면 **"현재 파일을 열 수 없습니다"** (구글 드라이브 오류 페이지) | 그 주소로 도달할 배포가 없다는 뜻이다. 아래 "배포가 안 열릴 때" 참고 |
 | "보내지 못했습니다 ... 접수 주소가 열려 있지 않은 상태" | 위와 같은 원인이거나 진짜 네트워크 문제다. 브라우저로 웹앱 URL을 직접 열어 구분한다 |
-| "로그인 정보가 확인되지 않았습니다" | `FIREBASE_API_KEY`가 비었거나 다른 프로젝트 값이다. `index.html`의 `firebaseConfig.apiKey`와 맞춘다 |
+| "로그인 정보가 확인되지 않았습니다" | `FIREBASE_API_KEY`가 비었거나 값이 틀렸다. **`AIza`로 시작하는 `apiKey`** 여야 하며, 바로 아래 줄의 `authDomain`(`...firebaseapp.com`)과 헷갈리기 쉽다. Apps Script 실행 로그에 어떤 값이 들어가 있는지 찍힌다 |
 | "문의 전송 주소가 아직 설정되지 않았습니다" | `index.html`의 `INQUIRY_ENDPOINT`가 비어 있다 |
 | 메일이 안 온다 | Apps Script 편집기 왼쪽 **실행** 탭에서 `doPost` 실행 기록과 오류를 확인. 스팸함도 확인 |
 | 응답은 되는데 "전송 결과를 확인하지 못했습니다" | 배포가 오래된 버전일 수 있다. 새 버전으로 다시 배포 |

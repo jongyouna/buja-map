@@ -17,6 +17,9 @@ var ADMIN_EMAIL = 'jongyouna@gmail.com';
 
 // Firebase 웹 API 키. index.html의 firebaseConfig.apiKey와 같은 값이며, 원래 공개되는 값이다.
 // 이 키는 "토큰이 이 프로젝트의 것인지" 확인하는 용도로만 쓴다.
+//
+// 반드시 'AIza...'로 시작하는 apiKey 값이어야 한다.
+// 바로 아래 줄에 있는 authDomain('...firebaseapp.com')과 헷갈리기 쉬우니 주의.
 var FIREBASE_API_KEY = 'PASTE_FIREBASE_WEB_API_KEY';
 
 // 한 사람이 연달아 보낼 수 있는 간격(초)과 하루 총 발송 한도.
@@ -83,6 +86,15 @@ function doGet() {
  */
 function verifyIdToken(idToken) {
   if (!idToken) return null;
+  // 설정을 빠뜨렸거나 authDomain을 잘못 넣으면 아래 요청이 그냥 400으로 떨어져서
+  // "로그인 정보가 확인되지 않았습니다"로만 보인다. 실행 로그에 원인을 남겨 둔다.
+  if (FIREBASE_API_KEY.indexOf('AIza') !== 0) {
+    console.error(
+      'FIREBASE_API_KEY 설정이 잘못됐습니다. index.html의 firebaseConfig.apiKey("AIza...")를 넣어야 합니다. ' +
+        '지금 값: ' + FIREBASE_API_KEY
+    );
+    return null;
+  }
   var url =
     'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' +
     encodeURIComponent(FIREBASE_API_KEY);
