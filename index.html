@@ -957,6 +957,11 @@
   }
   .alloc-table input:hover, .alloc-table select:hover { border-color: var(--panel-border); }
   .alloc-table input:focus, .alloc-table select:focus { outline: none; border-color: var(--text); background: var(--panel); }
+  /* number 입력칸의 증감 화살표는 좁은 칸에서 숫자가 들어갈 자리를 먹는다.
+     실제로 목표비중 26이 2로 잘려 보였다. 화살표를 없애고 그 자리를 숫자에 준다. */
+  .alloc-table input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+  .alloc-table input[type="number"]::-webkit-outer-spin-button,
+  .alloc-table input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .alloc-table input.num { text-align: right; }
   /* 입력 가능한 칸임이 보이도록 옅은 바탕을 깐다(이미지의 노란 칸과 같은 역할). */
   .alloc-cell-input { background: #fffaeb; }
@@ -1102,6 +1107,21 @@
   .import-preview.error { background: var(--bad-bg); color: var(--bad); }
   .import-preview.ok { background: var(--good-bg); color: var(--good); }
   .import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  /* 열 폭(합 100%). 종목은 15글자가 들어가도록 넉넉히 준다. */
+  .alloc-table col.c-cat { width: 6%; }
+  .alloc-table col.c-name { width: 25%; }
+  .alloc-table col.c-target { width: 5%; }
+  .alloc-table col.c-weight { width: 5%; }
+  .alloc-table col.c-change { width: 5%; }
+  .alloc-table col.c-rate { width: 6%; }
+  .alloc-table col.c-price { width: 8%; }
+  .alloc-table col.c-avg { width: 8%; }
+  .alloc-table col.c-qty { width: 7%; }
+  .alloc-table col.c-gap { width: 5%; }
+  .alloc-table col.c-th { width: 7%; }
+  .alloc-table col.c-profit { width: 9%; }
+  .alloc-table col.c-del { width: 4%; }
+
   /* 창이 좁아지면 글자와 여백을 함께 줄인다. 폭만 줄이면 숫자가 칸을 넘쳐 잘리는데,
      금액이 잘려 보이는 것은 틀린 값을 보여 주는 것과 같다. */
   @media (max-width: 1180px) {
@@ -1114,12 +1134,34 @@
     /* 좁아지면 select의 기본 화살표가 글자 자리를 먹는다. 화살표를 없애 "주식"이 다 보이게 한다. */
     .alloc-cat-cell select { appearance: none; -webkit-appearance: none; text-align: center; padding: 4px 1px; }
   }
+  /* 이 아래로는 25%로는 15글자가 안 들어간다. 숫자 열에서 조금씩 걷어 종목에 몰아 준다. */
+  @media (max-width: 940px) {
+    .alloc-table col.c-name { width: 29%; }
+    .alloc-table col.c-cat { width: 4.5%; }
+    .alloc-table col.c-target { width: 4.5%; }
+    .alloc-table col.c-weight { width: 4.5%; }
+    .alloc-table col.c-price { width: 7.5%; }
+    .alloc-table col.c-avg { width: 7.5%; }
+    .alloc-table col.c-qty { width: 6.5%; }
+    .alloc-table col.c-gap { width: 4.5%; }
+    /* "Threshold" 머리글이 한 줄에 들어가야 한다. 더 줄이면 글자가 잘린다. */
+    .alloc-table col.c-th { width: 7%; }
+    /* 손익은 자릿수가 가장 많다(억 단위 + 콤마 + 부호). 여기서 줄이면 금액이 잘린다. */
+    .alloc-table col.c-profit { width: 10%; }
+    .alloc-table col.c-del { width: 3.5%; }
+  }
   @media (max-width: 980px) {
     .alloc-table { font-size: 0.7rem; }
     .alloc-table th, .alloc-table td { padding: 4px 3px; }
     .alloc-table input, .alloc-table select { font-size: 0.68rem; }
     .alloc-table thead th { font-size: 0.64rem; }
     .alloc-ask { display: none; }
+  }
+
+  /* 가장 좁은 구간에서는 머리글만 한 단계 더 줄인다. "Threshold"는 줄바꿈이 안 되는
+     한 단어라 칸이 좁아지면 글자가 잘린다. 값보다 머리글을 줄이는 편이 낫다. */
+  @media (max-width: 880px) {
+    .alloc-table thead th { font-size: 0.58rem; letter-spacing: -0.02em; }
   }
 
   /* ---- 좁은 화면(휴대폰): 표를 카드로 바꾼다 ----
@@ -1770,21 +1812,27 @@
 
         <div class="alloc-table-scroll">
           <table class="alloc-table" id="allocTable">
+            <!-- 열 폭은 여기서 정한다. 인라인 style로 두면 창 크기별로 조절할 수 없다. -->
+            <colgroup>
+              <col class="c-cat" /><col class="c-name" /><col class="c-target" /><col class="c-weight" />
+              <col class="c-change" /><col class="c-rate" /><col class="c-price" /><col class="c-avg" />
+              <col class="c-qty" /><col class="c-gap" /><col class="c-th" /><col class="c-profit" /><col class="c-del" />
+            </colgroup>
             <thead>
               <tr>
-                <th style="width:7%">분류</th>
-                <th style="width:18%">종목</th>
-                <th class="num" style="width:5%">목표<br />비중</th>
-                <th class="num" style="width:5%">보유<br />비중</th>
-                <th class="num" style="width:6%">전일대비<br />(%)</th>
-                <th class="num" style="width:6%">수익률<br />(%)</th>
-                <th class="num" style="width:9%">현재가</th>
-                <th class="num" style="width:9%">평균<br />매입가</th>
-                <th class="num" style="width:8%">잔고<br />수량</th>
-                <th class="num" style="width:6%">포트편차<br />(%)</th>
-                <th class="num" style="width:7%">Threshold<br />기준</th>
-                <th class="num" style="width:10%">손익(원)</th>
-                <th class="alloc-col-remove" style="width:4%">삭제</th>
+                <th>분류</th>
+                <th>종목</th>
+                <th class="num">목표<br />비중</th>
+                <th class="num">보유<br />비중</th>
+                <th class="num">전일대비<br />(%)</th>
+                <th class="num">수익률<br />(%)</th>
+                <th class="num">현재가</th>
+                <th class="num">평균<br />매입가</th>
+                <th class="num">잔고<br />수량</th>
+                <th class="num">포트편차<br />(%)</th>
+                <th class="num">Threshold<br />기준</th>
+                <th class="num">손익(원)</th>
+                <th class="alloc-col-remove">삭제</th>
               </tr>
             </thead>
             <tbody id="allocTableBody"></tbody>
