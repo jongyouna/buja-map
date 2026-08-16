@@ -618,7 +618,7 @@
   .modal-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
   .modal-actions .google-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
   .modal-actions .toggle-btn { padding: 8px 14px; }
-  .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; }
+  .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; white-space: pre-line; text-align: left; }
 
   /* ---- 자산 배분 탭 ---- */
   /* 계좌 탭 줄: 자산 배분 안에서 여러 계좌(연금저축·IRP·ISA…)를 오간다. */
@@ -1678,6 +1678,33 @@ let onAuthChangedHook = null;
 // 새 토큰을 받아온다(ensureGoogleAccessToken 참고).
 let googleAccessToken = null;
 
+// 로그인 실패를 사람이 읽고 바로 조치할 수 있는 문장으로 바꾼다.
+// Firebase가 주는 기본 메시지는 영어인 데다 "무엇을 어디서 고쳐야 하는지"가 없어서,
+// 특히 도메인을 옮긴 뒤 나는 오류는 원인을 찾는 데 한참 걸린다.
+function authErrorMessage(err) {
+  const host = location.hostname;
+  switch (err?.code) {
+    case "auth/unauthorized-domain":
+      // 새 도메인으로 옮기면 반드시 겪는 오류다. Firebase는 등록된 도메인에서 온 로그인만 받는다.
+      return (
+        `이 주소(${host})에서는 아직 로그인할 수 없습니다.\n\n` +
+        `Firebase 콘솔 > Authentication > Settings > 승인된 도메인에 "${host}"을(를) 추가해 주세요. ` +
+        `추가하면 바로 됩니다.`
+      );
+    case "auth/operation-not-allowed":
+      return "이 프로젝트에서 구글 로그인이 꺼져 있습니다. Firebase 콘솔 > Authentication > Sign-in method에서 Google을 켜 주세요.";
+    case "auth/popup-blocked":
+      return "브라우저가 로그인 창을 막았습니다. 이 사이트의 팝업 차단을 풀고 다시 눌러 주세요.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "로그인 창이 닫혔습니다. 다시 시도해 주세요.";
+    case "auth/network-request-failed":
+      return "네트워크 문제로 로그인하지 못했습니다. 연결을 확인하고 다시 시도해 주세요.";
+    default:
+      return `로그인에 실패했습니다: ${err?.message || err?.code || "알 수 없는 오류"}`;
+  }
+}
+
 // 상단 버튼과 로그인 안내 팝업이 같은 로그인 절차를 쓰도록 한 곳에 모아 둔다.
 // 실패는 호출한 쪽에서 화면에 표시할 수 있게 그대로 다시 던진다.
 function signInWithGoogle() {
@@ -1705,7 +1732,7 @@ function renderAuthArea() {
     document.getElementById("signInBtn").addEventListener("click", () => {
       signInWithGoogle().catch((err) => {
         console.error("로그인 실패:", err);
-        alert("로그인에 실패했습니다: " + err.message);
+        alert(authErrorMessage(err));
       });
     });
   }
@@ -1750,7 +1777,7 @@ document.getElementById("loginModalSignInBtn").addEventListener("click", () => {
   signInWithGoogle()
     .catch((err) => {
       console.error("로그인 실패:", err);
-      errEl.textContent = `로그인에 실패했습니다: ${err.message}`;
+      errEl.textContent = authErrorMessage(err);
       errEl.hidden = false;
     })
     .finally(() => {
