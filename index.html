@@ -305,6 +305,10 @@
   .filter-check.disabled { color: var(--muted); cursor: not-allowed; }
   .filter-check input { accent-color: var(--accent-nasdaq); }
   .filter-check.disabled input { cursor: not-allowed; }
+  /* "준비 중" 자리표시 항목들. 관리자에게만 보인다.
+     일반 사용자에게는 못 쓰는 칸이 늘어서 있을 뿐이라 화면만 어지럽힌다.
+     body에 클래스 하나만 걸어 두면 항목이 늘어도 CSS가 알아서 처리한다. */
+  body:not(.is-admin) .admin-only { display: none !important; }
   .filter-badge-soon {
     font-size: 0.65rem;
     color: var(--muted);
@@ -1254,7 +1258,7 @@
             <label>지역(도,시)</label>
             <select id="filterSido">
               <option value="서울">서울</option>
-              <option value="경기도" disabled>경기도 (준비 중)</option>
+              <option value="경기도" disabled class="admin-only">경기도 (준비 중)</option>
             </select>
           </div>
           <div class="filter-field">
@@ -1294,7 +1298,7 @@
               <option value="60">60평대 이상</option>
             </select>
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>세대수 <span class="filter-badge-soon">준비 중</span></label>
             <select disabled><option>—</option></select>
           </div>
@@ -1337,31 +1341,31 @@
               <span>0</span><span>10억</span><span>20억</span><span>30억</span><span>40억</span><span>최대</span>
             </div>
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>네이버호가(최저, 만원) <span class="filter-badge-soon">준비 중</span></label>
             <input disabled placeholder="준비 중" />
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>네이버호가(최고, 만원) <span class="filter-badge-soon">준비 중</span></label>
             <input disabled placeholder="준비 중" />
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>갭 <span class="filter-badge-soon">준비 중</span></label>
             <select disabled><option>—</option></select>
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>전고점미만 <span class="filter-badge-soon">준비 중</span></label>
             <select disabled><option>—</option></select>
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>하락율 <span class="filter-badge-soon">준비 중</span></label>
             <select disabled><option>—</option></select>
           </div>
-          <div class="filter-field disabled">
+          <div class="filter-field disabled admin-only">
             <label>전세가율 <span class="filter-badge-soon">준비 중</span></label>
             <select disabled><option>—</option></select>
           </div>
-          <div class="filter-checkboxes">
+          <div class="filter-checkboxes admin-only">
             <label class="filter-check disabled"><input type="checkbox" disabled /> 저층 제외(1~3층) <span class="filter-badge-soon">준비 중</span></label>
             <label class="filter-check disabled"><input type="checkbox" disabled /> KB 하한가 대비 급매(저층 포함) <span class="filter-badge-soon">준비 중</span></label>
             <label class="filter-check disabled"><input type="checkbox" disabled /> KB 상한가 대비 급매(저층 제외) <span class="filter-badge-soon">준비 중</span></label>
@@ -1919,6 +1923,9 @@ function updateAdminTabVisibility() {
   const btn = document.getElementById("adminTabBtn");
   const allowed = isAdminUser();
   btn.hidden = !allowed;
+  // "준비 중" 자리표시 항목(.admin-only)도 같이 여닫는다. 화면 정리일 뿐이고,
+  // 어차피 눌러도 동작하지 않는 칸들이라 숨긴다고 잃는 기능은 없다.
+  document.body.classList.toggle("is-admin", allowed);
   // 관리자 탭을 보던 중에 로그아웃/권한 회수가 일어나면 거시경제 탭으로 되돌린다.
   if (!allowed && !document.getElementById("tabPanel-admin").hidden) activateTab("macro", { remember: false });
 }
