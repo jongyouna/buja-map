@@ -57,6 +57,8 @@ function pickBargains(regions, f) {
   const pct = Number(f.bargainPct) > 0 ? Number(f.bargainPct) : 5;
   const trade = f.trade || "A1";
   const minDeals = f.dealCount ? Number(f.dealCount) : null;
+  // 단지 전체 세대수 하한. 화면의 "세대수" 드롭다운과 같은 기준.
+  const minHouseholds = f.household ? Number(f.household) : null;
   const out = [];
   // 흑석동처럼 구 지역과 동 지역에 같은 단지가 함께 들어 있어, 화면과 똑같이
   // (단지 × 면적)으로 한 번만 센다. 안 그러면 메일에 같은 줄이 두 번 실린다.
@@ -92,6 +94,10 @@ function pickBargains(regions, f) {
         if (f.age === "20+" ? c.approvalElapsedYear <= 20 : c.approvalElapsedYear > Number(f.age)) continue;
       }
       if (minDeals != null && c.count < minDeals) continue;
+      if (minHouseholds != null) {
+        if (c.householdCount == null) continue;
+        if (c.householdCount < minHouseholds) continue;
+      }
 
       if (!(c.realMaxPrice > 0)) continue;
       const off = ((c.realMaxPrice - c.minPrice) / c.realMaxPrice) * 100;

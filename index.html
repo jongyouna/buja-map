@@ -1599,9 +1599,17 @@
               <span>0</span><span>10평</span><span>20평</span><span>30평</span><span>40평</span><span>50평</span><span>최대</span>
             </div>
           </div>
-          <div class="filter-field disabled admin-only">
-            <label>세대수 <span class="filter-badge-soon">준비 중</span></label>
-            <select disabled><option>—</option></select>
+          <div class="filter-field">
+            <label>세대수</label>
+            <select id="filterHousehold">
+              <option value="">전체</option>
+              <option value="100">100세대 이상</option>
+              <option value="300">300세대 이상</option>
+              <option value="500">500세대 이상</option>
+              <option value="1000">1,000세대 이상</option>
+              <option value="1500">1,500세대 이상</option>
+              <option value="2000">2,000세대 이상</option>
+            </select>
           </div>
           <div class="filter-field">
             <label>연식</label>
@@ -5414,6 +5422,7 @@ async function initNaverTab() {
       bargainPct: effectiveBargainPct(),
       age: ageSelect.value,
       dealCount: dealCountSelect.value,
+      household: householdSelect.value,
     };
   }
 
@@ -5689,6 +5698,9 @@ async function initNaverTab() {
   // ---- 단지필터 / 매물필터 (구현 가능한 항목만) ----
   const ageSelect = document.getElementById("filterAge");
   const dealCountSelect = document.getElementById("filterDealCount");
+  // 세대수는 단지 전체 세대수(표의 큰 숫자)를 기준으로 본다. 같은 단지의 다른 평형끼리
+  // 값이 갈리지 않아야 "대단지만 보기"라는 말이 맞기 때문이다.
+  const householdSelect = document.getElementById("filterHousehold");
 
   // ---- 평형 슬라이더 ----
   // 눈금 한 칸이 1평이고, 오른쪽 끝(60)은 "최대"라서 상한이 없다는 뜻이다.
@@ -5876,10 +5888,16 @@ async function initNaverTab() {
       if (c.approvalElapsedYear == null) return false;
       if (age === "20+" ? c.approvalElapsedYear <= 20 : c.approvalElapsedYear > Number(age)) return false;
     }
+    const minHouseholds = householdSelect.value ? Number(householdSelect.value) : null;
+    if (minHouseholds != null) {
+      // 세대수를 모르는 단지는 조건에 든다고 볼 근거가 없으므로 뺀다(연식과 같은 처리).
+      if (c.householdCount == null) return false;
+      if (c.householdCount < minHouseholds) return false;
+    }
     return true;
   }
 
-  [ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
+  [ageSelect, dealCountSelect, householdSelect].forEach((el) => el.addEventListener("change", render));
   const schedulePriceRender = debounce(() => render(), 120);
 
   function debounce(fn, ms) {
@@ -6135,6 +6153,7 @@ async function initNaverTab() {
     pyeongMax: 60,
     age: "",
     dealCount: "",
+    household: "",
     priceMin: 0,
     priceMax: PRICE_MAX_STEP,
     limit: "100",
@@ -6182,6 +6201,7 @@ async function initNaverTab() {
       pyeongMax: Number(pyeongMaxRange.value),
       age: ageSelect.value,
       dealCount: dealCountSelect.value,
+      household: householdSelect.value,
       limit: limitSelect.value,
       bargainOnly: bargainOnly.checked,
       bargainPct: bargainPctUserSet ? bargainPctSelect.value : "",
@@ -6219,6 +6239,7 @@ async function initNaverTab() {
       pyeongMaxRange.value = String(Math.max(pyLo, pyHi));
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
+      householdSelect.value = typeof p.household === "string" ? p.household : "";
       // 로그인하지 않았으면 저장돼 있던 값이라도 켜지 않는다.
       bargainOnly.checked = p.bargainOnly === true && !!currentUser;
       // 저장된 값이 있으면 사용자가 고른 것으로 보고 그대로 쓴다. 없으면 관리자 기준을 따른다.
