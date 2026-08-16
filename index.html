@@ -1238,29 +1238,6 @@
   .alloc-period-note { font-size: 0.72rem; color: var(--muted); line-height: 1.6; margin: 10px 0 0; }
   .alloc-period-note.error { color: var(--bad); }
 
-  /* 화면 아래에 잠깐 떴다 사라지는 안내 */
-  .app-toast {
-    position: fixed;
-    left: 50%;
-    bottom: 24px;
-    transform: translateX(-50%) translateY(12px);
-    max-width: min(560px, calc(100vw - 32px));
-    background: var(--text);
-    color: #fff;
-    font-size: 0.82rem;
-    line-height: 1.5;
-    padding: 12px 18px;
-    border-radius: 10px;
-    box-shadow: 0 8px 28px rgba(16, 24, 40, 0.28);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-    z-index: 200;
-    text-align: center;
-  }
-  .app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .app-toast.error { background: var(--bad); }
-
   .alloc-quote-state { font-size: 0.74rem; color: var(--muted); }
   .alloc-quote-state.error { color: var(--bad); }
 </style>
@@ -3736,51 +3713,22 @@ function parsePastedRows(text) {
 // ---- 종목을 Gemini에 물어보기 ----
 // 종목명은 고칠 수 있는 입력칸이라 그 자체를 링크로 만들면 이름을 못 고치게 된다.
 // 그래서 이름 옆의 작은 버튼과, 고칠 일이 없는 트리맵 칸을 누르는 두 가지 길을 둔다.
-// Gemini 웹은 주소에 질문을 실어 보내는 방법을 제공하지 않는다(?q= 를 붙여도 입력란이
-// 비어 있는 채로 열린다 — 실제로 확인했다). 그래서 질문을 클립보드에 넣고 Gemini를 연다.
-// 사용자는 붙여넣기 한 번만 하면 된다.
-const GEMINI_URL = "https://gemini.google.com/app";
-
-function geminiQuestionFor(name, code) {
+// 질문을 주소에 실어 보내면 누르는 즉시 답이 나온다. Gemini 웹은 주소로 질문을 미리
+// 채우는 방법을 제공하지 않아(?q= 를 붙여도 입력란이 빈 채로 열린다) 구글 AI 모드를 쓴다.
+// udm=50 이 AI 모드이고, 답하는 모델은 Gemini다.
+function aiAskUrl(name, code) {
   // 이름이 비슷한 ETF가 많아 코드까지 넣어야 엉뚱한 종목을 물어보지 않는다.
   const who = code ? `${name}(${code})` : name;
-  return (
+  const question =
     `${who} ETF에 대해 알려줘. 어떤 지수를 따라가는지, 총보수, 주요 구성 종목, ` +
-    `최근 흐름과 투자할 때 눈여겨볼 점을 정리해줘.`
-  );
+    `최근 흐름과 투자할 때 눈여겨볼 점을 정리해줘.`;
+  return `https://www.google.com/search?q=${encodeURIComponent(question)}&udm=50`;
 }
 
-// 화면 아래에 잠깐 떴다 사라지는 안내. 붙여넣어야 한다는 걸 알려 주는 용도다.
-let allocToastTimer = null;
-function showToast(message, isError) {
-  let el = document.getElementById("allocToast");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "allocToast";
-    el.className = "app-toast";
-    document.body.appendChild(el);
-  }
-  el.textContent = message;
-  el.classList.toggle("error", !!isError);
-  el.classList.add("show");
-  clearTimeout(allocToastTimer);
-  allocToastTimer = setTimeout(() => el.classList.remove("show"), 4000);
-}
-
-async function openGeminiFor(name, code) {
+function openAiAskFor(name, code) {
   const label = (name || "").trim();
   if (!label) return;
-  const question = geminiQuestionFor(label, code);
-  // 창을 먼저 연다. 클립보드 쓰기를 기다린 뒤에 열면 브라우저가 "사용자가 누른 것"으로
-  // 보지 않아 팝업 차단에 걸릴 수 있다.
-  window.open(GEMINI_URL, "_blank", "noopener,noreferrer");
-  try {
-    await navigator.clipboard.writeText(question);
-    showToast("질문을 복사했습니다. Gemini 입력란에 붙여넣기(Ctrl+V) 하세요.", false);
-  } catch (e) {
-    // 클립보드가 막힌 브라우저에서도 무엇을 물어보면 되는지는 알려 준다.
-    showToast(`복사하지 못했습니다. Gemini에 이렇게 물어보세요 — ${question}`, true);
-  }
+  window.open(aiAskUrl(label, code), "_blank", "noopener,noreferrer");
 }
 
 // ---- 트리맵 (종목별 비중) ----
@@ -4092,7 +4040,7 @@ function initAllocationTab() {
               <span class="alloc-swatch" style="background:${color}"></span>
               <input type="text" class="alloc-name-input" data-field="name" value="${escapeHtml(r.name)}" placeholder="종목명 검색" maxlength="40" autocomplete="off" />
               <span class="alloc-code" data-cell="code">${r.code ? escapeHtml(r.code) : ""}</span>
-              <button class="alloc-ask" type="button" data-action="ask" title="질문을 복사하고 Gemini 열기" aria-label="질문을 복사하고 Gemini 열기">
+              <button class="alloc-ask" type="button" data-action="ask" title="구글 AI에 이 종목 물어보기" aria-label="구글 AI에 이 종목 물어보기">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5 13.9 9 20.5 11 13.9 13 12 19.5 10.1 13 3.5 11 10.1 9z" /></svg>
               </button>
               <div class="alloc-suggest" data-suggest hidden></div>
@@ -4237,7 +4185,7 @@ function initAllocationTab() {
         const showRate = cell.w > 54 && cell.h > 40;
         const nameSize = Math.max(9, Math.min(15, cell.w / 7, cell.h / 3));
         const rateText = Number.isFinite(cell.rate) ? `${cell.rate > 0 ? "+" : ""}${cell.rate.toFixed(2)}%` : "–";
-        const title = `${cell.name} · 비중 ${cell.weight.toFixed(2)}% · 전일대비 ${rateText} · 눌러서 질문 복사 후 Gemini 열기`;
+        const title = `${cell.name} · 비중 ${cell.weight.toFixed(2)}% · 전일대비 ${rateText} · 눌러서 구글 AI에 물어보기`;
         return `<div class="tm-cell" role="button" tabindex="0" data-name="${escapeHtml(cell.name)}" data-code="${escapeHtml(cell.code || "")}" style="left:${cell.x}px;top:${cell.y}px;width:${cell.w}px;height:${cell.h}px;background:${bg};color:${fg}" title="${escapeHtml(title)}">
             ${showName ? `<span class="tm-name" style="font-size:${nameSize.toFixed(1)}px">${escapeHtml(cell.name)}</span>` : ""}
             ${showRate ? `<span class="tm-rate" style="font-size:${(nameSize * 0.85).toFixed(1)}px">${rateText}</span>` : ""}
@@ -4575,7 +4523,7 @@ function initAllocationTab() {
     const ask = e.target.closest('[data-action="ask"]');
     if (ask) {
       const row = state.rows[Number(ask.closest("tr[data-idx]").dataset.idx)];
-      if (row) openGeminiFor(row.name, row.code);
+      if (row) openAiAskFor(row.name, row.code);
       return;
     }
     const expand = e.target.closest('[data-action="expand"]');
@@ -4654,14 +4602,14 @@ function initAllocationTab() {
   const treemapBox = document.getElementById("allocTreemap");
   treemapBox.addEventListener("click", (e) => {
     const cell = e.target.closest(".tm-cell");
-    if (cell) openGeminiFor(cell.dataset.name, cell.dataset.code);
+    if (cell) openAiAskFor(cell.dataset.name, cell.dataset.code);
   });
   treemapBox.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     const cell = e.target.closest(".tm-cell");
     if (!cell) return;
     e.preventDefault();
-    openGeminiFor(cell.dataset.name, cell.dataset.code);
+    openAiAskFor(cell.dataset.name, cell.dataset.code);
   });
 
   // 트리맵은 픽셀 좌표로 배치하므로 창 크기가 바뀌면 다시 그려야 한다.
