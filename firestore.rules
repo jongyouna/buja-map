@@ -53,15 +53,18 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == uid
         && request.resource.data.get('role', 'user') == 'user'
-        && request.resource.data.get('blocked', false) == false;
+        && request.resource.data.get('blocked', false) == false
+        && request.resource.data.get('alertsAllowed', true) == true;
 
       // 본인은 프로필과 접속 기록만 갱신할 수 있고, 권한/차단 상태는 건드릴 수 없다.
       // 여기서도 기존 문서에 role/blocked가 없을 수 있으므로 기본값을 두고 비교한다.
+      // alertsAllowed(급매 알림 허용 여부)도 관리자만 바꿀 수 있어야 하므로 같이 고정한다.
       allow update: if isAdmin()
         || (signedIn()
             && request.auth.uid == uid
             && request.resource.data.get('role', 'user') == resource.data.get('role', 'user')
-            && request.resource.data.get('blocked', false) == resource.data.get('blocked', false));
+            && request.resource.data.get('blocked', false) == resource.data.get('blocked', false)
+            && request.resource.data.get('alertsAllowed', true) == resource.data.get('alertsAllowed', true));
 
       allow delete: if isAdmin();
     }

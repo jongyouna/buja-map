@@ -127,8 +127,57 @@
     padding: 2px 9px;
   }
   .bargain-count { font-size: 0.78rem; color: var(--text); }
-  .bargain-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; margin-left: auto; }
+  .bargain-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; }
   .bargain-toggle input { accent-color: #ff6b6b; cursor: pointer; }
+  .bargain-toggle.locked > span:first-of-type { color: var(--muted); }
+  .alert-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 4px 12px;
+    margin-left: auto;
+    cursor: pointer;
+  }
+  .alert-btn:hover { border-color: var(--muted); }
+  .alert-btn.on { border-color: #ff6b6b; color: #ff6b6b; font-weight: 700; }
+  .alert-state { font-size: 0.7rem; color: var(--muted); }
+  .alert-btn.on .alert-state { color: #ff6b6b; }
+  .alert-summary {
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    background: var(--bg);
+  }
+  .alert-summary b { color: var(--text); }
+  .alert-fields { display: flex; flex-direction: column; gap: 10px; }
+  .alert-check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; }
+  .alert-check input { accent-color: #ff6b6b; cursor: pointer; }
+  .alert-field { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); }
+  .alert-field select {
+    font-size: 0.82rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--panel);
+    color: var(--text);
+  }
+  .alert-to { font-size: 0.76rem; color: var(--muted); margin: 0; }
+  .alert-to.blocked { color: var(--bad); }
+  .bargain-lock {
+    font-size: 0.68rem;
+    color: var(--muted);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
   .naver-table tr.row-bargain td { background: rgba(255, 107, 107, 0.07); }
   .naver-table tr.row-bargain td:first-child { box-shadow: inset 3px 0 0 #ff6b6b; }
   .bargain-icon {
@@ -255,6 +304,24 @@
   }
   .range-slider input[type="range"]::-moz-range-track { background: none; border: none; }
   .range-ticks { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); }
+  /* 자주 쓰는 구간을 한 번에 집는 버튼. 슬라이더를 두 번 끄는 수고를 덜어 준다. */
+  .quick-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 2px; }
+  .quick-row button {
+    font-size: 0.72rem;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 3px 10px;
+    cursor: pointer;
+  }
+  .quick-row button:hover { color: var(--text); border-color: var(--muted); }
+  .quick-row button.active {
+    background: var(--accent-include);
+    border-color: var(--accent-include);
+    color: #fff;
+    font-weight: 700;
+  }
   .filter-footer {
     display: flex;
     align-items: center;
@@ -810,13 +877,41 @@
   .alloc-layout > .panel { flex: 1 1 100%; min-width: 0; }
   .alloc-layout > .panel.alloc-chart-panel { flex: 1 1 300px; align-self: stretch; }
   .alloc-donut-wrap { position: relative; height: 280px; }
+  /* 종목별 비중 트리맵. 칸 크기는 비중, 색은 전일대비 등락을 나타낸다.
+     외부 라이브러리 없이 직접 배치한다(Chart.js에는 트리맵이 없다). */
+  .alloc-treemap {
+    position: relative;
+    height: 300px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .tm-cell {
+    position: absolute;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    line-height: 1.15;
+  }
+  .tm-cell .tm-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .tm-cell .tm-rate { font-weight: 600; opacity: 0.95; }
+  .tm-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 0.82rem; }
   .alloc-total { text-align: center; margin-top: 14px; }
   .alloc-total .label { color: var(--muted); font-size: 0.78rem; }
   .alloc-total .value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
 
   /* 열이 많아 좁은 화면에서는 표만 가로로 스크롤시킨다. */
   .alloc-table-scroll { overflow-x: auto; }
-  .alloc-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 1260px; }
+  /* 표가 브라우저 폭을 그대로 따르게 한다. min-width를 두면 그보다 좁은 창에서 가로
+     스크롤이 생긴다. table-layout: fixed 와 비율 폭을 함께 써야 열이 내용에 끌려다니지
+     않고 예측 가능하게 줄어든다. */
+  .alloc-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed; }
   .alloc-table th, .alloc-table td {
     padding: 5px 7px;
     border-bottom: 1px solid var(--panel-border);
@@ -825,6 +920,9 @@
     white-space: nowrap;
   }
   .alloc-table th:last-child, .alloc-table td:last-child { border-right: none; }
+  /* 고정 레이아웃에서는 내용이 칸을 넘칠 수 있다. 넘치면 말줄임표로 알린다
+     (마우스를 올리면 표의 값은 그대로 읽을 수 있다). */
+  .alloc-table td { overflow: hidden; text-overflow: ellipsis; }
   .alloc-table th.num, .alloc-table td.num { text-align: right; }
   .alloc-table thead th {
     color: var(--text);
@@ -863,7 +961,15 @@
   /* 입력 가능한 칸임이 보이도록 옅은 바탕을 깐다(이미지의 노란 칸과 같은 역할). */
   .alloc-cell-input { background: #fffaeb; }
   .alloc-cell-price { background: #fff; }
-  .alloc-name-input { font-weight: 700 !important; }
+  /* 종목 칸 강조는 리밸런싱이 필요한 행에만 준다. 모든 행을 칠하면 표시가 표시로서
+     기능하지 못하고, 어느 종목을 손봐야 하는지 한눈에 찾을 수 없다.
+     색은 다른 곳에서 쓰는 것과 같은 값(--bad-bg / --bad)이다. */
+  .alloc-table .alloc-name-input { font-weight: 700; }
+  .alloc-table tbody tr.needs-rebal .alloc-name-td { background: var(--bad-bg); }
+  .alloc-table tbody tr.needs-rebal .alloc-name-input { color: var(--bad); }
+  .alloc-table tbody tr.needs-rebal .alloc-name-input::placeholder { color: #d98077; font-weight: 400; }
+  /* 입력 중일 때는 흰 바탕으로 바꿔 커서와 글자가 또렷하게 보이도록 한다. */
+  .alloc-table .alloc-name-input:focus { background: var(--panel); }
 
   /* 수익률·전일대비: 값의 부호와 크기에 따라 붉은색(＋)/푸른색(－) 농도를 준다. */
   .alloc-heat { font-weight: 600; }
@@ -873,7 +979,8 @@
   .alloc-rebal-off { color: var(--muted); background: none; text-align: center; }
 
   /* 종목 검색 드롭다운 */
-  .alloc-name-cell { position: relative; display: flex; align-items: center; gap: 6px; }
+  .alloc-name-cell { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .alloc-name-cell .alloc-name-input { min-width: 0; }
   .alloc-swatch { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
   .alloc-code { color: var(--muted); font-size: 0.68rem; flex-shrink: 0; }
   .alloc-suggest {
@@ -907,6 +1014,23 @@
 
   /* "자세히"는 카드로 바뀌는 좁은 화면에서만 쓴다. */
   .alloc-row-expand { display: none; }
+
+  /* 종목명 옆의 "Gemini에 물어보기" 버튼 */
+  .alloc-ask {
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px;
+    line-height: 0;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .alloc-ask svg { width: 14px; height: 14px; display: block; }
+  .alloc-ask:hover { color: var(--accent-include); background: #f2eeff; }
+  .tm-cell { cursor: pointer; }
+  .tm-cell:hover { outline: 2px solid rgba(255, 255, 255, 0.9); outline-offset: -2px; }
+  .tm-cell:focus-visible { outline: 2px solid #101828; outline-offset: -2px; }
 
   .alloc-row-remove {
     border: none;
@@ -978,6 +1102,26 @@
   .import-preview.error { background: var(--bad-bg); color: var(--bad); }
   .import-preview.ok { background: var(--good-bg); color: var(--good); }
   .import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  /* 창이 좁아지면 글자와 여백을 함께 줄인다. 폭만 줄이면 숫자가 칸을 넘쳐 잘리는데,
+     금액이 잘려 보이는 것은 틀린 값을 보여 주는 것과 같다. */
+  @media (max-width: 1180px) {
+    .alloc-table { font-size: 0.74rem; }
+    .alloc-table th, .alloc-table td { padding: 5px 4px; }
+    .alloc-table input, .alloc-table select { font-size: 0.72rem; padding: 4px 3px; }
+    .alloc-table thead th { font-size: 0.68rem; }
+    /* 종목코드는 이름에 자리를 내주고 숨긴다. 이름이 잘리는 것보다 낫다. */
+    .alloc-code { display: none; }
+    /* 좁아지면 select의 기본 화살표가 글자 자리를 먹는다. 화살표를 없애 "주식"이 다 보이게 한다. */
+    .alloc-cat-cell select { appearance: none; -webkit-appearance: none; text-align: center; padding: 4px 1px; }
+  }
+  @media (max-width: 980px) {
+    .alloc-table { font-size: 0.7rem; }
+    .alloc-table th, .alloc-table td { padding: 4px 3px; }
+    .alloc-table input, .alloc-table select { font-size: 0.68rem; }
+    .alloc-table thead th { font-size: 0.64rem; }
+    .alloc-ask { display: none; }
+  }
+
   /* ---- 좁은 화면(휴대폰): 표를 카드로 바꾼다 ----
      열이 15개라 휴대폰에서는 가로 스크롤로만 볼 수 있고, 스크롤하면 종목명이 화면 밖으로
      나가 어느 종목의 숫자인지 알 수 없게 된다. 그래서 좁은 화면에서는 한 종목을 한 카드로
@@ -985,7 +1129,7 @@
      입력·계산·검색 동작은 데스크톱과 완전히 같다. */
   @media (max-width: 820px) {
     .alloc-table-scroll { overflow-x: visible; }
-    .alloc-table { min-width: 0; display: block; }
+    .alloc-table { min-width: 0; display: block; table-layout: auto; }
     .alloc-table thead { display: none; }
     .alloc-table tbody, .alloc-table tfoot { display: block; }
     .alloc-table tr { display: block; }
@@ -1035,6 +1179,15 @@
     .alloc-table tbody tr[data-idx] td.alloc-name-td::before { content: none; }
     .alloc-name-cell { width: 100%; }
     .alloc-name-input { font-size: 0.9rem !important; flex: 1 1 auto; min-width: 0; }
+    /* 손가락으로 누를 크기를 준다. 데스크톱의 18px는 터치로는 너무 작다. */
+    .alloc-ask { padding: 7px; }
+    .alloc-ask svg { width: 16px; height: 16px; }
+
+    /* 카드에서도 리밸런싱이 필요한 종목만 옅은 빨간 바탕으로 둔다. */
+    .alloc-table tbody tr[data-idx] td.alloc-name-td { border-radius: 8px; padding: 6px 26px 6px 8px; }
+    .alloc-table tbody tr[data-idx].needs-rebal td.alloc-name-td { background: var(--bad-bg); }
+    .alloc-table tbody tr[data-idx] input.alloc-name-input { background: transparent; border-color: transparent; }
+    .alloc-table tbody tr[data-idx] input.alloc-name-input:focus { background: var(--panel); border-color: var(--bad); }
 
     /* 카드에는 핵심 값만 두고 나머지(입력칸 포함)는 "자세히"로 펼친다.
        14개를 다 펼쳐 두면 종목당 카드가 너무 길어져 세로 스크롤이 가로 스크롤만큼 괴로워진다. */
@@ -1385,16 +1538,24 @@
       <div class="filter-section">
         <h3 class="filter-section-title">단지필터</h3>
         <div class="filter-row">
-          <div class="filter-field">
-            <label>평형타입</label>
-            <select id="filterPyeongType">
-              <option value="">전체</option>
-              <option value="20">20평대 이하</option>
-              <option value="30">30평대</option>
-              <option value="40">40평대</option>
-              <option value="50">50평대</option>
-              <option value="60">60평대 이상</option>
-            </select>
+          <div class="filter-field price-field">
+            <label>평형타입 <span class="range-chip" id="pyeongRangeLabel">전체</span></label>
+            <div class="quick-row" id="pyeongQuickRow">
+              <button type="button" data-lo="10" data-hi="20">10평대</button>
+              <button type="button" data-lo="20" data-hi="30">20평대</button>
+              <button type="button" data-lo="30" data-hi="40">30평대</button>
+              <button type="button" data-lo="40" data-hi="50">40평대</button>
+              <button type="button" data-lo="0" data-hi="60">전체</button>
+            </div>
+            <div class="range-slider" id="pyeongRange">
+              <div class="range-track"></div>
+              <div class="range-fill" id="pyeongRangeFill"></div>
+              <input type="range" id="pyeongRangeMin" min="0" max="60" step="1" value="0" aria-label="최소 평형" />
+              <input type="range" id="pyeongRangeMax" min="0" max="60" step="1" value="60" aria-label="최대 평형" />
+            </div>
+            <div class="range-ticks">
+              <span>0</span><span>10평</span><span>20평</span><span>30평</span><span>40평</span><span>50평</span><span>최대</span>
+            </div>
           </div>
           <div class="filter-field disabled admin-only">
             <label>세대수 <span class="filter-badge-soon">준비 중</span></label>
@@ -1522,9 +1683,14 @@
       <div class="bargain-bar" id="naverBargainBar">
         <span class="bargain-tag">급매</span>
         <span class="bargain-count" id="naverBargainCount"></span>
+        <button class="alert-btn" id="naverAlertBtn" type="button">
+          <span aria-hidden="true">🔔</span> 급매 알림
+          <span class="alert-state" id="naverAlertState">꺼짐</span>
+        </button>
         <label class="bargain-toggle">
           <input type="checkbox" id="naverBargainOnly" />
           <span>급매만 보기</span>
+          <span class="bargain-lock" id="bargainLockHint" hidden>로그인 필요</span>
         </label>
       </div>
 
@@ -1597,7 +1763,7 @@
         <div class="panel-header">
           <div>
             <h2>보유 종목</h2>
-            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱 칸이 "필요"로 바뀝니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
+            <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱이 필요한 종목이며, 그 종목만 <b>빨간색</b>으로 표시됩니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
           </div>
           <button class="toggle-btn" id="allocRefreshQuotesBtn" type="button">시세 새로고침</button>
         </div>
@@ -1606,21 +1772,19 @@
           <table class="alloc-table" id="allocTable">
             <thead>
               <tr>
-                <th style="width:88px">분류</th>
-                <th style="min-width:230px">종목</th>
-                <th class="num">목표<br />비중</th>
-                <th class="num">보유<br />비중</th>
-                <th style="width:72px">리밸<br />런싱</th>
-                <th class="num">전일대비<br />(%)</th>
-                <th class="num">현재가</th>
-                <th class="num">평균<br />매입가</th>
-                <th class="num">잔고<br />수량</th>
-                <th class="num">수익률<br />(%)</th>
-                <th class="num">보유비중<br />(%)</th>
-                <th class="num">포트편차<br />(%)</th>
-                <th class="num">Threshold<br />기준</th>
-                <th class="num">손익(원)</th>
-                <th class="alloc-col-remove">삭제</th>
+                <th style="width:7%">분류</th>
+                <th style="width:18%">종목</th>
+                <th class="num" style="width:5%">목표<br />비중</th>
+                <th class="num" style="width:5%">보유<br />비중</th>
+                <th class="num" style="width:6%">전일대비<br />(%)</th>
+                <th class="num" style="width:6%">수익률<br />(%)</th>
+                <th class="num" style="width:9%">현재가</th>
+                <th class="num" style="width:9%">평균<br />매입가</th>
+                <th class="num" style="width:8%">잔고<br />수량</th>
+                <th class="num" style="width:6%">포트편차<br />(%)</th>
+                <th class="num" style="width:7%">Threshold<br />기준</th>
+                <th class="num" style="width:10%">손익(원)</th>
+                <th class="alloc-col-remove" style="width:4%">삭제</th>
               </tr>
             </thead>
             <tbody id="allocTableBody"></tbody>
@@ -1656,10 +1820,8 @@
 
       <div class="panel alloc-chart-panel">
         <h2>종목별 비중</h2>
-        <p class="desc">평가금액 기준 종목별 비중입니다.</p>
-        <div class="alloc-donut-wrap">
-          <canvas id="allocDonut"></canvas>
-        </div>
+        <p class="desc">칸의 크기는 평가금액 비중, 색은 전일대비 등락입니다. 오르면 빨강, 내리면 파랑이며 많이 움직일수록 진해집니다.</p>
+        <div class="alloc-treemap" id="allocTreemap"></div>
         <div class="alloc-total">
           <div class="label">현재총액</div>
           <div class="value" id="allocTotalValue">–</div>
@@ -1719,6 +1881,7 @@
               <th data-sort="loginCount" class="sortable num">접속 횟수</th>
               <th data-sort="viewCount" class="sortable num">저장 그래프</th>
               <th data-sort="role" class="sortable">권한</th>
+              <th data-sort="alertState" class="sortable">알림</th>
               <th>관리</th>
             </tr>
           </thead>
@@ -1757,6 +1920,38 @@
       <div class="inquiry-actions">
         <button class="toggle-btn" id="inquiryCancelBtn" type="button">취소</button>
         <button class="google-btn" id="inquirySendBtn" type="button" disabled>보내기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 급매 알림 설정. 지금 화면에 걸어 둔 필터를 그대로 저장해 두고, 그 조건에 맞는
+       매물을 계정 이메일로 보낸다. -->
+  <div class="modal-backdrop" id="alertModal" role="dialog" aria-modal="true" aria-labelledby="alertModalTitle" hidden>
+    <div class="modal-card">
+      <h2 id="alertModalTitle">급매 알림 이메일</h2>
+      <p class="desc">
+        아래 조건에 맞는 급매가 나오면 로그인한 계정 이메일로 목록을 보내 드립니다.
+        조건은 <b>지금 화면에 걸어 둔 필터</b>를 그대로 저장합니다.
+      </p>
+      <div class="alert-summary" id="alertFilterSummary"></div>
+      <div class="alert-fields">
+        <label class="alert-check">
+          <input type="checkbox" id="alertEnabled" />
+          <span>급매 알림 이메일 받기</span>
+        </label>
+        <label class="alert-field">
+          <span>발송 주기</span>
+          <select id="alertFrequency">
+            <option value="daily">매일 (새 수집 직후)</option>
+            <option value="weekly">주 1회 (월요일)</option>
+          </select>
+        </label>
+        <p class="alert-to" id="alertTo"></p>
+      </div>
+      <p class="modal-error" id="alertModalError" hidden></p>
+      <div class="modal-actions">
+        <button class="google-btn" id="alertSaveBtn" type="button">저장</button>
+        <button class="toggle-btn" id="alertCloseBtn" type="button">닫기</button>
       </div>
     </div>
   </div>
@@ -1924,20 +2119,20 @@ const LOGIN_REQUIRED_TABS = new Set(["allocation"]);
 // 로그인 팝업에서 로그인에 성공하면 열어 줄 탭. 새로고침 직후처럼 로그인 상태가 아직
 // 확정되지 않았을 때 눌린 탭도 여기에 담아 두었다가 확정된 뒤에 다시 판단한다.
 let pendingGatedTab = null;
-// 문의하려고 로그인 팝업을 띄운 상태인지. 로그인이 끝나면 문의창을 이어서 연다.
-let pendingInquiry = false;
+// 탭 말고 "급매만 보기"처럼 로그인 뒤 이어서 해야 할 동작도 담아 둔다.
+let pendingGatedAction = null;
 
 // 팝업의 기본 문구(자산 배분 탭 기준). 문의처럼 다른 이유로 띄울 때는 문구만 갈아 끼운다.
-const LOGIN_MODAL_DEFAULTS = {
-  title: document.getElementById("loginModalTitle").textContent,
-  desc: document.getElementById("loginModalDesc").textContent,
-};
+const LOGIN_MODAL_DEFAULT_TITLE = "사용을 위해서 반드시 로그인해주세요";
+const LOGIN_MODAL_DEFAULT_DESC =
+  "자산 배분 탭은 로그인한 사용자만 이용할 수 있습니다. 구글 계정으로 로그인하면 입력한 자산 배분이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있습니다.";
 
-function openLoginModal(tab, texts) {
+function openLoginModal(tab, options = {}) {
   pendingGatedTab = tab;
+  pendingGatedAction = options.onSuccess || null;
   const modal = document.getElementById("loginModal");
-  document.getElementById("loginModalTitle").textContent = texts?.title || LOGIN_MODAL_DEFAULTS.title;
-  document.getElementById("loginModalDesc").textContent = texts?.desc || LOGIN_MODAL_DEFAULTS.desc;
+  document.getElementById("loginModalTitle").textContent = options.title || LOGIN_MODAL_DEFAULT_TITLE;
+  document.getElementById("loginModalDesc").textContent = options.desc || LOGIN_MODAL_DEFAULT_DESC;
   document.getElementById("loginModalError").hidden = true;
   modal.hidden = false;
   document.getElementById("loginModalSignInBtn").focus();
@@ -1946,7 +2141,7 @@ function openLoginModal(tab, texts) {
 function closeLoginModal() {
   document.getElementById("loginModal").hidden = true;
   pendingGatedTab = null;
-  pendingInquiry = false;
+  pendingGatedAction = null;
 }
 
 document.getElementById("loginModalCloseBtn").addEventListener("click", closeLoginModal);
@@ -2008,11 +2203,11 @@ function syncInquiryCount() {
 
 function openInquiryModal() {
   if (!currentUser) {
-    // 로그인 팝업을 대신 띄우고, 로그인에 성공하면 syncGatedTabAccess가 여기로 돌아온다.
-    pendingInquiry = true;
+    // 로그인 팝업을 대신 띄우고, 로그인에 성공하면 onSuccess로 다시 여기로 돌아온다.
     openLoginModal(null, {
       title: "문의하려면 로그인해주세요",
       desc: "답장을 드리려면 보내는 분의 이메일이 필요합니다. 구글 계정으로 로그인하면 바로 문의를 남길 수 있습니다.",
+      onSuccess: openInquiryModal,
     });
     return;
   }
@@ -2175,15 +2370,16 @@ function syncGatedTabAccess() {
     });
     if (open) activateTab("macro", { remember: false });
     // 로그인 상태가 확정되기 전에 눌러 둔 탭이 있으면(새로고침 직후) 이제 안내 팝업을 띄운다.
-    if (pendingGatedTab && document.getElementById("loginModal").hidden) openLoginModal(pendingGatedTab);
+    if ((pendingGatedTab || pendingGatedAction) && document.getElementById("loginModal").hidden) {
+      openLoginModal(pendingGatedTab, { onSuccess: pendingGatedAction });
+    }
     return;
   }
   const target = pendingGatedTab;
-  // 로그인하려고 팝업을 띄운 이유가 문의였다면, 로그인이 끝난 뒤 문의창을 이어서 연다.
-  const wantsInquiry = pendingInquiry;
+  const action = pendingGatedAction;
   closeLoginModal();
   if (target) activateTab(target);
-  if (wantsInquiry) openInquiryModal();
+  if (action) action();
 }
 
 // 로그인할 때마다 users/{uid}에 접속 기록을 남긴다. 관리자 탭은 이 컬렉션을 읽어 목록을 만든다.
@@ -3739,6 +3935,100 @@ function parsePastedRows(text) {
   return { rows, errors, skipped };
 }
 
+// ---- 종목을 Gemini에 물어보기 ----
+// 종목명은 고칠 수 있는 입력칸이라 그 자체를 링크로 만들면 이름을 못 고치게 된다.
+// 그래서 이름 옆의 작은 버튼과, 고칠 일이 없는 트리맵 칸을 누르는 두 가지 길을 둔다.
+// 질문을 주소에 실어 보내면 누르는 즉시 답이 나온다. Gemini 웹은 주소로 질문을 미리
+// 채우는 방법을 제공하지 않아(?q= 를 붙여도 입력란이 빈 채로 열린다) 구글 AI 모드를 쓴다.
+// udm=50 이 AI 모드이고, 답하는 모델은 Gemini다.
+function aiAskUrl(name, code) {
+  // 이름이 비슷한 ETF가 많아 코드까지 넣어야 엉뚱한 종목을 물어보지 않는다.
+  const who = code ? `${name}(${code})` : name;
+  const question =
+    `${who} ETF에 대해 알려줘. 어떤 지수를 따라가는지, 총보수, 주요 구성 종목, ` +
+    `최근 흐름과 투자할 때 눈여겨볼 점을 정리해줘.`;
+  return `https://www.google.com/search?q=${encodeURIComponent(question)}&udm=50`;
+}
+
+function openAiAskFor(name, code) {
+  const label = (name || "").trim();
+  if (!label) return;
+  window.open(aiAskUrl(label, code), "_blank", "noopener,noreferrer");
+}
+
+// ---- 트리맵 (종목별 비중) ----
+// 칸 넓이가 비중, 색이 등락을 나타내는 시장 지도. 외부 라이브러리를 쓰지 않고 직접 배치한다.
+// 정사각화(squarified) 방식: 남은 자리의 짧은 변을 기준으로 한 줄씩 채우되, 칸들이 정사각형에
+// 가까워지도록 줄을 끊는다. 길쭉한 칸이 나오면 이름이 안 보여 지도로서 쓸모가 없어진다.
+function treemapWorstRatio(areas, sum, shortSide) {
+  const max = Math.max(...areas);
+  const min = Math.min(...areas);
+  const s2 = shortSide * shortSide;
+  const sum2 = sum * sum;
+  return Math.max((s2 * max) / sum2, sum2 / (s2 * min));
+}
+
+function squarifyTreemap(data, width, height) {
+  const items = data.filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+  if (!items.length || width <= 0 || height <= 0) return [];
+  const totalValue = items.reduce((sum, d) => sum + d.value, 0);
+  const scale = (width * height) / totalValue;
+
+  const out = [];
+  const queue = items.map((d) => ({ ...d, area: d.value * scale }));
+  let free = { x: 0, y: 0, w: width, h: height };
+
+  while (queue.length) {
+    const shortSide = Math.min(free.w, free.h);
+    if (shortSide <= 0) break;
+    const row = [];
+    let rowArea = 0;
+    let prevWorst = Infinity;
+    while (queue.length) {
+      const nextArea = queue[0].area;
+      const worst = treemapWorstRatio(row.map((r) => r.area).concat(nextArea), rowArea + nextArea, shortSide);
+      if (row.length && worst > prevWorst) break;
+      row.push(queue.shift());
+      rowArea += nextArea;
+      prevWorst = worst;
+    }
+    // 짧은 변이 가로면 줄은 가로로, 세로면 세로로 눕는다.
+    const alongHeight = free.w >= free.h;
+    const thickness = rowArea / shortSide;
+    let pos = 0;
+    for (const cell of row) {
+      const len = cell.area / thickness;
+      if (alongHeight) out.push({ ...cell, x: free.x, y: free.y + pos, w: thickness, h: len });
+      else out.push({ ...cell, x: free.x + pos, y: free.y, w: len, h: thickness });
+      pos += len;
+    }
+    if (alongHeight) {
+      free.x += thickness;
+      free.w -= thickness;
+    } else {
+      free.y += thickness;
+      free.h -= thickness;
+    }
+    if (free.w < 0.5 || free.h < 0.5) break;
+  }
+  return out;
+}
+
+// 등락률에 따른 칸 색. 오르면 빨강, 내리면 파랑(국내 증시 관례).
+// 3%를 넘어가면 더 진해지지 않게 잘라 둔다. 그러지 않으면 한 종목이 크게 튀었을 때
+// 나머지가 전부 옅은 색으로 뭉개져 서로 구분이 안 된다.
+function treemapColor(rate) {
+  if (!Number.isFinite(rate) || Math.abs(rate) < 0.05) return { bg: "#8b95a5", fg: "#fff" };
+  const t = Math.min(Math.abs(rate) / 3, 1);
+  // 옅은 쪽 → 진한 쪽으로 섞는다.
+  const from = rate > 0 ? [231, 138, 128] : [138, 168, 224];
+  const to = rate > 0 ? [155, 22, 15] : [16, 55, 128];
+  const mix = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+  // 배경이 어두워질수록 흰 글씨가 읽히고, 옅으면 검은 글씨가 낫다.
+  const luminance = (0.299 * mix[0] + 0.587 * mix[1] + 0.114 * mix[2]) / 255;
+  return { bg: `rgb(${mix.join(",")})`, fg: luminance > 0.62 ? "#101828" : "#fff" };
+}
+
 function initAllocationTab() {
   const tbody = document.getElementById("allocTableBody");
   const tfoot = document.getElementById("allocTableFoot");
@@ -3752,7 +4042,6 @@ function initAllocationTab() {
   // book = 계좌 묶음, state = 지금 보고 있는 계좌. 아래 계산·렌더 코드는 전부 state만 본다.
   let book = currentAllocBook();
   let state = activeAccount();
-  let donut = null;
   let catChart = null;
   let periodChart = null;
   let saveTimer = null;
@@ -3953,7 +4242,7 @@ function initAllocationTab() {
   // renderRows()는 행이 늘거나 줄 때만, renderComputed()는 계산 결과 칸만 갈아끼운다.
   function renderRows() {
     if (!state.rows.length) {
-      tbody.innerHTML = `<tr><td class="alloc-empty" colspan="15">종목을 추가해 주세요.</td></tr>`;
+      tbody.innerHTML = `<tr><td class="alloc-empty" colspan="13">종목을 추가해 주세요.</td></tr>`;
       tfoot.innerHTML = "";
       return;
     }
@@ -3976,19 +4265,20 @@ function initAllocationTab() {
               <span class="alloc-swatch" style="background:${color}"></span>
               <input type="text" class="alloc-name-input" data-field="name" value="${escapeHtml(r.name)}" placeholder="종목명 검색" maxlength="40" autocomplete="off" />
               <span class="alloc-code" data-cell="code">${r.code ? escapeHtml(r.code) : ""}</span>
+              <button class="alloc-ask" type="button" data-action="ask" title="구글 AI에 이 종목 물어보기" aria-label="구글 AI에 이 종목 물어보기">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5 13.9 9 20.5 11 13.9 13 12 19.5 10.1 13 3.5 11 10.1 9z" /></svg>
+              </button>
               <div class="alloc-suggest" data-suggest hidden></div>
             </div>
             <button class="alloc-row-expand" type="button" data-action="expand" aria-expanded="false">✎ 수정</button>
           </td>
           <td class="num alloc-cell-input" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
           <td class="num" data-cell="weight1" data-label="보유비중">–</td>
-          <td data-cell="rebal" class="alloc-rebal-off" data-label="리밸런싱">불필요</td>
           <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
+          <td class="num alloc-heat" data-cell="profitRate" data-label="수익률(%)">–</td>
           <td class="num alloc-cell-price alloc-more" data-label="현재가"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
           <td class="num alloc-cell-input alloc-more" data-label="평균매입가"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
           <td class="num alloc-cell-input" data-label="잔고수량"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
-          <td class="num alloc-heat" data-cell="profitRate" data-label="수익률(%)">–</td>
-          <td class="num alloc-more" data-cell="weight2" data-label="보유비중(%)">–</td>
           <td class="num alloc-more" data-cell="gap" data-label="포트편차(%)">–</td>
           <td class="num alloc-more" data-cell="thresholdBase" data-label="Threshold 기준">–</td>
           <td class="num alloc-more" data-cell="profit" data-label="손익(원)">–</td>
@@ -4000,9 +4290,7 @@ function initAllocationTab() {
           <td colspan="2">${escapeHtml(cat)} Sub Total</td>
           <td class="num" data-cell="stTarget" data-label="목표비중">–</td>
           <td class="num" data-cell="stWeight" data-label="보유비중">–</td>
-          <td colspan="6"></td>
-          <td class="num" data-cell="stWeight2" data-label="보유비중(%)">–</td>
-          <td colspan="2"></td>
+          <td colspan="7"></td>
           <td class="num" data-cell="stProfit" data-label="손익(원)">–</td>
           <td class="alloc-col-remove"></td>
         </tr>`);
@@ -4032,15 +4320,14 @@ function initAllocationTab() {
         el.className = el.classList.contains("alloc-more") ? `${cls} alloc-more` : cls;
       };
       const hasPrice = r.price !== null;
+      // 리밸런싱이 필요한 행에만 표시를 남긴다. 종목 칸 강조가 이 표시를 따라간다.
+      tr.classList.toggle("needs-rebal", r.needRebal);
       set("weight1", hasPrice ? r.weight.toFixed(1) : "–", "num");
-      set("weight2", hasPrice ? r.weight.toFixed(2) : "–", "num");
       set("gap", hasPrice ? r.gap.toFixed(2) : "–", "num");
       set("thresholdBase", r.thresholdBase.toFixed(2), "num");
       set("change", Number.isFinite(r.changeRate) ? r.changeRate.toFixed(2) : "–", `num ${signClass(r.changeRate)}`);
       set("profitRate", Number.isFinite(r.profitRate) ? r.profitRate.toFixed(2) : "–", `num alloc-heat ${signClass(r.profitRate)}`);
       set("profit", Number.isFinite(r.profit) ? fmtSignedWon(r.profit) : "–", `num ${signClass(r.profit)}`);
-      // 0/1보다 "필요/불필요"가 무슨 뜻인지 바로 읽힌다.
-      set("rebal", r.needRebal ? "필요" : "불필요", r.needRebal ? "alloc-rebal-on" : "alloc-rebal-off");
       const codeEl = tr.querySelector('[data-cell="code"]');
       if (codeEl) codeEl.textContent = r.code || "";
     });
@@ -4055,7 +4342,6 @@ function initAllocationTab() {
       const profit = rows.reduce((s, r) => s + (r.profit || 0), 0);
       tr.querySelector('[data-cell="stTarget"]').textContent = Math.round(target * 10) / 10;
       tr.querySelector('[data-cell="stWeight"]').textContent = c.nowTotal > 0 ? weight.toFixed(1) : "–";
-      tr.querySelector('[data-cell="stWeight2"]').textContent = c.nowTotal > 0 ? weight.toFixed(2) : "–";
       const pe = tr.querySelector('[data-cell="stProfit"]');
       pe.textContent = fmtSignedWon(profit);
       pe.className = `num ${signClass(profit)}`;
@@ -4067,10 +4353,7 @@ function initAllocationTab() {
           <td colspan="2">합계</td>
           <td class="num" data-label="목표비중">${Math.round(c.targetSum * 10) / 10}</td>
           <td class="num" data-label="보유비중">${c.nowTotal > 0 ? "100.0" : "–"}</td>
-          <td class="${c.rebalCount > 0 ? "alloc-rebal-on" : "alloc-rebal-off"}" data-label="리밸런싱 대상">${c.rebalCount}종목</td>
-          <td colspan="5"></td>
-          <td class="num" data-label="보유비중(%)">${c.nowTotal > 0 ? "100.00" : "–"}</td>
-          <td colspan="2"></td>
+          <td colspan="7"></td>
           <td class="num ${signClass(c.profit)}" data-label="손익(원)">${fmtSignedWon(c.profit)}</td>
           <td></td>
         </tr>`
@@ -4100,36 +4383,44 @@ function initAllocationTab() {
     document.getElementById("allocTotalValue").textContent = c.nowTotal > 0 ? fmtWon(c.nowTotal) : "–";
   }
 
-  function renderCharts(c) {
-    // 종목별 도넛
-    const visible = c.rows.map((r, i) => ({ ...r, color: ALLOC_COLORS[i % ALLOC_COLORS.length] })).filter((r) => r.value > 0);
-    const donutData = {
-      labels: visible.map((r) => r.name || "(이름 없음)"),
-      datasets: [{ data: visible.map((r) => r.value), backgroundColor: visible.map((r) => r.color), borderColor: "#fff", borderWidth: 2 }],
-    };
-    const donutOpts = {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "58%",
-      plugins: {
-        legend: { position: "bottom", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 }, padding: 8 } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const sum = ctx.dataset.data.reduce((s, v) => s + v, 0);
-              const pct = sum > 0 ? ((ctx.parsed / sum) * 100).toFixed(2) : "0.00";
-              return `${ctx.label}: ${fmtWon(ctx.parsed)}원 (${pct}%)`;
-            },
-          },
-        },
-      },
-    };
-    if (!donut) {
-      donut = new Chart(document.getElementById("allocDonut"), { type: "doughnut", data: donutData, options: donutOpts });
-    } else {
-      donut.data = donutData;
-      donut.update();
+  // 종목별 비중을 시장 지도처럼 그린다. 칸 크기는 평가금액, 색은 전일대비 등락이다.
+  function renderTreemap(c) {
+    const box = document.getElementById("allocTreemap");
+    const cells = c.rows.filter((r) => r.value > 0);
+    if (!cells.length) {
+      box.innerHTML = `<div class="tm-empty">종목과 잔고수량을 넣으면 비중 지도가 표시됩니다.</div>`;
+      return;
     }
+    // 화면에 실제로 그려진 크기를 재서 배치한다. 탭이 숨겨져 있으면 0이 나오므로 그때는 건너뛴다.
+    const width = box.clientWidth;
+    const height = box.clientHeight;
+    if (!width || !height) return;
+
+    const laid = squarifyTreemap(
+      cells.map((r) => ({ value: r.value, name: r.name || "(이름 없음)", code: r.code, rate: r.changeRate, weight: r.weight })),
+      width,
+      height
+    );
+
+    box.innerHTML = laid
+      .map((cell) => {
+        const { bg, fg } = treemapColor(cell.rate);
+        // 칸이 작으면 글자가 넘쳐 지저분해진다. 들어갈 자리가 있을 때만 적는다.
+        const showName = cell.w > 54 && cell.h > 24;
+        const showRate = cell.w > 54 && cell.h > 40;
+        const nameSize = Math.max(9, Math.min(15, cell.w / 7, cell.h / 3));
+        const rateText = Number.isFinite(cell.rate) ? `${cell.rate > 0 ? "+" : ""}${cell.rate.toFixed(2)}%` : "–";
+        const title = `${cell.name} · 비중 ${cell.weight.toFixed(2)}% · 전일대비 ${rateText} · 눌러서 구글 AI에 물어보기`;
+        return `<div class="tm-cell" role="button" tabindex="0" data-name="${escapeHtml(cell.name)}" data-code="${escapeHtml(cell.code || "")}" style="left:${cell.x}px;top:${cell.y}px;width:${cell.w}px;height:${cell.h}px;background:${bg};color:${fg}" title="${escapeHtml(title)}">
+            ${showName ? `<span class="tm-name" style="font-size:${nameSize.toFixed(1)}px">${escapeHtml(cell.name)}</span>` : ""}
+            ${showRate ? `<span class="tm-rate" style="font-size:${(nameSize * 0.85).toFixed(1)}px">${rateText}</span>` : ""}
+          </div>`;
+      })
+      .join("");
+  }
+
+  function renderCharts(c) {
+    renderTreemap(c);
 
     // 분류별 목표 vs 보유 막대
     const cats = ALLOC_CATEGORIES.filter((cat) => c.rows.some((r) => r.cat === cat));
@@ -4454,6 +4745,12 @@ function initAllocationTab() {
       pickSuggestion(Number(tr.dataset.idx), pick.dataset.pick, pick.dataset.pickName);
       return;
     }
+    const ask = e.target.closest('[data-action="ask"]');
+    if (ask) {
+      const row = state.rows[Number(ask.closest("tr[data-idx]").dataset.idx)];
+      if (row) openAiAskFor(row.name, row.code);
+      return;
+    }
     const expand = e.target.closest('[data-action="expand"]');
     if (expand) {
       // 좁은 화면에서만 보이는 버튼. 카드에 접어 둔 나머지 값·입력칸을 펼친다.
@@ -4524,6 +4821,28 @@ function initAllocationTab() {
     renderComputed();
     persistAllocBook(book);
     refreshQuotes();
+  });
+
+  // 트리맵 칸을 누르면 그 종목을 Gemini에 물어본다. 칸은 고칠 일이 없으므로 통째로 눌러도 된다.
+  const treemapBox = document.getElementById("allocTreemap");
+  treemapBox.addEventListener("click", (e) => {
+    const cell = e.target.closest(".tm-cell");
+    if (cell) openAiAskFor(cell.dataset.name, cell.dataset.code);
+  });
+  treemapBox.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const cell = e.target.closest(".tm-cell");
+    if (!cell) return;
+    e.preventDefault();
+    openAiAskFor(cell.dataset.name, cell.dataset.code);
+  });
+
+  // 트리맵은 픽셀 좌표로 배치하므로 창 크기가 바뀌면 다시 그려야 한다.
+  // (막대·도넛과 달리 Chart.js가 알아서 맞춰 주지 않는다.)
+  let treemapResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(treemapResizeTimer);
+    treemapResizeTimer = setTimeout(() => renderTreemap(compute()), 150);
   });
 
   document.getElementById("allocRefreshQuotesBtn").addEventListener("click", () => refreshQuotes({ force: true }));
@@ -4779,6 +5098,7 @@ function renderAdminTable() {
     if (key === "name") return u.displayName || u.email || "";
     if (key === "role") return u.role === "admin" || isRootAdmin(u.email) ? "admin" : "user";
     if (key === "viewCount") return adminState.viewCounts.get(u.uid) ?? null;
+    if (key === "alertState") return u.alertsAllowed === false ? "2차단" : u.bargainAlert?.enabled ? "0켜짐" : "1미신청";
     return u[key] ?? null;
   };
   rows.sort((a, b) => {
@@ -4796,7 +5116,7 @@ function renderAdminTable() {
   });
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="naver-empty">${
+    tbody.innerHTML = `<tr><td colspan="9" class="naver-empty">${
       adminState.users.length ? "조건에 맞는 사용자가 없습니다." : "아직 로그인한 사용자가 없습니다."
     }</td></tr>`;
     return;
@@ -4829,8 +5149,18 @@ function renderAdminTable() {
         <td>${admin ? `<span class="admin-tag is-admin">${root ? "최초 관리자" : "관리자"}</span>` : `<span class="admin-tag">일반</span>`}${
           u.blocked ? ` <span class="admin-tag is-blocked">차단됨</span>` : ""
         }</td>
+        <td>${
+          u.alertsAllowed === false
+            ? `<span class="admin-tag is-blocked">차단</span>`
+            : u.bargainAlert?.enabled
+            ? `<span class="admin-tag is-admin">${u.bargainAlert.frequency === "weekly" ? "주간" : "매일"}</span>`
+            : `<span class="admin-tag">미신청</span>`
+        }</td>
         <td>
           <div class="admin-actions">
+            <button type="button" data-admin-action="alerts" data-uid="${u.uid}">${
+              u.alertsAllowed === false ? "알림 허용" : "알림 차단"
+            }</button>
             <button type="button" data-admin-action="role" data-uid="${u.uid}" ${locked ? "disabled" : ""}>${
               u.role === "admin" ? "권한 회수" : "관리자 지정"
             }</button>
@@ -4892,6 +5222,7 @@ document.getElementById("adminTableBody").addEventListener("click", async (e) =>
   try {
     if (adminAction === "role") await adminSetField(uid, { role: u.role === "admin" ? "user" : "admin" });
     else if (adminAction === "block") await adminSetField(uid, { blocked: !u.blocked });
+    else if (adminAction === "alerts") await adminSetField(uid, { alertsAllowed: u.alertsAllowed === false });
     else if (adminAction === "purge") await adminPurgeUser(uid);
   } catch (err) {
     console.error("관리자 작업 실패:", err);
@@ -5005,6 +5336,134 @@ async function initNaverTab() {
   const effectiveBargainPct = () => Number(bargainPctSelect.value) || snapTo5(bargainPct);
   function syncBargainPctSelect() {
     if (!bargainPctUserSet) bargainPctSelect.value = String(snapTo5(bargainPct));
+  }
+
+  // ---- 급매 알림 이메일 ----
+  // 지금 화면에 걸어 둔 필터를 그대로 저장해 두고, 발송 스크립트가 그 조건으로
+  // 매물을 골라 계정 이메일로 보낸다. 조건 저장은 users/{uid}.bargainAlert.
+  const alertBtn = document.getElementById("naverAlertBtn");
+  const alertStateEl = document.getElementById("naverAlertState");
+  const alertModal = document.getElementById("alertModal");
+  const alertEnabled = document.getElementById("alertEnabled");
+  const alertFrequency = document.getElementById("alertFrequency");
+  const alertErrEl = document.getElementById("alertModalError");
+
+  const currentAlert = () => currentUserDoc?.bargainAlert || null;
+  // 관리자가 막아 둔 계정은 신청 자체를 열지 않는다(기본은 허용).
+  const alertsAllowed = () => currentUserDoc?.alertsAllowed !== false;
+
+  function alertFilterSnapshot() {
+    const b = priceBounds();
+    const py = pyeongBounds();
+    return {
+      include: includeChips,
+      exclude: excludeChips,
+      trade: tradeSelect.value,
+      pyeongMin: py.lo,
+      pyeongMax: py.hi,
+      priceMin: b.loStep,
+      priceMax: b.hiStep,
+      bargainPct: effectiveBargainPct(),
+      age: ageSelect.value,
+      dealCount: dealCountSelect.value,
+    };
+  }
+
+  function describeFilters(f) {
+    const region = f.include.length ? f.include.map((c) => c.label).join(", ") : "(없음)";
+    const exclude = f.exclude.length ? ` <b>제외</b> ${f.exclude.map((c) => c.label).join(", ")}` : "";
+    const py =
+      f.pyeongMin === 0 && f.pyeongMax >= PYEONG_MAX_STEP
+        ? "전체"
+        : f.pyeongMax >= PYEONG_MAX_STEP
+        ? `${f.pyeongMin}평 이상`
+        : f.pyeongMin === 0
+        ? `${f.pyeongMax}평 미만`
+        : `${f.pyeongMin}~${f.pyeongMax}평`;
+    const price =
+      f.priceMin === 0 && f.priceMax >= PRICE_MAX_STEP
+        ? "전체"
+        : f.priceMax >= PRICE_MAX_STEP
+        ? `${f.priceMin}.0억 이상`
+        : f.priceMin === 0
+        ? `${f.priceMax}.0억 이하`
+        : `${f.priceMin}.0억~${f.priceMax}.0억`;
+    return (
+      `<div><b>지역</b> ${escapeHtml(region)}${exclude}</div>` +
+      `<div><b>평형</b> ${py} · <b>가격대</b> ${price}</div>` +
+      `<div><b>급매 기준</b> 실거래 최고가 대비 ${f.bargainPct}% 이상 하락</div>`
+    );
+  }
+
+  function renderAlertButton() {
+    const on = !!currentAlert()?.enabled && alertsAllowed();
+    alertBtn.classList.toggle("on", on);
+    alertStateEl.textContent = !currentUser ? "로그인 필요" : !alertsAllowed() ? "차단됨" : on ? "켜짐" : "꺼짐";
+  }
+
+  function openAlertModal() {
+    const saved = currentAlert();
+    alertEnabled.checked = !!saved?.enabled;
+    alertFrequency.value = saved?.frequency === "weekly" ? "weekly" : "daily";
+    alertEnabled.disabled = !alertsAllowed();
+    document.getElementById("alertFilterSummary").innerHTML = describeFilters(alertFilterSnapshot());
+    const to = document.getElementById("alertTo");
+    to.classList.toggle("blocked", !alertsAllowed());
+    to.textContent = alertsAllowed()
+      ? `받는 곳: ${currentUser?.email || ""}`
+      : "관리자가 이 계정의 알림을 꺼 두었습니다.";
+    alertErrEl.hidden = true;
+    alertModal.hidden = false;
+    document.getElementById("alertSaveBtn").focus();
+  }
+
+  alertBtn.addEventListener("click", () => {
+    if (!currentUser) {
+      openLoginModal(null, {
+        desc: "급매 알림 이메일은 로그인한 계정으로 보내 드립니다. 구글 계정으로 로그인하면 바로 신청할 수 있습니다.",
+        onSuccess: () => openAlertModal(),
+      });
+      return;
+    }
+    openAlertModal();
+  });
+  document.getElementById("alertCloseBtn").addEventListener("click", () => (alertModal.hidden = true));
+  alertModal.addEventListener("click", (e) => {
+    if (e.target.id === "alertModal") alertModal.hidden = true;
+  });
+  document.getElementById("alertSaveBtn").addEventListener("click", async (e) => {
+    if (!currentUser) return;
+    const payload = {
+      enabled: alertEnabled.checked && alertsAllowed(),
+      frequency: alertFrequency.value === "weekly" ? "weekly" : "daily",
+      email: currentUser.email || "",
+      filters: alertFilterSnapshot(),
+      savedAt: new Date().toISOString(),
+    };
+    e.target.disabled = true;
+    alertErrEl.hidden = true;
+    try {
+      await setDoc(doc(db, "users", currentUser.uid), { bargainAlert: payload }, { merge: true });
+      if (currentUserDoc) currentUserDoc.bargainAlert = payload;
+      renderAlertButton();
+      alertModal.hidden = true;
+    } catch (err) {
+      console.error("급매 알림 설정을 저장하지 못했습니다:", err);
+      alertErrEl.textContent = `저장하지 못했습니다 (${err?.code || err?.message || "알 수 없는 오류"}).`;
+      alertErrEl.hidden = false;
+    } finally {
+      e.target.disabled = false;
+    }
+  });
+
+  // 로그인하지 않았으면 "급매만 보기"가 켜져 있지 않도록 하고, 왜 못 쓰는지 알려 준다.
+  function updateBargainGate() {
+    const locked = !currentUser;
+    if (locked && bargainOnly.checked) bargainOnly.checked = false;
+    bargainOnly.closest(".bargain-toggle").classList.toggle("locked", locked);
+    const hint = document.getElementById("bargainLockHint");
+    if (hint) hint.hidden = !locked;
+    renderAlertButton();
   }
   let pageNo = 1;
 
@@ -5180,9 +5639,61 @@ async function initNaverTab() {
   renderChips();
 
   // ---- 단지필터 / 매물필터 (구현 가능한 항목만) ----
-  const pyeongTypeSelect = document.getElementById("filterPyeongType");
   const ageSelect = document.getElementById("filterAge");
   const dealCountSelect = document.getElementById("filterDealCount");
+
+  // ---- 평형 슬라이더 ----
+  // 눈금 한 칸이 1평이고, 오른쪽 끝(60)은 "최대"라서 상한이 없다는 뜻이다.
+  // 위쪽 경계는 열린 구간으로 본다. "10평대"가 10.0~19.9평을 뜻해야 하기 때문이다.
+  const PYEONG_MAX_STEP = 60;
+  const pyeongMinRange = document.getElementById("pyeongRangeMin");
+  const pyeongMaxRange = document.getElementById("pyeongRangeMax");
+  const pyeongRangeLabel = document.getElementById("pyeongRangeLabel");
+  const pyeongRangeFill = document.getElementById("pyeongRangeFill");
+  const pyeongQuickRow = document.getElementById("pyeongQuickRow");
+
+  function pyeongBounds() {
+    const lo = Number(pyeongMinRange.value);
+    const hi = Number(pyeongMaxRange.value);
+    return { lo, hi, openTop: hi >= PYEONG_MAX_STEP, isAll: lo === 0 && hi >= PYEONG_MAX_STEP };
+  }
+
+  function renderPyeongRange() {
+    const b = pyeongBounds();
+    const pct = (v) => (v / PYEONG_MAX_STEP) * 100;
+    pyeongRangeFill.style.left = `${pct(b.lo)}%`;
+    pyeongRangeFill.style.right = `${100 - pct(b.hi)}%`;
+    pyeongRangeLabel.textContent = b.isAll
+      ? "전체"
+      : b.openTop
+      ? `${b.lo}평 이상`
+      : b.lo === 0
+      ? `${b.hi}평 미만`
+      : `${b.lo}~${b.hi}평`;
+    // 지금 범위와 정확히 같은 빠른 버튼이 있으면 눌린 상태로 보여 준다.
+    pyeongQuickRow.querySelectorAll("button").forEach((btn) => {
+      btn.classList.toggle("active", Number(btn.dataset.lo) === b.lo && Number(btn.dataset.hi) === b.hi);
+    });
+  }
+
+  pyeongMinRange.addEventListener("input", () => {
+    if (Number(pyeongMinRange.value) > Number(pyeongMaxRange.value)) pyeongMinRange.value = pyeongMaxRange.value;
+    renderPyeongRange();
+    render();
+  });
+  pyeongMaxRange.addEventListener("input", () => {
+    if (Number(pyeongMaxRange.value) < Number(pyeongMinRange.value)) pyeongMaxRange.value = pyeongMinRange.value;
+    renderPyeongRange();
+    render();
+  });
+  pyeongQuickRow.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-lo]");
+    if (!btn) return;
+    pyeongMinRange.value = btn.dataset.lo;
+    pyeongMaxRange.value = btn.dataset.hi;
+    renderPyeongRange();
+    render();
+  });
 
   // ---- 가격대 슬라이더 ----
   // 눈금 한 칸이 1억이고, 오른쪽 끝(50)은 "최대"라서 상한이 없다는 뜻이다.
@@ -5303,12 +5814,14 @@ async function initNaverTab() {
   }
 
   function passesUnitFilters(c) {
-    const pyeongType = pyeongTypeSelect.value;
-    if (pyeongType) {
+    const py = pyeongBounds();
+    if (!py.isAll) {
       const area = rowArea(c);
-      const pyeong = area == null ? null : area / 3.305785;
-      if (pyeong == null) return false;
-      if (pyeongType === "60" ? pyeong < 60 : Math.floor(pyeong / 10) * 10 !== Number(pyeongType)) return false;
+      if (area == null) return false;
+      const pyeong = area / 3.305785;
+      // 위쪽은 열린 구간(미만). 10평대 버튼이 20.0평을 데려오지 않게 한다.
+      if (pyeong < py.lo) return false;
+      if (!py.openTop && pyeong >= py.hi) return false;
     }
     const age = ageSelect.value;
     if (age) {
@@ -5318,7 +5831,7 @@ async function initNaverTab() {
     return true;
   }
 
-  [pyeongTypeSelect, ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
+  [ageSelect, dealCountSelect].forEach((el) => el.addEventListener("change", render));
   const schedulePriceRender = debounce(() => render(), 120);
 
   function debounce(fn, ms) {
@@ -5570,7 +6083,8 @@ async function initNaverTab() {
     gugun: "",
     dong: "",
     trade: "A1",
-    pyeongType: "",
+    pyeongMin: 0,
+    pyeongMax: 60,
     age: "",
     dealCount: "",
     priceMin: 0,
@@ -5616,7 +6130,8 @@ async function initNaverTab() {
       gugun: gugunSelect.value,
       dong: dongSelect.value,
       trade: tradeSelect.value,
-      pyeongType: pyeongTypeSelect.value,
+      pyeongMin: Number(pyeongMinRange.value),
+      pyeongMax: Number(pyeongMaxRange.value),
       age: ageSelect.value,
       dealCount: dealCountSelect.value,
       limit: limitSelect.value,
@@ -5642,10 +6157,22 @@ async function initNaverTab() {
       dongSelect.value = typeof p.dong === "string" ? p.dong : "";
       tradeSelect.value = typeof p.trade === "string" ? p.trade : d.trade;
       if (!tradeSelect.value) tradeSelect.value = d.trade;
-      pyeongTypeSelect.value = typeof p.pyeongType === "string" ? p.pyeongType : "";
+      // 예전 저장값(pyeongType: "30" = 30평대)도 받아 슬라이더 범위로 옮긴다.
+      const legacy = typeof p.pyeongType === "string" && p.pyeongType ? Number(p.pyeongType) : null;
+      const clampPy = (v, fb) =>
+        Number.isFinite(v) ? Math.min(PYEONG_MAX_STEP, Math.max(0, Math.round(v))) : fb;
+      let pyLo = clampPy(p.pyeongMin, d.pyeongMin);
+      let pyHi = clampPy(p.pyeongMax, d.pyeongMax);
+      if (legacy != null && p.pyeongMin === undefined) {
+        pyLo = legacy >= 60 ? 60 : legacy === 20 ? 0 : legacy;
+        pyHi = legacy >= 60 ? PYEONG_MAX_STEP : legacy === 20 ? 30 : legacy + 10;
+      }
+      pyeongMinRange.value = String(Math.min(pyLo, pyHi));
+      pyeongMaxRange.value = String(Math.max(pyLo, pyHi));
       ageSelect.value = typeof p.age === "string" ? p.age : "";
       dealCountSelect.value = typeof p.dealCount === "string" ? p.dealCount : "";
-      bargainOnly.checked = p.bargainOnly === true;
+      // 로그인하지 않았으면 저장돼 있던 값이라도 켜지 않는다.
+      bargainOnly.checked = p.bargainOnly === true && !!currentUser;
       // 저장된 값이 있으면 사용자가 고른 것으로 보고 그대로 쓴다. 없으면 관리자 기준을 따른다.
       const savedPct = typeof p.bargainPct === "string" && p.bargainPct ? Number(p.bargainPct) : null;
       bargainPctUserSet = savedPct != null && savedPct >= 5 && savedPct <= 50 && savedPct % 5 === 0;
@@ -5665,6 +6192,7 @@ async function initNaverTab() {
       // 사용자의 변경이 아니므로 저장을 걸면 안 된다(특히 로그인 전 기본값을 그릴 때).
       renderChips();
       renderPriceRange();
+      renderPyeongRange();
       render();
     } finally {
       applyingPrefs = false;
@@ -5710,6 +6238,7 @@ async function initNaverTab() {
   // 로그인 상태가 바뀌면 그 계정의 설정으로 갈아끼운다.
   naverPrefsHook = () => {
     applyPrefs(currentNaverPrefs());
+    updateBargainGate();
     updateSyncNote();
     // 계정에 저장된 설정이 아직 없으면, 로그인 직전까지 쓰던 설정을 그대로 계정에 올려준다.
     if (currentUser && !currentUserDoc?.naverFilters) persistNaverPrefs(collectPrefs());
@@ -5720,9 +6249,27 @@ async function initNaverTab() {
     persistNaverPrefs(collectPrefs());
   });
 
+  renderPyeongRange();
+  updateBargainGate();
   tradeSelect.addEventListener("change", render);
   limitSelect.addEventListener("change", render);
-  bargainOnly.addEventListener("change", render);
+  // "급매만 보기"는 로그인한 사용자에게만 연다. 로그인하지 않고 켜면 되돌리고 안내를 띄운다.
+  bargainOnly.addEventListener("change", () => {
+    if (bargainOnly.checked && !currentUser) {
+      bargainOnly.checked = false;
+      updateBargainGate();
+      openLoginModal(null, {
+        desc: "급매만 모아 보는 기능은 로그인한 사용자에게 제공합니다. 구글 계정으로 로그인하면 바로 켜 드리고, 급매 기준과 지역 설정도 계정에 저장돼 다른 기기에서 이어집니다.",
+        onSuccess: () => {
+          bargainOnly.checked = true;
+          updateBargainGate();
+          render();
+        },
+      });
+      return;
+    }
+    render();
+  });
   bargainPctSelect.addEventListener("change", () => {
     bargainPctUserSet = true;
     render();

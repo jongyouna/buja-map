@@ -1,0 +1,45 @@
+name: Send bargain alerts
+
+# 급매 알림 이메일. 매물 수집(update-naver-land)이 끝난 뒤에 돌린다.
+# 발송에 필요한 시크릿(FIREBASE_SERVICE_ACCOUNT, SMTP_URL)이 없으면 스크립트가
+# 이유를 남기고 아무것도 보내지 않는다. 자세한 설정은 docs/bargain-alerts.md 참고.
+on:
+  schedule:
+    - cron: "0 21 * * *" # UTC 21:00 = KST 익일 06:00 (새벽 수집이 끝난 뒤)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "보내지 않고 대상만 확인"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bargain-alerts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: [self-hosted, naver-scraper]
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          call npm install --no-save firebase-admin@14 nodemailer@9
+          if errorlevel 1 exit /b 1
+      - name: Send
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '' }}
+        run: node scripts/send-bargain-alerts.js
