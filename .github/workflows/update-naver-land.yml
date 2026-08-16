@@ -42,8 +42,8 @@ jobs:
         # cmd는 실행 정책의 영향을 받지 않고 항상 존재하므로 cmd를 사용한다.
         shell: cmd
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
       - name: Install dependencies

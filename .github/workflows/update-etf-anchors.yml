@@ -24,8 +24,8 @@ jobs:
     outputs:
       changed: ${{ steps.commit.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
       # 기준 종가는 종목 목록을 바탕으로 모으므로 목록을 먼저 최신으로 맞춘다.
