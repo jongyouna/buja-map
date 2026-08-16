@@ -929,6 +929,23 @@
   /* "자세히"는 카드로 바뀌는 좁은 화면에서만 쓴다. */
   .alloc-row-expand { display: none; }
 
+  /* 종목명 옆의 "Gemini에 물어보기" 버튼 */
+  .alloc-ask {
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px;
+    line-height: 0;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .alloc-ask svg { width: 14px; height: 14px; display: block; }
+  .alloc-ask:hover { color: var(--accent-include); background: #f2eeff; }
+  .tm-cell { cursor: pointer; }
+  .tm-cell:hover { outline: 2px solid rgba(255, 255, 255, 0.9); outline-offset: -2px; }
+  .tm-cell:focus-visible { outline: 2px solid #101828; outline-offset: -2px; }
+
   .alloc-row-remove {
     border: none;
     background: none;
@@ -1056,6 +1073,10 @@
     .alloc-table tbody tr[data-idx] td.alloc-name-td::before { content: none; }
     .alloc-name-cell { width: 100%; }
     .alloc-name-input { font-size: 0.9rem !important; flex: 1 1 auto; min-width: 0; }
+    /* 손가락으로 누를 크기를 준다. 데스크톱의 18px는 터치로는 너무 작다. */
+    .alloc-ask { padding: 7px; }
+    .alloc-ask svg { width: 16px; height: 16px; }
+
     /* 카드에서도 리밸런싱이 필요한 종목만 옅은 빨간 바탕으로 둔다. */
     .alloc-table tbody tr[data-idx] td.alloc-name-td { border-radius: 8px; padding: 6px 26px 6px 8px; }
     .alloc-table tbody tr[data-idx].needs-rebal td.alloc-name-td { background: var(--bad-bg); }
@@ -3611,6 +3632,23 @@ function parsePastedRows(text) {
   return { rows, errors, skipped };
 }
 
+// ---- 종목을 Gemini에 물어보기 ----
+// 종목명은 고칠 수 있는 입력칸이라 그 자체를 링크로 만들면 이름을 못 고치게 된다.
+// 그래서 이름 옆의 작은 버튼과, 고칠 일이 없는 트리맵 칸을 누르는 두 가지 길을 둔다.
+function geminiAskUrl(name, code) {
+  const who = code ? `${name}(${code})` : name;
+  const question =
+    `${who} ETF에 대해 알려줘. 어떤 지수를 따라가는지, 총보수, 주요 구성 종목, ` +
+    `최근 흐름과 투자할 때 눈여겨볼 점을 정리해줘.`;
+  return `https://gemini.google.com/app?q=${encodeURIComponent(question)}`;
+}
+
+function openGeminiFor(name, code) {
+  const label = (name || "").trim();
+  if (!label) return;
+  window.open(geminiAskUrl(label, code), "_blank", "noopener,noreferrer");
+}
+
 // ---- 트리맵 (종목별 비중) ----
 // 칸 넓이가 비중, 색이 등락을 나타내는 시장 지도. 외부 라이브러리를 쓰지 않고 직접 배치한다.
 // 정사각화(squarified) 방식: 남은 자리의 짧은 변을 기준으로 한 줄씩 채우되, 칸들이 정사각형에
@@ -3920,6 +3958,9 @@ function initAllocationTab() {
               <span class="alloc-swatch" style="background:${color}"></span>
               <input type="text" class="alloc-name-input" data-field="name" value="${escapeHtml(r.name)}" placeholder="종목명 검색" maxlength="40" autocomplete="off" />
               <span class="alloc-code" data-cell="code">${r.code ? escapeHtml(r.code) : ""}</span>
+              <button class="alloc-ask" type="button" data-action="ask" title="Gemini에 이 종목 물어보기" aria-label="Gemini에 이 종목 물어보기">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5 13.9 9 20.5 11 13.9 13 12 19.5 10.1 13 3.5 11 10.1 9z" /></svg>
+              </button>
               <div class="alloc-suggest" data-suggest hidden></div>
             </div>
             <button class="alloc-row-expand" type="button" data-action="expand" aria-expanded="false">✎ 수정</button>
@@ -4049,7 +4090,7 @@ function initAllocationTab() {
     if (!width || !height) return;
 
     const laid = squarifyTreemap(
-      cells.map((r) => ({ value: r.value, name: r.name || "(이름 없음)", rate: r.changeRate, weight: r.weight })),
+      cells.map((r) => ({ value: r.value, name: r.name || "(이름 없음)", code: r.code, rate: r.changeRate, weight: r.weight })),
       width,
       height
     );
@@ -4062,8 +4103,8 @@ function initAllocationTab() {
         const showRate = cell.w > 54 && cell.h > 40;
         const nameSize = Math.max(9, Math.min(15, cell.w / 7, cell.h / 3));
         const rateText = Number.isFinite(cell.rate) ? `${cell.rate > 0 ? "+" : ""}${cell.rate.toFixed(2)}%` : "–";
-        const title = `${cell.name} · 비중 ${cell.weight.toFixed(2)}% · 전일대비 ${rateText}`;
-        return `<div class="tm-cell" style="left:${cell.x}px;top:${cell.y}px;width:${cell.w}px;height:${cell.h}px;background:${bg};color:${fg}" title="${escapeHtml(title)}">
+        const title = `${cell.name} · 비중 ${cell.weight.toFixed(2)}% · 전일대비 ${rateText} · 눌러서 Gemini에 물어보기`;
+        return `<div class="tm-cell" role="button" tabindex="0" data-name="${escapeHtml(cell.name)}" data-code="${escapeHtml(cell.code || "")}" style="left:${cell.x}px;top:${cell.y}px;width:${cell.w}px;height:${cell.h}px;background:${bg};color:${fg}" title="${escapeHtml(title)}">
             ${showName ? `<span class="tm-name" style="font-size:${nameSize.toFixed(1)}px">${escapeHtml(cell.name)}</span>` : ""}
             ${showRate ? `<span class="tm-rate" style="font-size:${(nameSize * 0.85).toFixed(1)}px">${rateText}</span>` : ""}
           </div>`;
@@ -4397,6 +4438,12 @@ function initAllocationTab() {
       pickSuggestion(Number(tr.dataset.idx), pick.dataset.pick, pick.dataset.pickName);
       return;
     }
+    const ask = e.target.closest('[data-action="ask"]');
+    if (ask) {
+      const row = state.rows[Number(ask.closest("tr[data-idx]").dataset.idx)];
+      if (row) openGeminiFor(row.name, row.code);
+      return;
+    }
     const expand = e.target.closest('[data-action="expand"]');
     if (expand) {
       // 좁은 화면에서만 보이는 버튼. 카드에 접어 둔 나머지 값·입력칸을 펼친다.
@@ -4467,6 +4514,20 @@ function initAllocationTab() {
     renderComputed();
     persistAllocBook(book);
     refreshQuotes();
+  });
+
+  // 트리맵 칸을 누르면 그 종목을 Gemini에 물어본다. 칸은 고칠 일이 없으므로 통째로 눌러도 된다.
+  const treemapBox = document.getElementById("allocTreemap");
+  treemapBox.addEventListener("click", (e) => {
+    const cell = e.target.closest(".tm-cell");
+    if (cell) openGeminiFor(cell.dataset.name, cell.dataset.code);
+  });
+  treemapBox.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const cell = e.target.closest(".tm-cell");
+    if (!cell) return;
+    e.preventDefault();
+    openGeminiFor(cell.dataset.name, cell.dataset.code);
   });
 
   // 트리맵은 픽셀 좌표로 배치하므로 창 크기가 바뀌면 다시 그려야 한다.
