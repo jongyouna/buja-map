@@ -1506,24 +1506,20 @@
         <div class="value" id="sumReturnRate">–</div>
       </div>
       <div class="cell">
-        <div class="label">총입금액</div>
-        <input type="text" inputmode="numeric" data-money id="allocDeposit" placeholder="0" />
+        <div class="label">평가손익(%)</div>
+        <div class="value" id="sumEvalRate">–</div>
       </div>
       <div class="cell">
         <div class="label">현재총자산</div>
         <div class="value" id="sumTotalAsset">–</div>
       </div>
       <div class="cell">
-        <div class="label">평가손익(%)</div>
-        <div class="value" id="sumEvalRate">–</div>
+        <div class="label">총입금액</div>
+        <input type="text" inputmode="numeric" data-money id="allocDeposit" placeholder="0" />
       </div>
       <div class="cell">
         <div class="label">총 매입액</div>
         <div class="value" id="sumBuyTotal">–</div>
-      </div>
-      <div class="cell">
-        <div class="label">현재총액</div>
-        <div class="value" id="sumNowTotal">–</div>
       </div>
       <div class="cell">
         <div class="label">리밸런싱</div>
@@ -3812,7 +3808,6 @@ function initAllocationTab() {
     set("sumTotalAsset", fmtWon(c.nowTotal));
     set("sumEvalRate", c.evalRate === null ? "–" : `${c.evalRate.toFixed(2)}%`, signClass(c.evalRate));
     set("sumBuyTotal", fmtWon(c.buyTotal));
-    set("sumNowTotal", fmtWon(c.nowTotal));
     set("sumRebalCount", String(c.rebalCount), c.rebalCount > 0 ? "up" : "");
     document.getElementById("allocTotalValue").textContent = c.nowTotal > 0 ? fmtWon(c.nowTotal) : "–";
   }

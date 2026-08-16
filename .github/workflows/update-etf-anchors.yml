@@ -1,0 +1,42 @@
+name: Update ETF anchors
+
+# 기간별 수익률(일간·주간·월간·연간)의 기준 종가를 갱신한다.
+#
+# 종목 수만큼 요청을 보내므로(약 900건) 하루 한 번만 돌린다.
+# 장중 10분마다 도는 시세 갱신(update-etf-quotes.yml)과 일부러 분리해 두었다.
+
+on:
+  schedule:
+    - cron: "30 7 * * 1-5" # 평일 UTC 07:30 = KST 16:30 (시세 갱신이 끝난 뒤)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etf-anchors
+  cancel-in-progress: true
+
+jobs:
+  update-etf-anchors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # 기준 종가는 종목 목록을 바탕으로 모으므로 목록을 먼저 최신으로 맞춘다.
+      - name: Fetch ETF quotes
+        run: node scripts/fetch-etf-quotes.js
+      - name: Fetch ETF anchors
+        run: node scripts/fetch-etf-anchors.js
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/etf-quotes.json data/etf-anchors.json
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "chore: ETF 기간별 기준 종가 갱신"
+          git pull --rebase origin main
+          git push
