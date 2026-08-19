@@ -1401,7 +1401,7 @@
     .alloc-table tbody tr[data-idx] td input.alloc-name-input { width: auto; flex: 1 1 auto; min-width: 0; }
     .alloc-table tbody tr[data-idx] td.num { text-align: right; font-size: 0.85rem; }
     .alloc-table tbody tr[data-idx] td.alloc-cell-input { min-width: 0; }
-    .alloc-stepper { display: flex; align-items: stretch; width: auto; max-width: calc(100% - 80px); min-width: 0; flex: 1 1 auto; margin-left: auto; }
+    .alloc-stepper { display: flex; align-items: stretch; width: min(140px, 100%); max-width: 100%; min-width: 0; flex: 1 1 140px; margin-left: auto; }
     .alloc-stepper input { width: auto !important; flex: 1 1 auto; min-width: 0; text-align: right; }
     .alloc-stepper-btns { display: flex !important; flex-direction: column; width: 28px; }
     .alloc-stepper-btn {
@@ -4574,7 +4574,7 @@ function initAllocationTab() {
 
   function syncMobileStepperInputs() {
     tbody.querySelectorAll('input[data-field="avgPrice"], input[data-field="qty"]').forEach((input) => {
-      input.readOnly = mobileAllocQuery.matches;
+      input.readOnly = false;
     });
   }
   mobileAllocQuery.addEventListener("change", syncMobileStepperInputs);
