@@ -1397,10 +1397,11 @@
     .alloc-table tbody tr[data-idx] td.alloc-cat-cell select { width: 140px; flex: 0 0 auto; text-align: left; }
 
     /* 입력칸은 오른쪽에 고정 폭으로 두어 값들이 세로로 정렬되게 한다. */
-    .alloc-table tbody tr[data-idx] td input:not(.alloc-name-input) { width: 140px; flex: 0 0 auto; font-size: 0.85rem; }
+    .alloc-table tbody tr[data-idx] td input:not(.alloc-name-input) { width: 140px; flex: 0 0 auto; font-size: 0.85rem; min-width: 0; }
     .alloc-table tbody tr[data-idx] td input.alloc-name-input { width: auto; flex: 1 1 auto; min-width: 0; }
     .alloc-table tbody tr[data-idx] td.num { text-align: right; font-size: 0.85rem; }
-    .alloc-stepper { display: flex; align-items: stretch; width: min(140px, calc(100% - 80px)); max-width: 100%; min-width: 0; flex: 0 1 140px; }
+    .alloc-table tbody tr[data-idx] td.alloc-cell-input { min-width: 0; }
+    .alloc-stepper { display: flex; align-items: stretch; width: auto; max-width: calc(100% - 80px); min-width: 0; flex: 1 1 auto; margin-left: auto; }
     .alloc-stepper input { width: auto !important; flex: 1 1 auto; min-width: 0; text-align: right; }
     .alloc-stepper-btns { display: flex !important; flex-direction: column; width: 28px; }
     .alloc-stepper-btn {
