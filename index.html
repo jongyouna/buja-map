@@ -1474,6 +1474,8 @@
 
   .alloc-quote-state { font-size: 0.74rem; color: var(--muted); }
   .alloc-quote-state.error { color: var(--bad); }
+  .alloc-quote-actions { display: flex; align-items: center; gap: 10px; }
+  .alloc-quote-read-at { color: var(--muted); font-size: 0.74rem; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -1985,7 +1987,10 @@
             <h2>보유 종목</h2>
             <p class="desc">노란 칸(목표비중·평균매입가·잔고수량)과 종목명을 직접 고칠 수 있습니다. 포트편차가 Threshold 기준(목표비중 × Threshold%)을 넘으면 리밸런싱이 필요한 종목이며, 그 종목만 <b>빨간색</b>으로 표시됩니다. 휴대폰에서는 카드의 <b>✎ 수정</b>을 누르면 나머지 항목도 고칠 수 있습니다.</p>
           </div>
-          <button class="toggle-btn" id="allocRefreshQuotesBtn" type="button">시세 새로고침</button>
+          <div class="alloc-quote-actions">
+            <span class="alloc-quote-read-at" id="allocQuoteReadAt">마지막 읽음: -</span>
+            <button class="toggle-btn" id="allocRefreshQuotesBtn" type="button">시세 새로고침</button>
+          </div>
         </div>
 
         <div class="alloc-table-scroll">
@@ -4546,6 +4551,7 @@ function initAllocationTab() {
   const badgeEl = document.getElementById("allocTopBadge");
   const noteEl = document.getElementById("allocSyncNote");
   const quoteStateEl = document.getElementById("allocQuoteState");
+  const quoteReadAtEl = document.getElementById("allocQuoteReadAt");
   const depositInput = document.getElementById("allocDeposit");
   const thresholdInput = document.getElementById("allocThreshold");
 
@@ -5089,6 +5095,7 @@ function initAllocationTab() {
       renderComputed();
       return;
     }
+    quoteReadAtEl.textContent = `마지막 읽음: ${new Date().toLocaleDateString("ko-KR")}`;
 
     // 종목코드가 없는 행은 이름이 정확히 일치할 때만 코드를 붙인다.
     const { resolved, unresolved } = resolveMissingCodes(state.rows);
