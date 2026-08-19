@@ -28,6 +28,7 @@ on:
       - "index.html"
       - "data/**"
       - "CNAME"
+      - ".github/skills/**"
       - ".github/workflows/deploy-pages.yml"
 
 permissions:
