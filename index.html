@@ -2255,6 +2255,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  runTransaction,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -2287,6 +2288,7 @@ const ROOT_ADMIN_EMAILS = ["jongyouna@gmail.com"];
 let currentUser = null;
 // 로그인한 사용자의 users/{uid} 문서. 관리자 여부·차단 여부를 여기서 읽는다.
 let currentUserDoc = null;
+let userDocReady = false;
 
 function isAdminUser() {
   if (!currentUser) return false;
@@ -2764,6 +2766,7 @@ function updateAdminTabVisibility() {
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   currentUserDoc = null;
+  userDocReady = false;
   if (!user) {
     googleAccessToken = null;
     // 로그아웃하면 "사용자가 직접 고른 탭" 표시를 지운다. 그러지 않으면 같은 화면에서
@@ -2782,6 +2785,7 @@ onAuthStateChanged(auth, async (user) => {
       }
       // 여기까지 왔다는 건 이 계정으로 users 문서를 읽고 쓸 수 있다는 뜻이다.
       // 실제 쓰기를 한 번 성공한 뒤에야 "계정에 저장된다"고 말한다.
+      userDocReady = true;
       setPrefsSync({ state: "ready", error: null });
     } catch (err) {
       // 접속 기록 저장에 실패해도 대시보드 자체는 그대로 쓸 수 있어야 한다.
@@ -3931,21 +3935,24 @@ function currentAllocBook() {
 
 function persistAllocBook(book, { allowAccountCountDecrease = false } = {}) {
   // 로그인 상태가 확정되기 전에 쓰면 계정에 저장해 둔 자산 내역을 기본값으로 덮어쓴다.
-  if (!authSettled || !currentUser) return;
-  const savedBook = normalizeAllocBook(currentUserDoc?.assetAllocation);
-  if (savedBook && savedBook.accounts.length > book.accounts.length && !allowAccountCountDecrease) {
-    const error = new Error("저장된 계좌 구성이 현재 화면보다 많아 저장을 중단했습니다.");
-    console.error("자산 배분 저장을 중단했습니다:", error);
-    setAllocSync({ state: "error", error });
-    return;
-  }
+  if (!authSettled || !currentUser || !userDocReady || !currentUserDoc) return;
   const payload = { ...book, updatedAt: new Date().toISOString() };
-  if (currentUserDoc) currentUserDoc.assetAllocation = payload;
+  const ref = doc(db, "users", currentUser.uid);
   setAllocSync({ state: "saving", error: null });
-  setDoc(doc(db, "users", currentUser.uid), { assetAllocation: payload }, { merge: true })
-    .then(() => setAllocSync({ state: "saved", error: null, at: new Date() }))
+  runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const savedBook = normalizeAllocBook(snapshot.data()?.assetAllocation);
+    if (savedBook && savedBook.accounts.length > book.accounts.length && !allowAccountCountDecrease) {
+      throw new Error("저장된 계좌 구성이 현재 화면보다 많아 저장을 중단했습니다.");
+    }
+    transaction.set(ref, { assetAllocation: payload }, { merge: true });
+  })
+    .then(() => {
+      if (currentUserDoc) currentUserDoc.assetAllocation = payload;
+      setAllocSync({ state: "saved", error: null, at: new Date() });
+    })
     .catch((err) => {
-      console.error("자산 배분을 계정에 저장하지 못했습니다:", err);
+      console.error("자산 배분 저장을 중단하거나 실패했습니다:", err);
       setAllocSync({ state: "error", error: err });
     });
 }
