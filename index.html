@@ -739,6 +739,50 @@
   .modal-actions .toggle-btn { padding: 8px 14px; }
   .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; white-space: pre-line; text-align: left; }
   .modal-note { color: var(--good); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; text-align: left; }
+  .email-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .email-btn:hover { border-color: var(--text); }
+  .modal-actions .email-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
+  .modal-divider {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 0.78rem; margin: 4px 0;
+  }
+  .modal-divider::before,
+  .modal-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--panel-border);
+  }
+  .email-form { display: flex; flex-direction: column; gap: 8px; }
+  .email-form input {
+    width: 100%; box-sizing: border-box;
+    padding: 9px 12px; border: 1px solid var(--panel-border); border-radius: 8px;
+    background: var(--bg); color: var(--text); font-size: 0.85rem;
+    outline: none;
+  }
+  .email-form input:focus { border-color: var(--accent, #4285f4); }
+  .email-form .submit-btn {
+    padding: 10px 14px; border: none; border-radius: 8px;
+    background: #4285f4; color: #fff; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer;
+  }
+  .email-form .submit-btn:hover { background: #3367d6; }
+  .email-form .submit-btn:disabled { opacity: 0.6; cursor: default; }
+  .link-btn {
+    background: none; border: none; color: var(--muted); font-size: 0.78rem;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .link-btn:hover { color: var(--text); }
+  .email-form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
 
   /* ---- 문의 팝업 ---- */
   /* 상단 오른쪽 "문의" 버튼 → 500자 이내 메시지를 관리자 이메일로 보낸다. */
@@ -2150,9 +2194,32 @@
       <p class="desc" id="loginModalDesc">자산 배분 탭은 로그인한 사용자만 이용할 수 있습니다. 구글 계정으로 로그인하면 입력한 자산 배분이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있습니다.</p>
       <div class="modal-actions">
         <button class="google-btn" id="loginModalSignInBtn" type="button">Google로 로그인</button>
+        <div class="modal-divider">또는</div>
+        <button class="email-btn" id="loginModalEmailBtn" type="button">이메일로 로그인</button>
         <button class="toggle-btn" id="loginModalCloseBtn" type="button">나중에 하기</button>
       </div>
       <p class="modal-error" id="loginModalError" hidden></p>
+    </div>
+  </div>
+
+  <!-- 이메일/비밀번호 로그인 팝업 -->
+  <div class="modal-backdrop" id="emailLoginModal" role="dialog" aria-modal="true" aria-labelledby="emailLoginModalTitle" hidden>
+    <div class="modal-card">
+      <h2 id="emailLoginModalTitle">이메일로 로그인</h2>
+      <div class="email-form" id="emailForm">
+        <input type="email" id="emailInput" placeholder="이메일 주소" autocomplete="email" required>
+        <input type="password" id="passwordInput" placeholder="비밀번호" autocomplete="current-password" required>
+        <button class="submit-btn" id="emailSubmitBtn" type="button">로그인</button>
+      </div>
+      <div class="email-form-footer">
+        <button class="link-btn" id="emailToggleModeBtn" type="button">계정이 없으신가요? 회원가입</button>
+        <button class="link-btn" id="emailResetPwBtn" type="button">비밀번호 찾기</button>
+      </div>
+      <p class="modal-error" id="emailLoginError" hidden></p>
+      <p class="modal-note" id="emailLoginNote" hidden></p>
+      <div style="margin-top: 12px;">
+        <button class="link-btn" id="emailLoginBackBtn" type="button">← 돌아가기</button>
+      </div>
     </div>
   </div>
 
@@ -2246,6 +2313,9 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -2318,7 +2388,7 @@ function authErrorMessage(err) {
         `추가하면 바로 됩니다.`
       );
     case "auth/operation-not-allowed":
-      return "이 프로젝트에서 구글 로그인이 꺼져 있습니다. Firebase 콘솔 > Authentication > Sign-in method에서 Google을 켜 주세요.";
+      return "이 프로젝트에서 해당 로그인 방식이 꺼져 있습니다. Firebase 콘솔 > Authentication > Sign-in method에서 사용할 제공업체를 켜 주세요.";
     case "auth/popup-blocked":
       return "브라우저가 로그인 창을 막았습니다. 이 사이트의 팝업 차단을 풀고 다시 눌러 주세요.";
     case "auth/popup-closed-by-user":
@@ -2326,6 +2396,20 @@ function authErrorMessage(err) {
       return "로그인 창이 닫혔습니다. 다시 시도해 주세요.";
     case "auth/network-request-failed":
       return "네트워크 문제로 로그인하지 못했습니다. 연결을 확인하고 다시 시도해 주세요.";
+    case "auth/invalid-email":
+      return "올바른 이메일 주소를 입력해 주세요.";
+    case "auth/user-not-found":
+      return "등록되지 않은 이메일입니다. 회원가입을 먼저 해 주세요.";
+    case "auth/wrong-password":
+      return "비밀번호가 틀렸습니다. 다시 확인해 주세요.";
+    case "auth/invalid-credential":
+      return "이메일 또는 비밀번호가 올바르지 않습니다.";
+    case "auth/email-already-in-use":
+      return "이미 사용 중인 이메일입니다. 로그인을 시도하거나 다른 이메일을 사용해 주세요.";
+    case "auth/weak-password":
+      return "비밀번호가 너무 짧습니다. 6자 이상으로 입력해 주세요.";
+    case "auth/too-many-requests":
+      return "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.";
     default:
       return `로그인에 실패했습니다: ${err?.message || err?.code || "알 수 없는 오류"}`;
   }
@@ -2354,12 +2438,15 @@ function renderAuthArea() {
     `;
     document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
   } else {
-    el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button>`;
+    el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button><button class="email-btn" id="emailSignInBtn" type="button">이메일로 로그인</button>`;
     document.getElementById("signInBtn").addEventListener("click", () => {
       signInWithGoogle().catch((err) => {
         console.error("로그인 실패:", err);
         alert(authErrorMessage(err));
       });
+    });
+    document.getElementById("emailSignInBtn").addEventListener("click", () => {
+      openEmailLoginModal();
     });
   }
 }
@@ -2420,6 +2507,123 @@ document.getElementById("loginModalSignInBtn").addEventListener("click", () => {
     .finally(() => {
       btn.disabled = false;
     });
+});
+
+// ---- 이메일/비밀번호 로그인 모달 ----
+let emailLoginMode = "login"; // "login" 또는 "signup"
+
+function openEmailLoginModal() {
+  emailLoginMode = "login";
+  syncEmailModalMode();
+  document.getElementById("emailInput").value = "";
+  document.getElementById("passwordInput").value = "";
+  document.getElementById("emailLoginError").hidden = true;
+  document.getElementById("emailLoginNote").hidden = true;
+  document.getElementById("emailLoginModal").hidden = false;
+  document.getElementById("emailInput").focus();
+}
+
+function closeEmailLoginModal() {
+  document.getElementById("emailLoginModal").hidden = true;
+}
+
+function syncEmailModalMode() {
+  const isLogin = emailLoginMode === "login";
+  document.getElementById("emailLoginModalTitle").textContent = isLogin ? "이메일로 로그인" : "이메일로 회원가입";
+  document.getElementById("emailSubmitBtn").textContent = isLogin ? "로그인" : "회원가입";
+  document.getElementById("emailToggleModeBtn").textContent = isLogin
+    ? "계정이 없으신가요? 회원가입"
+    : "이미 계정이 있으신가요? 로그인";
+  document.getElementById("emailResetPwBtn").hidden = !isLogin;
+  document.getElementById("passwordInput").autocomplete = isLogin ? "current-password" : "new-password";
+}
+
+// loginModal에서 "이메일로 로그인" 버튼을 눌렀을 때
+document.getElementById("loginModalEmailBtn").addEventListener("click", () => {
+  document.getElementById("loginModal").hidden = true;
+  openEmailLoginModal();
+});
+
+document.getElementById("emailLoginBackBtn").addEventListener("click", () => {
+  closeEmailLoginModal();
+  // pendingGatedTab이 있으면 loginModal로 돌아간다.
+  if (pendingGatedTab || pendingGatedAction) {
+    document.getElementById("loginModal").hidden = false;
+  }
+});
+document.getElementById("emailLoginModal").addEventListener("click", (e) => {
+  if (e.target.id === "emailLoginModal") closeEmailLoginModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !document.getElementById("emailLoginModal").hidden) closeEmailLoginModal();
+});
+
+document.getElementById("emailToggleModeBtn").addEventListener("click", () => {
+  emailLoginMode = emailLoginMode === "login" ? "signup" : "login";
+  syncEmailModalMode();
+  document.getElementById("emailLoginError").hidden = true;
+  document.getElementById("emailLoginNote").hidden = true;
+});
+
+document.getElementById("emailSubmitBtn").addEventListener("click", async () => {
+  const email = document.getElementById("emailInput").value.trim();
+  const password = document.getElementById("passwordInput").value;
+  const btn = document.getElementById("emailSubmitBtn");
+  const errEl = document.getElementById("emailLoginError");
+  const noteEl = document.getElementById("emailLoginNote");
+  errEl.hidden = true;
+  noteEl.hidden = true;
+  if (!email || !password) {
+    errEl.textContent = "이메일과 비밀번호를 모두 입력해 주세요.";
+    errEl.hidden = false;
+    return;
+  }
+  btn.disabled = true;
+  try {
+    if (emailLoginMode === "signup") {
+      await createUserWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged가 나머지를 처리한다.
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
+    closeEmailLoginModal();
+  } catch (err) {
+    console.error("이메일 로그인 실패:", err);
+    errEl.textContent = authErrorMessage(err);
+    errEl.hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Enter 키로 로그인/가입 실행
+document.getElementById("emailForm").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("emailSubmitBtn").click();
+  }
+});
+
+document.getElementById("emailResetPwBtn").addEventListener("click", async () => {
+  const email = document.getElementById("emailInput").value.trim();
+  const errEl = document.getElementById("emailLoginError");
+  const noteEl = document.getElementById("emailLoginNote");
+  errEl.hidden = true;
+  noteEl.hidden = true;
+  if (!email) {
+    errEl.textContent = "비밀번호를 재설정할 이메일 주소를 입력해 주세요.";
+    errEl.hidden = false;
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    noteEl.textContent = `${email}(으)로 비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.`;
+    noteEl.hidden = false;
+  } catch (err) {
+    console.error("비밀번호 재설정 실패:", err);
+    errEl.textContent = authErrorMessage(err);
+    errEl.hidden = false;
+  }
 });
 
 // ---- 관리자에게 문의 ----
