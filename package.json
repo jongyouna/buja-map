@@ -6,9 +6,11 @@
   "scripts": {
     "update": "node scripts/fetch-data.js",
     "update:naver-land": "node scripts/fetch-naver-land.js",
+    "alert:test": "node scripts/send-bargain-alerts.js --to=jongyouna@gmail.com",
     "serve": "node server.js"
   },
   "dependencies": {
+    "nodemailer": "^9.0.5",
     "playwright": "^1.62.1"
   }
 }
