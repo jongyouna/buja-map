@@ -987,6 +987,8 @@
   }
 
   @media (max-width: 640px) {
+    .tabbar { overflow-x: auto; scrollbar-width: none; }
+    .tabbar::-webkit-scrollbar { display: none; }
     .ai-form { flex-direction: column; }
     .ai-form-btns { flex-direction: row; }
     .ai-form-btns button { flex: 1 1 0; }
@@ -1233,20 +1235,20 @@
   .import-preview.ok { background: var(--good-bg); color: var(--good); }
   .import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   /* 열 폭(합 100%). 종목은 15글자가 들어가도록 넉넉히 준다. */
-  .alloc-table col.c-cat { width: 6%; }
-  .alloc-table col.c-name { width: 23%; }
+  .alloc-table col.c-cat { width: 5.5%; }
+  .alloc-table col.c-name { width: 22%; }
   .alloc-table col.c-target { width: 5%; }
   .alloc-table col.c-weight { width: 5%; }
-  .alloc-table col.c-change { width: 5%; }
+  .alloc-table col.c-change { width: 4.5%; }
   .alloc-table col.c-rate { width: 6%; }
   .alloc-table col.c-trade { width: 7%; }
   .alloc-table col.c-price { width: 8%; }
   .alloc-table col.c-avg { width: 8%; }
   .alloc-table col.c-qty { width: 7%; }
-  .alloc-table col.c-gap { width: 5%; }
+  .alloc-table col.c-gap { width: 4.5%; }
   .alloc-table col.c-th { width: 7%; }
-  .alloc-table col.c-profit { width: 8%; }
-  .alloc-table col.c-del { width: 4%; }
+  .alloc-table col.c-profit { width: 7%; }
+  .alloc-table col.c-del { width: 3.5%; }
 
   /* 창이 좁아지면 글자와 여백을 함께 줄인다. 폭만 줄이면 숫자가 칸을 넘쳐 잘리는데,
      금액이 잘려 보이는 것은 틀린 값을 보여 주는 것과 같다. */
@@ -1262,7 +1264,7 @@
   }
   /* 이 아래로는 25%로는 15글자가 안 들어간다. 숫자 열에서 조금씩 걷어 종목에 몰아 준다. */
   @media (max-width: 940px) {
-    .alloc-table col.c-name { width: 25%; }
+    .alloc-table col.c-name { width: 24%; }
     .alloc-table col.c-cat { width: 4.5%; }
     .alloc-table col.c-target { width: 4.5%; }
     .alloc-table col.c-weight { width: 4.5%; }
