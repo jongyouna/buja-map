@@ -9,10 +9,12 @@ name: Update ETF quotes
 # 커밋이 너무 쌓이는 게 부담이면 장중 cron 줄만 지우면 된다. 그러면 하루 한 번 종가만 갱신된다.
 # 참고: GitHub Actions의 예약 실행은 혼잡할 때 수 분 늦게 시작될 수 있다(보장된 주기가 아니다).
 
+# 자동 갱신 runner는 비활성화됨 (필요시 Actions 탭에서 수동 실행 가능)
+# on:
+#   schedule:
+#     - cron: "*/10 0-6 * * 1-5" # 평일 UTC 00:00~06:50 = KST 09:00~15:50 (정규장)
+#     - cron: "0 7 * * 1-5" # 평일 UTC 07:00 = KST 16:00 (마감 후 종가)
 on:
-  schedule:
-    - cron: "*/10 0-6 * * 1-5" # 평일 UTC 00:00~06:50 = KST 09:00~15:50 (정규장)
-    - cron: "0 7 * * 1-5" # 평일 UTC 07:00 = KST 16:00 (마감 후 종가)
   workflow_dispatch: {}
 
 permissions:

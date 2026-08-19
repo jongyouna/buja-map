@@ -2175,7 +2175,7 @@
   <!-- 자산 배분: 로그인한 사용자만 열 수 있고, 입력한 내용은 그 구글 계정에 저장된다. -->
   <section class="tab-panel" id="tabPanel-allocation" hidden>
     <div class="panel-header">
-      <p class="intro">보유 종목과 목표 비중을 넣으면 현재 비중·포트편차·리밸런싱 필요 수량을 계산합니다. 종목명을 입력하면 국내 상장 ETF를 검색해 현재가를 가져옵니다. 시세는 장중 10분 간격으로 갱신되며, 표에 기준 시각을 함께 표시합니다. 입력한 내용은 로그인한 구글 계정에 저장됩니다.</p>
+      <p class="intro">보유 종목과 목표 비중을 넣으면 현재 비중·포트편차·리밸런싱 필요 수량을 계산합니다. 종목명을 입력하면 국내 상장 ETF를 검색해 현재가를 가져옵니다. 시세는 자산배분 탭에 접속할 때 최신 시세를 읽어오며, 표에 기준 시각을 함께 표시합니다. 입력한 내용은 로그인한 구글 계정에 저장됩니다.</p>
       <div class="updated" id="allocTopBadge"></div>
     </div>
 
@@ -4179,6 +4179,7 @@ document.getElementById("refreshBtn").addEventListener("click", () => location.r
 // 네이버 탭은 처음 열릴 때 한 번만 데이터를 불러온다.
 let naverLoaded = false;
 let allocLoaded = false;
+let refreshAllocQuotes = null;
 // remember=false 는 "사용자가 고른 게 아니라 시스템이 되돌린 것"이라는 뜻이다.
 // 로그아웃 때문에 거시경제로 밀려난 것까지 기억해 버리면, 다시 로그인했을 때
 // 원래 보던 탭이 아니라 거시경제가 열린다.
@@ -4203,11 +4204,14 @@ function activateTab(tab, { remember = true } = {}) {
     naverLoaded = true;
     initNaverTab();
   }
-  // 자산 배분 탭은 처음 열릴 때 한 번만 만든다. 이후 로그인 상태가 바뀌면
-  // allocPrefsHook이 그 계정의 값으로 갈아끼운다.
-  if (tab === "allocation" && !allocLoaded) {
-    allocLoaded = true;
-    initAllocationTab();
+  // 자산 배분 탭은 처음 열릴 때 초기화하고, 이후 탭에 접속할 때마다 최신 현재가를 읽어온다.
+  if (tab === "allocation") {
+    if (!allocLoaded) {
+      allocLoaded = true;
+      initAllocationTab();
+    } else if (typeof refreshAllocQuotes === "function") {
+      refreshAllocQuotes({ force: true });
+    }
   }
   // 관리자 탭은 열 때마다 최신 목록을 다시 읽는다(사용자가 그 사이 늘었을 수 있으므로).
   if (tab === "admin") {
@@ -4406,13 +4410,8 @@ function persistAllocBook(book, { allowAccountCountDecrease = false } = {}) {
 }
 
 // ---- 종목 검색 · 시세 ----
-// 종목 목록과 현재가는 GitHub Actions가 받아 data/etf-quotes.json 에 넣어 둔 것을 읽는다
-// (scripts/fetch-etf-quotes.js).
-//
-// 브라우저에서 시세 API를 직접 부르지 않는 이유: 네이버 시세 API도 KRX 정보데이터시스템도
-// Access-Control-Allow-Origin 헤더를 주지 않는다(2026-08 확인). 즉 브라우저에서 부르면
-// CORS에 무조건 막힌다. 그래서 현재가의 신선도는 그 워크플로의 cron이 정한다
-// (장중 10분 간격). 화면에는 언제 받은 값인지를 항상 같이 보여 준다.
+// 종목 목록과 현재가는 data/etf-quotes.json 에서 읽는다.
+// 사용자가 자산배분 탭에 접속할 때 최신 시세를 읽어오며, 화면에는 언제 받은 값인지를 항상 같이 보여 준다.
 let etfQuotes = null; // { updatedAt, source, items: [{code, name, price, changeRate}] }
 let etfQuotesPromise = null;
 let etfQuotesError = null;
@@ -6262,6 +6261,7 @@ function initAllocationTab() {
     maybeShowWelcome(firstTime);
   };
 
+  refreshAllocQuotes = refreshQuotes;
   renderAccountTabs();
   renderHeader();
   renderRows();
@@ -6270,7 +6270,7 @@ function initAllocationTab() {
   // 탭을 처음 열면 바로 현재가를 채운다. 그 과정에서 기본 구성이 계정에 저장되므로
   // "처음 쓰는 사용자인지"는 그 전에 정해 둔다.
   const firstTimeOnOpen = isFirstTimeAllocUser();
-  refreshQuotes();
+  refreshQuotes({ force: true });
   // 기준 종가는 시세와 별개 파일이라 따로 받는다. 받아온 뒤 기간별 수익률을 다시 그린다.
   loadEtfAnchors().then(() => renderPeriodChart());
   maybeShowWelcome(firstTimeOnOpen);
