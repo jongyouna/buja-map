@@ -13,7 +13,7 @@
 // ---- 설정 ----
 
 // 문의를 받을 주소.
-var ADMIN_EMAIL = 'jongyouna@gmail.com';
+var ADMIN_EMAIL = 'bujamap.kr@gmail.com';
 
 // Firebase 웹 API 키. index.html의 firebaseConfig.apiKey와 같은 값이며, 원래 공개되는 값이다.
 // 이 키는 "토큰이 이 프로젝트의 것인지" 확인하는 용도로만 쓴다.

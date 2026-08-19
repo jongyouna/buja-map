@@ -1,6 +1,6 @@
 # 문의 버튼 설정 (Apps Script 메일 발송기)
 
-화면 오른쪽 위 **문의** 버튼 → 500자 이내 메시지 → 관리자 메일함(`jongyouna@gmail.com`)으로 전달.
+화면 오른쪽 위 **이메일 문의** 버튼 → 500자 이내 메시지 → 관리자 메일함(`bujamap.kr@gmail.com`)으로 전달.
 
 ## 어떻게 동작하나
 
@@ -35,7 +35,7 @@
 붙여넣은 코드 위쪽 설정 부분에서:
 
 ```js
-var ADMIN_EMAIL = 'jongyouna@gmail.com';              // 받을 주소
+var ADMIN_EMAIL = 'bujamap.kr@gmail.com';              // 받을 주소
 var FIREBASE_API_KEY = 'PASTE_FIREBASE_WEB_API_KEY';  // ← 여기를 바꿔야 한다
 ```
 

@@ -997,36 +997,112 @@
   .modal-note { color: var(--good); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; text-align: left; }
 
 
-  /* ---- 문의 팝업 ---- */
-  /* 상단 오른쪽 "문의" 버튼 → 500자 이내 메시지를 관리자 이메일로 보낸다. */
+  /* ---- 이메일 문의 팝업 (Supanova Premium Design) ---- */
+  /* 상단 오른쪽 "이메일 문의" 버튼 → 500자 이내 메시지를 관리자 이메일(bujamap.kr@gmail.com)로 보낸다. */
   .inquiry-btn { padding: 8px 14px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
-  .inquiry-card { max-width: 460px; text-align: left; }
-  .inquiry-card h2 { text-align: left; }
-  .inquiry-card .desc { margin-bottom: 12px; }
-  #inquiryText {
+  .supa-inquiry-shell { max-width: 460px; }
+  .supa-inquiry-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: left;
+  }
+  .supa-inquiry-info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .supa-inquiry-info-label {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 68px;
+    font-size: 0.76rem;
+    letter-spacing: -0.01em;
+  }
+  .supa-inquiry-info-val {
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .supa-textarea {
     width: 100%;
-    min-height: 150px;
+    min-height: 140px;
     resize: vertical;
     border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    padding: 10px 12px;
+    border-radius: 12px;
+    padding: 12px 14px;
     font: inherit;
     font-size: 0.86rem;
     line-height: 1.6;
     color: var(--text);
-    background: var(--panel);
+    background: #f8fafc;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
   }
-  #inquiryText:focus { outline: none; border-color: var(--text); }
-  #inquiryText:disabled { opacity: 0.6; }
+  .supa-textarea:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+  .supa-textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
   .inquiry-meta {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-    margin-top: 6px; font-size: 0.74rem; color: var(--muted);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 0.76rem;
+    color: var(--muted);
   }
-  .inquiry-meta .inquiry-count.over { color: var(--bad); font-weight: 700; }
-  .inquiry-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-  .inquiry-actions .google-btn { padding: 8px 16px; font-size: 0.84rem; }
+  .inquiry-meta .inquiry-count.over {
+    color: var(--bad);
+    font-weight: 700;
+  }
+  .inquiry-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .inquiry-actions .supa-submit-btn {
+    width: auto;
+    min-width: 100px;
+    padding: 9px 20px;
+    margin-top: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .inquiry-actions .supa-cancel-btn {
+    padding: 9px 16px;
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .inquiry-actions .supa-cancel-btn:hover {
+    background: #f1f5f9;
+    color: var(--text);
+  }
 
-  /* 좁은 화면에서 상단 줄(이름 + 문의 + 새로고침)이 넘치지 않게 한다. */
+  /* 좁은 화면에서 상단 줄(이름 + 이메일 문의 + 새로고침)이 넘치지 않게 한다. */
   @media (max-width: 480px) {
     .topbar { padding: 12px 14px; }
     .topbar-actions { gap: 6px; }
@@ -1762,7 +1838,7 @@
     </div>
     <div class="topbar-actions">
       <div class="auth-area" id="authArea"></div>
-      <button class="toggle-btn inquiry-btn" id="inquiryBtn" type="button" title="관리자에게 문의 보내기">문의</button>
+      <button class="toggle-btn inquiry-btn" id="inquiryBtn" type="button" title="이메일 문의하기">이메일 문의</button>
       <button class="icon-btn" id="refreshBtn" type="button" title="새로고침">⟳</button>
     </div>
   </div>
@@ -2471,21 +2547,43 @@
   </div>
 
 
-  <!-- 관리자에게 문의 보내기. 내용은 Apps Script 웹앱을 거쳐 관리자 메일로 전달된다. -->
+  <!-- Supanova Redesigned 이메일 문의 모달 -->
   <div class="modal-backdrop" id="inquiryModal" role="dialog" aria-modal="true" aria-labelledby="inquiryTitle" hidden>
-    <div class="modal-card inquiry-card">
-      <h2 id="inquiryTitle">관리자에게 문의</h2>
-      <p class="desc">개선 요청, 오류 제보, 궁금한 점을 남겨 주세요. 답장을 드릴 수 있도록 로그인한 계정의 이름과 이메일이 함께 전달됩니다.</p>
-      <textarea id="inquiryText" maxlength="500" placeholder="문의 내용을 500자 이내로 적어 주세요." aria-describedby="inquiryCount"></textarea>
-      <div class="inquiry-meta">
-        <span id="inquiryFrom"></span>
-        <span class="inquiry-count" id="inquiryCount">0 / 500자</span>
-      </div>
-      <p class="modal-error" id="inquiryError" hidden></p>
-      <p class="modal-note" id="inquiryNote" hidden></p>
-      <div class="inquiry-actions">
-        <button class="toggle-btn" id="inquiryCancelBtn" type="button">취소</button>
-        <button class="google-btn" id="inquirySendBtn" type="button" disabled>보내기</button>
+    <div class="supa-modal-shell supa-inquiry-shell">
+      <div class="supa-modal-card" style="text-align: left;">
+        <button class="supa-close-btn" id="inquiryCloseBtn" type="button" aria-label="닫기">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+
+        <div class="supa-modal-header">
+          <span class="supa-badge">고객 지원</span>
+          <h2 id="inquiryTitle">이메일 문의하기</h2>
+          <p class="desc">개선 요청, 오류 제보, 궁금한 점을 남겨 주세요. 관리자 이메일(bujamap.kr@gmail.com)로 안전하게 전송됩니다.</p>
+        </div>
+
+        <div class="supa-inquiry-info">
+          <div class="supa-inquiry-info-row">
+            <span class="supa-inquiry-info-label">보내는 사람</span>
+            <span class="supa-inquiry-info-val" id="inquiryFrom">-</span>
+          </div>
+          <div class="supa-inquiry-info-row">
+            <span class="supa-inquiry-info-label">받는 사람</span>
+            <span class="supa-inquiry-info-val">bujamap.kr@gmail.com</span>
+          </div>
+        </div>
+
+        <textarea class="supa-textarea" id="inquiryText" maxlength="500" placeholder="문의 내용을 500자 이내로 적어 주세요." aria-describedby="inquiryCount"></textarea>
+        <div class="inquiry-meta">
+          <span class="inquiry-count" id="inquiryCount">0 / 500자</span>
+        </div>
+
+        <p class="supa-error" id="inquiryError" hidden></p>
+        <p class="supa-note" id="inquiryNote" hidden></p>
+
+        <div class="inquiry-actions">
+          <button class="supa-cancel-btn" id="inquiryCancelBtn" type="button">취소</button>
+          <button class="supa-submit-btn" id="inquirySendBtn" type="button" disabled>보내기</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2874,6 +2972,7 @@ const INQUIRY_MAX_LEN = 500;
 
 const inquiryEls = {
   modal: document.getElementById("inquiryModal"),
+  close: document.getElementById("inquiryCloseBtn"),
   text: document.getElementById("inquiryText"),
   from: document.getElementById("inquiryFrom"),
   count: document.getElementById("inquiryCount"),
@@ -2896,12 +2995,14 @@ function openInquiryModal() {
     // 로그인 팝업을 대신 띄우고, 로그인에 성공하면 onSuccess로 다시 여기로 돌아온다.
     openLoginModal(null, {
       title: "문의하려면 로그인해주세요",
-      desc: "답장을 드리려면 보내는 분의 이메일이 필요합니다. 구글 계정으로 로그인하면 바로 문의를 남길 수 있습니다.",
+      desc: "답장을 드리려면 보내는 분의 이메일이 필요합니다. 구글 또는 이메일 계정으로 로그인하면 바로 문의를 남길 수 있습니다.",
       onSuccess: openInquiryModal,
     });
     return;
   }
-  inquiryEls.from.textContent = `보내는 사람: ${currentUser.displayName || ""} ${currentUser.email || ""}`.trim();
+  inquiryEls.from.textContent = currentUser.displayName
+    ? `${currentUser.displayName} (${currentUser.email || ""})`
+    : (currentUser.email || "-");
   inquiryEls.error.hidden = true;
   inquiryEls.note.hidden = true;
   inquiryEls.text.disabled = false;
@@ -2955,6 +3056,7 @@ async function sendInquiry(message) {
 }
 
 document.getElementById("inquiryBtn").addEventListener("click", openInquiryModal);
+if (inquiryEls.close) inquiryEls.close.addEventListener("click", closeInquiryModal);
 inquiryEls.cancel.addEventListener("click", closeInquiryModal);
 inquiryEls.text.addEventListener("input", syncInquiryCount);
 inquiryEls.modal.addEventListener("click", (e) => {
