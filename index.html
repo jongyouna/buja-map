@@ -1400,7 +1400,7 @@
     .alloc-table tbody tr[data-idx] td input:not(.alloc-name-input) { width: 140px; flex: 0 0 auto; font-size: 0.85rem; }
     .alloc-table tbody tr[data-idx] td input.alloc-name-input { width: auto; flex: 1 1 auto; min-width: 0; }
     .alloc-table tbody tr[data-idx] td.num { text-align: right; font-size: 0.85rem; }
-    .alloc-stepper { display: flex; align-items: stretch; width: 140px; flex: 0 0 auto; }
+    .alloc-stepper { display: flex; align-items: stretch; width: min(140px, calc(100% - 80px)); max-width: 100%; min-width: 0; flex: 0 1 140px; }
     .alloc-stepper input { width: auto !important; flex: 1 1 auto; min-width: 0; text-align: right; }
     .alloc-stepper-btns { display: flex !important; flex-direction: column; width: 28px; }
     .alloc-stepper-btn {
