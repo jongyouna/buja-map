@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" />
 <style>
   :root {
     color-scheme: light;
@@ -710,79 +711,291 @@
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .err { color: var(--bad); padding: 40px; text-align: center; }
 
-  /* ---- 로그인 안내 팝업 ---- */
-  /* 로그인이 필요한 탭(자산 배분)을 로그인 없이 눌렀을 때 뜬다. */
+  /* ---- Supanova Redesigned 로그인 모달 ---- */
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(16, 24, 40, 0.45);
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
     z-index: 100;
   }
-  .modal-card {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 16px;
-    padding: 28px 28px 24px;
+  @keyframes supaModalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); filter: blur(4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  }
+  .supa-modal-shell {
+    position: relative;
     width: 100%;
-    max-width: 380px;
-    box-shadow: 0 12px 40px rgba(16, 24, 40, 0.18);
+    max-width: 420px;
+    padding: 1px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.25));
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    animation: supaModalIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .supa-modal-card {
+    position: relative;
+    background: var(--panel);
+    border-radius: 23px;
+    padding: 30px 28px 24px;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
     text-align: center;
   }
-  .modal-card h2 { font-size: 1.1rem; margin: 0 0 10px; font-weight: 700; }
-  .modal-card .desc { color: var(--muted); font-size: 0.85rem; line-height: 1.6; margin: 0 0 20px; }
-  .modal-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
-  .modal-actions .google-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
-  .modal-actions .toggle-btn { padding: 8px 14px; }
-  .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; white-space: pre-line; text-align: left; }
-  .modal-note { color: var(--good); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; text-align: left; }
-  .email-btn {
+  .supa-close-btn {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--muted);
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .supa-close-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--text);
+    transform: scale(1.05);
+  }
+  .supa-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(66, 133, 244, 0.08);
+    color: #2563eb;
+    margin-bottom: 12px;
+  }
+  .supa-modal-header h2 {
+    font-size: 1.18rem;
+    margin: 0 0 8px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    word-break: keep-all;
+    line-height: 1.35;
+  }
+  .supa-modal-header .desc {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+    margin: 0 0 20px;
+    word-break: keep-all;
+  }
+  .supa-google-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border-radius: 12px;
     border: 1px solid var(--panel-border);
     background: var(--panel);
     color: var(--text);
-    border-radius: 8px;
-    padding: 7px 14px;
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  .email-btn:hover { border-color: var(--text); }
-  .modal-actions .email-btn { justify-content: center; padding: 10px 14px; font-size: 0.88rem; }
-  .modal-divider {
-    display: flex; align-items: center; gap: 12px;
-    color: var(--muted); font-size: 0.78rem; margin: 4px 0;
+  .supa-google-btn:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
   }
-  .modal-divider::before,
-  .modal-divider::after {
-    content: ""; flex: 1; height: 1px; background: var(--panel-border);
+  .supa-google-btn:active {
+    transform: scale(0.98);
   }
-  .email-form { display: flex; flex-direction: column; gap: 8px; }
-  .email-form input {
-    width: 100%; box-sizing: border-box;
-    padding: 9px 12px; border: 1px solid var(--panel-border); border-radius: 8px;
-    background: var(--bg); color: var(--text); font-size: 0.85rem;
-    outline: none;
+  .supa-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.76rem;
+    margin: 16px 0 12px;
   }
-  .email-form input:focus { border-color: var(--accent, #4285f4); }
-  .email-form .submit-btn {
-    padding: 10px 14px; border: none; border-radius: 8px;
-    background: #4285f4; color: #fff; font-size: 0.88rem; font-weight: 600;
+  .supa-divider::before,
+  .supa-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--panel-border);
+  }
+  .supa-tab-container {
+    margin-bottom: 12px;
+  }
+  .supa-tab-bar {
+    display: flex;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .supa-tab-btn {
+    flex: 1;
+    padding: 7px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    border: none;
+    background: none;
+    border-radius: 8px;
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .email-form .submit-btn:hover { background: #3367d6; }
-  .email-form .submit-btn:disabled { opacity: 0.6; cursor: default; }
-  .link-btn {
-    background: none; border: none; color: var(--muted); font-size: 0.78rem;
-    cursor: pointer; text-decoration: underline; padding: 0;
+  .supa-tab-btn.active {
+    background: #ffffff;
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
-  .link-btn:hover { color: var(--text); }
-  .email-form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+  .supa-email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .supa-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .supa-input-icon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+  .supa-input-wrap input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: #f8fafc;
+    color: var(--text);
+    font-size: 0.86rem;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  .supa-input-wrap input:focus {
+    background: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+  .supa-input-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: left;
+    margin: 2px 0 4px 4px;
+  }
+  .supa-submit-btn {
+    width: 100%;
+    padding: 11px 16px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  }
+  .supa-submit-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  }
+  .supa-submit-btn:active {
+    transform: scale(0.98);
+  }
+  .supa-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .supa-form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0,0,0,0.04);
+  }
+  .supa-link-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+  }
+  .supa-link-btn:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  .supa-ghost-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  .supa-ghost-btn:hover {
+    background: rgba(0,0,0,0.04);
+    color: var(--text);
+  }
+  .supa-error {
+    background: var(--bad-bg);
+    color: var(--bad);
+    border: 1px solid rgba(180, 35, 24, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    margin: 12px 0 0;
+    line-height: 1.5;
+    text-align: left;
+    word-break: keep-all;
+  }
+  .supa-note {
+    background: var(--good-bg);
+    color: var(--good);
+    border: 1px solid rgba(6, 118, 71, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    margin: 12px 0 0;
+    line-height: 1.5;
+    text-align: left;
+    word-break: keep-all;
+  }
+  /* 구 모달 호환용 */
+  .modal-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; padding: 28px 28px 24px; width: 100%; max-width: 380px; box-shadow: 0 12px 40px rgba(16, 24, 40, 0.18); text-align: center; }
+  .modal-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+  .modal-error { color: var(--bad); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; white-space: pre-line; text-align: left; }
+  .modal-note { color: var(--good); font-size: 0.78rem; margin: 12px 0 0; line-height: 1.6; text-align: left; }
+
 
   /* ---- 문의 팝업 ---- */
   /* 상단 오른쪽 "문의" 버튼 → 500자 이내 메시지를 관리자 이메일로 보낸다. */
@@ -2187,41 +2400,76 @@
   </section>
   </div>
 
-  <!-- 로그인이 필요한 탭을 로그인 없이 눌렀을 때 뜨는 안내 팝업 -->
+  <!-- Supanova Redesigned 로그인 모달 (구글 + 이메일/비밀번호 통합) -->
   <div class="modal-backdrop" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle" hidden>
-    <div class="modal-card">
-      <h2 id="loginModalTitle">사용을 위해서 반드시 로그인해주세요</h2>
-      <p class="desc" id="loginModalDesc">자산 배분 탭은 로그인한 사용자만 이용할 수 있습니다. 구글 계정으로 로그인하면 입력한 자산 배분이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있습니다.</p>
-      <div class="modal-actions">
-        <button class="google-btn" id="loginModalSignInBtn" type="button">Google로 로그인</button>
-        <div class="modal-divider">또는</div>
-        <button class="email-btn" id="loginModalEmailBtn" type="button">이메일로 로그인</button>
-        <button class="toggle-btn" id="loginModalCloseBtn" type="button">나중에 하기</button>
+    <div class="supa-modal-shell">
+      <div class="supa-modal-card">
+        <button class="supa-close-btn" id="loginModalCloseBtn" type="button" aria-label="닫기">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+
+        <div class="supa-modal-header">
+          <span class="supa-badge">계정 인증</span>
+          <h2 id="loginModalTitle">로그인이 필요한 기능입니다</h2>
+          <p class="desc" id="loginModalDesc">자산 배분 및 실시간 급매 데이터를 안전하게 저장하고 확인하려면 로그인해 주세요.</p>
+        </div>
+
+        <!-- Google 간편 로그인 -->
+        <button class="supa-google-btn" id="loginModalSignInBtn" type="button">
+          <svg class="google-icon" width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Google 계정으로 계속하기</span>
+        </button>
+
+        <!-- 구분선 -->
+        <div class="supa-divider">
+          <span>또는 이메일로 계속하기</span>
+        </div>
+
+        <!-- 로그인 / 회원가입 전환 탭 -->
+        <div class="supa-tab-container">
+          <div class="supa-tab-bar" role="tablist">
+            <button type="button" class="supa-tab-btn active" id="emailTabLogin" role="tab">로그인</button>
+            <button type="button" class="supa-tab-btn" id="emailTabSignup" role="tab">회원가입</button>
+          </div>
+        </div>
+
+        <!-- 이메일 / 비밀번호 폼 -->
+        <form class="supa-email-form" id="emailForm" onsubmit="return false;">
+          <div class="supa-input-wrap">
+            <span class="supa-input-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </span>
+            <input type="email" id="emailInput" placeholder="이메일 주소" autocomplete="email" required>
+          </div>
+          <div class="supa-input-wrap">
+            <span class="supa-input-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <input type="password" id="passwordInput" placeholder="비밀번호" autocomplete="current-password" required>
+          </div>
+          <p class="supa-input-hint" id="passwordHint" hidden>비밀번호는 6자 이상이어야 합니다.</p>
+
+          <button class="supa-submit-btn" id="emailSubmitBtn" type="button">로그인</button>
+        </form>
+
+        <!-- 피드백 메시지 -->
+        <p class="supa-error" id="loginModalError" hidden></p>
+        <p class="supa-note" id="loginModalNote" hidden></p>
+
+        <!-- 하단 보조 액션 -->
+        <div class="supa-form-footer">
+          <button class="supa-link-btn" id="emailResetPwBtn" type="button">비밀번호 찾기</button>
+          <button class="supa-ghost-btn" id="loginModalCloseBtn2" type="button">나중에 하기</button>
+        </div>
       </div>
-      <p class="modal-error" id="loginModalError" hidden></p>
     </div>
   </div>
 
-  <!-- 이메일/비밀번호 로그인 팝업 -->
-  <div class="modal-backdrop" id="emailLoginModal" role="dialog" aria-modal="true" aria-labelledby="emailLoginModalTitle" hidden>
-    <div class="modal-card">
-      <h2 id="emailLoginModalTitle">이메일로 로그인</h2>
-      <div class="email-form" id="emailForm">
-        <input type="email" id="emailInput" placeholder="이메일 주소" autocomplete="email" required>
-        <input type="password" id="passwordInput" placeholder="비밀번호" autocomplete="current-password" required>
-        <button class="submit-btn" id="emailSubmitBtn" type="button">로그인</button>
-      </div>
-      <div class="email-form-footer">
-        <button class="link-btn" id="emailToggleModeBtn" type="button">계정이 없으신가요? 회원가입</button>
-        <button class="link-btn" id="emailResetPwBtn" type="button">비밀번호 찾기</button>
-      </div>
-      <p class="modal-error" id="emailLoginError" hidden></p>
-      <p class="modal-note" id="emailLoginNote" hidden></p>
-      <div style="margin-top: 12px;">
-        <button class="link-btn" id="emailLoginBackBtn" type="button">← 돌아가기</button>
-      </div>
-    </div>
-  </div>
 
   <!-- 관리자에게 문의 보내기. 내용은 Apps Script 웹앱을 거쳐 관리자 메일로 전달된다. -->
   <div class="modal-backdrop" id="inquiryModal" role="dialog" aria-modal="true" aria-labelledby="inquiryTitle" hidden>
@@ -2438,42 +2686,54 @@ function renderAuthArea() {
     `;
     document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
   } else {
-    el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">Google로 로그인</button><button class="email-btn" id="emailSignInBtn" type="button">이메일로 로그인</button>`;
+    el.innerHTML = `<button class="google-btn" id="signInBtn" type="button">로그인</button>`;
     document.getElementById("signInBtn").addEventListener("click", () => {
-      signInWithGoogle().catch((err) => {
-        console.error("로그인 실패:", err);
-        alert(authErrorMessage(err));
-      });
-    });
-    document.getElementById("emailSignInBtn").addEventListener("click", () => {
-      openEmailLoginModal();
+      openLoginModal();
     });
   }
 }
 renderAuthArea();
 
-// ---- 로그인이 필요한 탭 ----
-// 화면에서 막는 것은 안내일 뿐이고, 자산 배분 내용 자체는 users/{uid} 문서에 들어가므로
-// 실제 접근 제어는 Firestore 보안 규칙(본인 문서만 읽기·쓰기)이 담당한다.
+// ---- 로그인이 필요한 탭 및 보호된 기능 ----
 const LOGIN_REQUIRED_TABS = new Set(["allocation"]);
-// 로그인 팝업에서 로그인에 성공하면 열어 줄 탭. 새로고침 직후처럼 로그인 상태가 아직
-// 확정되지 않았을 때 눌린 탭도 여기에 담아 두었다가 확정된 뒤에 다시 판단한다.
 let pendingGatedTab = null;
-// 탭 말고 "급매만 보기"처럼 로그인 뒤 이어서 해야 할 동작도 담아 둔다.
 let pendingGatedAction = null;
 
-// 팝업의 기본 문구(자산 배분 탭 기준). 문의처럼 다른 이유로 띄울 때는 문구만 갈아 끼운다.
-const LOGIN_MODAL_DEFAULT_TITLE = "사용을 위해서 반드시 로그인해주세요";
+const LOGIN_MODAL_DEFAULT_TITLE = "로그인이 필요한 기능입니다";
 const LOGIN_MODAL_DEFAULT_DESC =
-  "자산 배분 탭은 로그인한 사용자만 이용할 수 있습니다. 구글 계정으로 로그인하면 입력한 자산 배분이 계정에 저장되어 다른 기기에서도 이어서 볼 수 있습니다.";
+  "자산 배분 및 실시간 급매 데이터를 안전하게 저장하고 확인하려면 로그인해 주세요. 구글 또는 이메일 계정으로 간편하게 시작할 수 있습니다.";
+
+let currentAuthMode = "login"; // "login" | "signup"
+
+function setAuthModalMode(mode) {
+  currentAuthMode = mode;
+  const isLogin = mode === "login";
+  const loginTab = document.getElementById("emailTabLogin");
+  const signupTab = document.getElementById("emailTabSignup");
+  const submitBtn = document.getElementById("emailSubmitBtn");
+  const hintEl = document.getElementById("passwordHint");
+  const errEl = document.getElementById("loginModalError");
+  const noteEl = document.getElementById("loginModalNote");
+  const pwInput = document.getElementById("passwordInput");
+
+  if (loginTab) loginTab.classList.toggle("active", isLogin);
+  if (signupTab) signupTab.classList.toggle("active", !isLogin);
+  if (submitBtn) submitBtn.textContent = isLogin ? "이메일로 로그인" : "회원가입 완료";
+  if (hintEl) hintEl.hidden = isLogin;
+  if (pwInput) pwInput.autocomplete = isLogin ? "current-password" : "new-password";
+  if (errEl) errEl.hidden = true;
+  if (noteEl) noteEl.hidden = true;
+}
 
 function openLoginModal(tab, options = {}) {
-  pendingGatedTab = tab;
+  pendingGatedTab = tab || null;
   pendingGatedAction = options.onSuccess || null;
   const modal = document.getElementById("loginModal");
   document.getElementById("loginModalTitle").textContent = options.title || LOGIN_MODAL_DEFAULT_TITLE;
   document.getElementById("loginModalDesc").textContent = options.desc || LOGIN_MODAL_DEFAULT_DESC;
-  document.getElementById("loginModalError").hidden = true;
+  document.getElementById("emailInput").value = "";
+  document.getElementById("passwordInput").value = "";
+  setAuthModalMode("login");
   modal.hidden = false;
   document.getElementById("loginModalSignInBtn").focus();
 }
@@ -2484,145 +2744,118 @@ function closeLoginModal() {
   pendingGatedAction = null;
 }
 
-document.getElementById("loginModalCloseBtn").addEventListener("click", closeLoginModal);
-document.getElementById("loginModal").addEventListener("click", (e) => {
-  // 카드 바깥(어두운 배경)을 누르면 닫는다.
+// 하위 호환성 헬퍼
+function openEmailLoginModal() {
+  openLoginModal();
+  setAuthModalMode("login");
+}
+function closeEmailLoginModal() {
+  closeLoginModal();
+}
+
+// 모달 닫기 이벤트들
+document.getElementById("loginModalCloseBtn")?.addEventListener("click", closeLoginModal);
+document.getElementById("loginModalCloseBtn2")?.addEventListener("click", closeLoginModal);
+document.getElementById("loginModal")?.addEventListener("click", (e) => {
   if (e.target.id === "loginModal") closeLoginModal();
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !document.getElementById("loginModal").hidden) closeLoginModal();
 });
-document.getElementById("loginModalSignInBtn").addEventListener("click", () => {
+
+// 탭 전환 이벤트
+document.getElementById("emailTabLogin")?.addEventListener("click", () => setAuthModalMode("login"));
+document.getElementById("emailTabSignup")?.addEventListener("click", () => setAuthModalMode("signup"));
+
+// Google 로그인 버튼
+document.getElementById("loginModalSignInBtn")?.addEventListener("click", () => {
   const btn = document.getElementById("loginModalSignInBtn");
   const errEl = document.getElementById("loginModalError");
   btn.disabled = true;
-  errEl.hidden = true;
-  // 로그인에 성공하면 onAuthStateChanged가 팝업을 닫고 원래 누른 탭을 열어 준다.
+  if (errEl) errEl.hidden = true;
   signInWithGoogle()
     .catch((err) => {
-      console.error("로그인 실패:", err);
-      errEl.textContent = authErrorMessage(err);
-      errEl.hidden = false;
+      console.error("Google 로그인 실패:", err);
+      if (errEl) {
+        errEl.textContent = authErrorMessage(err);
+        errEl.hidden = false;
+      }
     })
     .finally(() => {
       btn.disabled = false;
     });
 });
 
-// ---- 이메일/비밀번호 로그인 모달 ----
-let emailLoginMode = "login"; // "login" 또는 "signup"
-
-function openEmailLoginModal() {
-  emailLoginMode = "login";
-  syncEmailModalMode();
-  document.getElementById("emailInput").value = "";
-  document.getElementById("passwordInput").value = "";
-  document.getElementById("emailLoginError").hidden = true;
-  document.getElementById("emailLoginNote").hidden = true;
-  document.getElementById("emailLoginModal").hidden = false;
-  document.getElementById("emailInput").focus();
-}
-
-function closeEmailLoginModal() {
-  document.getElementById("emailLoginModal").hidden = true;
-}
-
-function syncEmailModalMode() {
-  const isLogin = emailLoginMode === "login";
-  document.getElementById("emailLoginModalTitle").textContent = isLogin ? "이메일로 로그인" : "이메일로 회원가입";
-  document.getElementById("emailSubmitBtn").textContent = isLogin ? "로그인" : "회원가입";
-  document.getElementById("emailToggleModeBtn").textContent = isLogin
-    ? "계정이 없으신가요? 회원가입"
-    : "이미 계정이 있으신가요? 로그인";
-  document.getElementById("emailResetPwBtn").hidden = !isLogin;
-  document.getElementById("passwordInput").autocomplete = isLogin ? "current-password" : "new-password";
-}
-
-// loginModal에서 "이메일로 로그인" 버튼을 눌렀을 때
-document.getElementById("loginModalEmailBtn").addEventListener("click", () => {
-  document.getElementById("loginModal").hidden = true;
-  openEmailLoginModal();
-});
-
-document.getElementById("emailLoginBackBtn").addEventListener("click", () => {
-  closeEmailLoginModal();
-  // pendingGatedTab이 있으면 loginModal로 돌아간다.
-  if (pendingGatedTab || pendingGatedAction) {
-    document.getElementById("loginModal").hidden = false;
-  }
-});
-document.getElementById("emailLoginModal").addEventListener("click", (e) => {
-  if (e.target.id === "emailLoginModal") closeEmailLoginModal();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !document.getElementById("emailLoginModal").hidden) closeEmailLoginModal();
-});
-
-document.getElementById("emailToggleModeBtn").addEventListener("click", () => {
-  emailLoginMode = emailLoginMode === "login" ? "signup" : "login";
-  syncEmailModalMode();
-  document.getElementById("emailLoginError").hidden = true;
-  document.getElementById("emailLoginNote").hidden = true;
-});
-
-document.getElementById("emailSubmitBtn").addEventListener("click", async () => {
+// 이메일 폼 로그인 / 회원가입 실행
+document.getElementById("emailSubmitBtn")?.addEventListener("click", async () => {
   const email = document.getElementById("emailInput").value.trim();
   const password = document.getElementById("passwordInput").value;
   const btn = document.getElementById("emailSubmitBtn");
-  const errEl = document.getElementById("emailLoginError");
-  const noteEl = document.getElementById("emailLoginNote");
-  errEl.hidden = true;
-  noteEl.hidden = true;
+  const errEl = document.getElementById("loginModalError");
+  const noteEl = document.getElementById("loginModalNote");
+  if (errEl) errEl.hidden = true;
+  if (noteEl) noteEl.hidden = true;
+
   if (!email || !password) {
-    errEl.textContent = "이메일과 비밀번호를 모두 입력해 주세요.";
-    errEl.hidden = false;
+    if (errEl) {
+      errEl.textContent = "이메일과 비밀번호를 모두 입력해 주세요.";
+      errEl.hidden = false;
+    }
     return;
   }
   btn.disabled = true;
   try {
-    if (emailLoginMode === "signup") {
+    if (currentAuthMode === "signup") {
       await createUserWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged가 나머지를 처리한다.
     } else {
       await signInWithEmailAndPassword(auth, email, password);
     }
-    closeEmailLoginModal();
+    closeLoginModal();
   } catch (err) {
-    console.error("이메일 로그인 실패:", err);
-    errEl.textContent = authErrorMessage(err);
-    errEl.hidden = false;
+    console.error("이메일 인증 실패:", err);
+    if (errEl) {
+      errEl.textContent = authErrorMessage(err);
+      errEl.hidden = false;
+    }
   } finally {
     btn.disabled = false;
   }
 });
 
-// Enter 키로 로그인/가입 실행
-document.getElementById("emailForm").addEventListener("keydown", (e) => {
+// 엔터 키로 폼 제출
+document.getElementById("emailForm")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
-    document.getElementById("emailSubmitBtn").click();
+    document.getElementById("emailSubmitBtn")?.click();
   }
 });
 
-document.getElementById("emailResetPwBtn").addEventListener("click", async () => {
+// 비밀번호 찾기
+document.getElementById("emailResetPwBtn")?.addEventListener("click", async () => {
   const email = document.getElementById("emailInput").value.trim();
-  const errEl = document.getElementById("emailLoginError");
-  const noteEl = document.getElementById("emailLoginNote");
-  errEl.hidden = true;
-  noteEl.hidden = true;
+  const errEl = document.getElementById("loginModalError");
+  const noteEl = document.getElementById("loginModalNote");
+  if (errEl) errEl.hidden = true;
+  if (noteEl) noteEl.hidden = true;
   if (!email) {
-    errEl.textContent = "비밀번호를 재설정할 이메일 주소를 입력해 주세요.";
-    errEl.hidden = false;
+    if (errEl) {
+      errEl.textContent = "비밀번호를 재설정할 이메일 주소를 입력해 주세요.";
+      errEl.hidden = false;
+    }
     return;
   }
   try {
     await sendPasswordResetEmail(auth, email);
-    noteEl.textContent = `${email}(으)로 비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.`;
-    noteEl.hidden = false;
+    if (noteEl) {
+      noteEl.textContent = `${email}(으)로 비밀번호 재설정 링크를 발송했습니다. 메일함을 확인해 주세요.`;
+      noteEl.hidden = false;
+    }
   } catch (err) {
     console.error("비밀번호 재설정 실패:", err);
-    errEl.textContent = authErrorMessage(err);
-    errEl.hidden = false;
+    if (errEl) {
+      errEl.textContent = authErrorMessage(err);
+      errEl.hidden = false;
+    }
   }
 });
 
