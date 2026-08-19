@@ -835,6 +835,130 @@ async function probeOnce() {
   }
 }
 
+// 일자별 요약 데이터를 naver-land-daily.json에 저장
+function updateDailySnapshot(merged, updatedAt) {
+  const todayStr = new Date(updatedAt).toISOString().split('T')[0];
+  const dailyPath = path.join(__dirname, "..", "data", "naver-land-daily.json");
+
+  // 1. 통계 계산
+  let totalComplexes = 0, totalListings = 0, bargainCount = 0;
+  let sumPyeongPrice = 0, countPyeongPrice = 0;
+  const regionStats = [];
+  const todayComplexesMap = {}; // { "complexNo|area|trade": complex }
+
+  for (const region of merged) {
+    const complexes = region.complexes || [];
+    let regionBargain = 0;
+    let regionListings = 0;
+
+    for (const complex of complexes) {
+      totalComplexes++;
+      const count = complex.count || 0;
+      totalListings += count;
+      regionListings += count;
+
+      // 급매 판정 (realMaxPrice 대비 5% 이상 저가)
+      const discount = bargainDiscount(complex);
+      if (discount != null && discount >= 5) {
+        regionBargain++;
+        bargainCount++;
+      }
+
+      // 평당가 누적
+      if (complex.pyeongAskMin != null) {
+        sumPyeongPrice += complex.pyeongAskMin * count;
+        countPyeongPrice += count;
+      }
+
+      // 오늘 단지 맵 추가
+      const key = `${complex.complexNo || 0}|${complex.supplyArea}|${complex.tradeType}`;
+      todayComplexesMap[key] = complex;
+    }
+
+    regionStats.push({
+      name: region.name,
+      complexes: complexes.length,
+      listings: regionListings,
+      bargainCount: regionBargain
+    });
+  }
+
+  const avgPyeongPrice = countPyeongPrice > 0 ? Math.round(sumPyeongPrice / countPyeongPrice) : null;
+
+  // 2. 기존 daily 데이터 읽기
+  let daily = {};
+  try {
+    const content = fs.readFileSync(dailyPath, 'utf8');
+    daily = JSON.parse(content);
+  } catch (e) {
+    // 첫 실행이거나 파일 손상 → 빈 객체로 시작
+  }
+
+  // 3. 신규 단지 탐지
+  const newComplexes = [];
+  const yesterdayDate = new Date(updatedAt);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+  if (daily[yesterdayStr]?.newComplexes) {
+    // 어제의 신규 단지 목록
+    const yesterdayNewComplexNos = new Set(
+      daily[yesterdayStr].newComplexes.map(c => c.complexNo)
+    );
+
+    // 오늘 단지 중 어제 신규에 없던 것이 신규
+    for (const key in todayComplexesMap) {
+      const complex = todayComplexesMap[key];
+      if (!yesterdayNewComplexNos.has(complex.complexNo)) {
+        newComplexes.push({
+          complexNo: complex.complexNo || null,
+          complexName: complex.complexName,
+          area: complex.supplyArea,
+          minPrice: complex.minPrice,
+          maxPrice: complex.maxPrice,
+          region: complex.dong || '미상',
+          url: complex.complexNo ? `https://land.naver.com/complexes/${complex.complexNo}` : null,
+          count: complex.count || 0
+        });
+      }
+    }
+  }
+
+  // 4. 오늘 데이터 추가
+  const dailyData = {
+    updatedAt,
+    totalComplexes,
+    totalListings,
+    bargainCount,
+    avgPyeongPrice,
+    regions: regionStats,
+    newComplexes
+  };
+
+  daily[todayStr] = dailyData;
+
+  // 5. 90일 이상 된 항목 삭제
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 90);
+  const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
+  Object.keys(daily).forEach(date => {
+    if (date < cutoffStr) delete daily[date];
+  });
+
+  // 6. 저장
+  fs.mkdirSync(path.dirname(dailyPath), { recursive: true });
+  fs.writeFileSync(dailyPath, JSON.stringify(daily, null, 2));
+
+  console.log(`[daily] ${todayStr} 추가 (신규 ${newComplexes.length}개, 총 ${Object.keys(daily).length}일)`);
+}
+
+// 급매 할인율 계산
+function bargainDiscount(complex) {
+  if (!(complex.realMaxPrice > 0) || complex.minPrice == null) return null;
+  return ((complex.realMaxPrice - complex.minPrice) / complex.realMaxPrice) * 100;
+}
+
 async function main() {
   const outPath = path.join(__dirname, "..", "data", "naver-land.json");
   const histPath = path.join(__dirname, "..", "data", "naver-land-history.json");
@@ -887,6 +1011,9 @@ async function main() {
       (keptCount > 0 ? `, 기존 유지 ${keptCount}개 지역` : "") +
       ` → 총 ${merged.length}개 지역 저장 (${outPath})`
   );
+
+  // 일자별 요약 데이터 저장
+  updateDailySnapshot(merged, data.updatedAt);
 }
 
 main().catch((err) => {

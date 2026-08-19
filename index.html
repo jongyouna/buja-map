@@ -1919,6 +1919,95 @@
     border-color: #ff6b6b;
     box-shadow: 0 2px 10px -2px rgba(255, 107, 107, 0.5);
   }
+
+  /* ---- 일자별 비교 위젯 ---- */
+  #tabPanel-naver .comparison-widget {
+    background: linear-gradient(135deg, rgba(100, 200, 150, 0.1), rgba(100, 200, 150, 0.04));
+    border: 1px solid rgba(100, 200, 150, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+  #tabPanel-naver .comparison-widget h3 {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  #tabPanel-naver .comparison-pills {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  #tabPanel-naver .comparison-pills .pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid rgba(100, 200, 150, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  }
+  #tabPanel-naver .comparison-pills .label { color: var(--muted); }
+  #tabPanel-naver .comparison-pills .value { font-weight: 700; font-variant-numeric: tabular-nums; }
+  #tabPanel-naver .comparison-pills .value.up { color: #067647; }
+  #tabPanel-naver .comparison-pills .value.down { color: #b42318; }
+
+  /* ---- 신규 등록 단지 목록 ---- */
+  #tabPanel-naver #newComplexesSection { margin-top: 20px; }
+  #tabPanel-naver .new-complexes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  #tabPanel-naver .new-complex-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 107, 107, 0.05);
+    border: 1px solid rgba(255, 107, 107, 0.2);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #tabPanel-naver .new-complex-item:hover {
+    background: rgba(255, 107, 107, 0.08);
+  }
+  #tabPanel-naver .complex-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  #tabPanel-naver .complex-info strong { color: var(--text); }
+  #tabPanel-naver .complex-info .area,
+  #tabPanel-naver .complex-info .price {
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  #tabPanel-naver .complex-info .count {
+    font-weight: 700;
+    color: #ff6b6b;
+    font-size: 0.7rem;
+  }
+  #tabPanel-naver .new-complex-item .naver-link {
+    color: #2563eb;
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #tabPanel-naver .new-complex-item .naver-link:hover {
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
+  }
 </style>
 </head>
 <body>
@@ -4396,6 +4485,10 @@ function activateTab(tab, { remember = true } = {}) {
   if (tab === "naver" && !naverLoaded) {
     naverLoaded = true;
     initNaverTab();
+  }
+  // 급매 Now! 탭 활성화 시 일자별 비교 데이터 로드
+  if (tab === "naver") {
+    loadDailyComparison();
   }
   // 자산 배분 탭은 처음 열릴 때 초기화하고, 이후 탭에 접속할 때마다 최신 현재가를 읽어온다.
   if (tab === "allocation") {
@@ -7758,6 +7851,100 @@ async function initNaverTab() {
   applyPrefs(currentNaverPrefs());
   updateSyncNote();
   prefsReady = true;
+}
+
+// ---- 일자별 비교 데이터 로드 및 표시 ----
+async function loadDailyComparison() {
+  try {
+    const resp = await fetch('data/naver-land-daily.json');
+    if (!resp.ok) return;
+
+    const daily = await resp.json();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+    const todayData = daily[todayStr];
+    const yesterdayData = daily[yesterdayStr];
+
+    // 기존 비교 위젯 제거 (중복 방지)
+    const oldWidget = document.querySelector('#tabPanel-naver .comparison-widget');
+    if (oldWidget) oldWidget.remove();
+    const oldSection = document.getElementById('newComplexesSection');
+    if (oldSection) oldSection.remove();
+
+    // 비교 위젯 렌더링
+    if (todayData && yesterdayData) {
+      const listingDiff = todayData.totalListings - yesterdayData.totalListings;
+      const listingDiffPct = yesterdayData.totalListings > 0
+        ? ((listingDiff / yesterdayData.totalListings) * 100).toFixed(1)
+        : '0';
+
+      const bargainDiff = todayData.bargainCount - yesterdayData.bargainCount;
+
+      const widget = document.createElement('div');
+      widget.className = 'comparison-widget';
+      widget.innerHTML = `
+        <h3>전일 대비</h3>
+        <div class="comparison-pills">
+          <div class="pill">
+            <span class="label">매물</span>
+            <span class="value ${listingDiff >= 0 ? 'up' : 'down'}">
+              ${listingDiff >= 0 ? '+' : ''}${listingDiff} (${listingDiffPct}%)
+            </span>
+          </div>
+          <div class="pill">
+            <span class="label">급매</span>
+            <span class="value ${bargainDiff >= 0 ? 'down' : 'up'}">
+              ${bargainDiff >= 0 ? '+' : ''}${bargainDiff}
+            </span>
+          </div>
+        </div>
+      `;
+
+      const summaryBar = document.getElementById('naverSummaryBar');
+      summaryBar.parentNode.insertBefore(widget, summaryBar.nextSibling);
+    }
+
+    // 신규 매물 목록 렌더링
+    if (todayData?.newComplexes?.length > 0) {
+      renderNewComplexes(todayData.newComplexes);
+    }
+  } catch (err) {
+    console.log('[daily] 일자별 비교 데이터 로드 실패:', err.message);
+  }
+}
+
+function renderNewComplexes(newComplexes) {
+  const list = newComplexes
+    .map(c => `
+      <div class="new-complex-item">
+        <div class="complex-info">
+          <strong>${escapeHtml(c.complexName)}</strong>
+          <span class="area">${c.area}㎡</span>
+          <span class="price">${fmtManwon(c.minPrice)} ~ ${fmtManwon(c.maxPrice)}</span>
+          <span class="count" title="신규 매물 수">${c.count}건</span>
+        </div>
+        <a href="${c.url}" target="_blank" rel="noopener" class="naver-link">
+          네이버 상세 →
+        </a>
+      </div>
+    `)
+    .join('');
+
+  const section = document.createElement('div');
+  section.id = 'newComplexesSection';
+  section.className = 'panel';
+  section.innerHTML = `
+    <h3>신규 등록 단지 (${newComplexes.length}개)</h3>
+    <div class="new-complexes-list">
+      ${list}
+    </div>
+  `;
+
+  const filterPanel = document.getElementById('naverFilterPanel');
+  filterPanel.parentNode.insertBefore(section, filterPanel.nextSibling);
 }
 </script>
 </body>
