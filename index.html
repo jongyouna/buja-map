@@ -1828,6 +1828,97 @@
   .alloc-quote-actions { display: flex; align-items: center; gap: 10px; }
   .alloc-quote-read-at { color: var(--muted); font-size: 0.74rem; white-space: nowrap; }
   .alloc-stepper-btns { display: none; }
+
+  /* ---- Supanova Premium: 급매 Now! ----
+     로그인 모달(.supa-*)에 이미 쓴 모션 시그니처(cubic-bezier(0.16,1,0.3,1))와
+     이중 베젤/틴트 섀도 어휘를 그대로 이어받는다. 이 탭의 단일 액센트는 기존에
+     쓰던 코랄(#ff6b6b)이라 새 색을 들이지 않는다. 전부 #tabPanel-naver로 스코프해
+     같은 클래스를 쓰는 다른 탭(관리자 표 등)에는 영향을 주지 않는다. */
+  #tabPanel-naver .intro { word-break: keep-all; }
+
+  #tabPanel-naver .panel {
+    border-color: rgba(16, 24, 40, 0.06);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03), 0 8px 24px -12px rgba(16, 24, 40, 0.08);
+  }
+
+  #tabPanel-naver .bargain-bar {
+    border-color: rgba(255, 107, 107, 0.3);
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.11), rgba(255, 107, 107, 0.04));
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 10px 24px -16px rgba(255, 107, 107, 0.55);
+  }
+  #tabPanel-naver .bargain-tag { box-shadow: 0 2px 8px -2px rgba(255, 107, 107, 0.6); }
+
+  #tabPanel-naver .alert-btn {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  }
+  #tabPanel-naver .alert-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px -2px rgba(16, 24, 40, 0.12); }
+  #tabPanel-naver .alert-btn.on:hover { box-shadow: 0 4px 14px -2px rgba(255, 107, 107, 0.35); }
+  #tabPanel-naver .alert-btn:active { transform: scale(0.98); }
+
+  #tabPanel-naver .summary-pill {
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+    font-variant-numeric: tabular-nums;
+  }
+
+  #tabPanel-naver .filter-section-title { display: flex; align-items: center; gap: 8px; }
+  #tabPanel-naver .filter-section-title::before {
+    content: "";
+    width: 3px;
+    height: 12px;
+    border-radius: 2px;
+    background: #ff6b6b;
+    display: inline-block;
+  }
+  #tabPanel-naver .filter-field select:focus,
+  #tabPanel-naver .filter-field input:focus {
+    outline: none;
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+  }
+  #tabPanel-naver .quick-row button,
+  #tabPanel-naver .region-btn,
+  #tabPanel-naver .filter-reset {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #tabPanel-naver .quick-row button:hover:not(.active) { transform: translateY(-1px); }
+  #tabPanel-naver .quick-row button:active,
+  #tabPanel-naver .region-btn:not(:disabled):active { transform: scale(0.96); }
+
+  #tabPanel-naver .naver-table td.num,
+  #tabPanel-naver .naver-table th.num { font-variant-numeric: tabular-nums; }
+  #tabPanel-naver .naver-table tbody tr { transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  #tabPanel-naver .naver-table th.sorted-asc,
+  #tabPanel-naver .naver-table th.sorted-desc { color: #ff6b6b; }
+  #tabPanel-naver .naver-table tr.row-bargain td {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.1), rgba(255, 107, 107, 0.04) 70%);
+  }
+  #tabPanel-naver .naver-table tr.row-bargain:hover td {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.16), rgba(255, 107, 107, 0.06) 70%);
+  }
+  #tabPanel-naver .naver-table tr.row-bargain td:first-child {
+    box-shadow: inset 3px 0 0 #ff6b6b, 4px 0 10px -6px rgba(255, 107, 107, 0.5);
+  }
+  #tabPanel-naver .bargain-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    margin-left: 5px;
+    border-radius: 999px;
+    background: rgba(255, 107, 107, 0.12);
+  }
+  #tabPanel-naver .naver-complex-link { transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+
+  #tabPanel-naver .pager-btn { transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  #tabPanel-naver .pager-btn:hover:not(:disabled):not(.current) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px -2px rgba(16, 24, 40, 0.12);
+  }
+  #tabPanel-naver .pager-btn.current {
+    background: #ff6b6b;
+    border-color: #ff6b6b;
+    box-shadow: 0 2px 10px -2px rgba(255, 107, 107, 0.5);
+  }
 </style>
 </head>
 <body>
