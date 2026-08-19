@@ -5095,7 +5095,7 @@ function initAllocationTab() {
       renderComputed();
       return;
     }
-    quoteReadAtEl.textContent = `마지막 읽음: ${new Date().toLocaleDateString("ko-KR")}`;
+    quoteReadAtEl.textContent = `마지막 읽음: ${new Date().toLocaleString("ko-KR")}`;
 
     // 종목코드가 없는 행은 이름이 정확히 일치할 때만 코드를 붙인다.
     const { resolved, unresolved } = resolveMissingCodes(state.rows);
