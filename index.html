@@ -1234,17 +1234,18 @@
   .import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   /* 열 폭(합 100%). 종목은 15글자가 들어가도록 넉넉히 준다. */
   .alloc-table col.c-cat { width: 6%; }
-  .alloc-table col.c-name { width: 25%; }
+  .alloc-table col.c-name { width: 23%; }
   .alloc-table col.c-target { width: 5%; }
   .alloc-table col.c-weight { width: 5%; }
   .alloc-table col.c-change { width: 5%; }
   .alloc-table col.c-rate { width: 6%; }
+  .alloc-table col.c-trade { width: 7%; }
   .alloc-table col.c-price { width: 8%; }
   .alloc-table col.c-avg { width: 8%; }
   .alloc-table col.c-qty { width: 7%; }
   .alloc-table col.c-gap { width: 5%; }
   .alloc-table col.c-th { width: 7%; }
-  .alloc-table col.c-profit { width: 9%; }
+  .alloc-table col.c-profit { width: 8%; }
   .alloc-table col.c-del { width: 4%; }
 
   /* 창이 좁아지면 글자와 여백을 함께 줄인다. 폭만 줄이면 숫자가 칸을 넘쳐 잘리는데,
@@ -1261,7 +1262,7 @@
   }
   /* 이 아래로는 25%로는 15글자가 안 들어간다. 숫자 열에서 조금씩 걷어 종목에 몰아 준다. */
   @media (max-width: 940px) {
-    .alloc-table col.c-name { width: 29%; }
+    .alloc-table col.c-name { width: 25%; }
     .alloc-table col.c-cat { width: 4.5%; }
     .alloc-table col.c-target { width: 4.5%; }
     .alloc-table col.c-weight { width: 4.5%; }
@@ -1269,10 +1270,11 @@
     .alloc-table col.c-avg { width: 7.5%; }
     .alloc-table col.c-qty { width: 6.5%; }
     .alloc-table col.c-gap { width: 4.5%; }
+    .alloc-table col.c-trade { width: 6%; }
     /* "Threshold" 머리글이 한 줄에 들어가야 한다. 더 줄이면 글자가 잘린다. */
     .alloc-table col.c-th { width: 7%; }
     /* 손익은 자릿수가 가장 많다(억 단위 + 콤마 + 부호). 여기서 줄이면 금액이 잘린다. */
-    .alloc-table col.c-profit { width: 10%; }
+    .alloc-table col.c-profit { width: 9%; }
     .alloc-table col.c-del { width: 3.5%; }
   }
   @media (max-width: 980px) {
@@ -1991,7 +1993,7 @@
             <!-- 열 폭은 여기서 정한다. 인라인 style로 두면 창 크기별로 조절할 수 없다. -->
             <colgroup>
               <col class="c-cat" /><col class="c-name" /><col class="c-target" /><col class="c-weight" />
-              <col class="c-change" /><col class="c-rate" /><col class="c-price" /><col class="c-avg" />
+              <col class="c-change" /><col class="c-rate" /><col class="c-trade" /><col class="c-price" /><col class="c-avg" />
               <col class="c-qty" /><col class="c-gap" /><col class="c-th" /><col class="c-profit" /><col class="c-del" />
             </colgroup>
             <thead>
@@ -2002,6 +2004,7 @@
                 <th class="num">보유<br />비중</th>
                 <th class="num">전일대비<br />(%)</th>
                 <th class="num">수익률<br />(%)</th>
+                <th class="num">리밸런싱<br />수량</th>
                 <th class="num">현재가</th>
                 <th class="num">평균<br />매입가</th>
                 <th class="num">잔고<br />수량</th>
@@ -4061,6 +4064,12 @@ function fmtSignedWon(v) {
   return `${n > 0 ? "" : n < 0 ? "−" : ""}${Math.abs(n).toLocaleString("ko-KR")}`;
 }
 
+function fmtSignedQty(v) {
+  if (!Number.isFinite(v)) return "–";
+  const n = Math.round(v);
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toLocaleString("ko-KR")}`;
+}
+
 // ---- 표 붙여넣기 파서 ----
 // 스프레드시트에서 복사한 값은 탭으로 구분되고, 숫자에 콤마·%·따옴표가 섞여 있다.
 // 열 순서는 사람마다 다르므로 첫 줄에 열 제목이 있으면 그 순서를 따른다.
@@ -4777,6 +4786,7 @@ function initAllocationTab() {
           <td class="num" data-cell="weight1" data-label="보유비중">–</td>
           <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
           <td class="num alloc-heat" data-cell="profitRate" data-label="수익률(%)">–</td>
+          <td class="num" data-cell="tradeQty" data-label="리밸런싱 수량">–</td>
           <td class="num alloc-cell-price alloc-more" data-label="현재가"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
           <td class="num alloc-cell-input alloc-more" data-label="평균매입가"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
           <td class="num alloc-cell-input" data-label="잔고수량"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
@@ -4791,7 +4801,7 @@ function initAllocationTab() {
           <td colspan="2">${escapeHtml(cat)} Sub Total</td>
           <td class="num" data-cell="stTarget" data-label="목표비중">–</td>
           <td class="num" data-cell="stWeight" data-label="보유비중">–</td>
-          <td colspan="7"></td>
+          <td colspan="8"></td>
           <td class="num" data-cell="stProfit" data-label="손익(원)">–</td>
           <td class="alloc-col-remove"></td>
         </tr>`);
@@ -4828,6 +4838,7 @@ function initAllocationTab() {
       set("thresholdBase", r.thresholdBase.toFixed(2), "num");
       set("change", Number.isFinite(r.changeRate) ? r.changeRate.toFixed(2) : "–", `num ${signClass(r.changeRate)}`);
       set("profitRate", Number.isFinite(r.profitRate) ? r.profitRate.toFixed(2) : "–", `num alloc-heat ${signClass(r.profitRate)}`);
+      set("tradeQty", hasPrice ? fmtSignedQty(r.tradeQty) : "–", `num ${signClass(r.tradeQty)}`);
       set("profit", Number.isFinite(r.profit) ? fmtSignedWon(r.profit) : "–", `num ${signClass(r.profit)}`);
       const codeEl = tr.querySelector('[data-cell="code"]');
       if (codeEl) codeEl.textContent = r.code || "";
@@ -4854,7 +4865,7 @@ function initAllocationTab() {
           <td colspan="2">합계</td>
           <td class="num" data-label="목표비중">${Math.round(c.targetSum * 10) / 10}</td>
           <td class="num" data-label="보유비중">${c.nowTotal > 0 ? "100.0" : "–"}</td>
-          <td colspan="7"></td>
+          <td colspan="8"></td>
           <td class="num ${signClass(c.profit)}" data-label="손익(원)">${fmtSignedWon(c.profit)}</td>
           <td></td>
         </tr>`
