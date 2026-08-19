@@ -48,6 +48,10 @@
 Gmail을 쓸 경우 계정 비밀번호가 아니라 **앱 비밀번호**가 필요합니다.
 구글 계정 → 보안 → 2단계 인증을 켠 뒤 "앱 비밀번호"에서 발급받으세요.
 
+같은 `SMTP_URL`/`SMTP_FROM`은 `update-naver-land.yml`, `send-bargain-alerts.yml`
+스케줄 실행이 실패했을 때 `SMTP_FROM` 앞으로 보내는 실패 알림 메일(`scripts/notify-failure.js`)
+에도 쓰입니다.
+
 ### 먼저 확인만 해 보기
 
 Actions → **Send bargain alerts** → Run workflow → `보내지 않고 대상만 확인` 을 켠 채 실행하면

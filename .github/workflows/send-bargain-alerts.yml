@@ -43,3 +43,9 @@ jobs:
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '' }}
         run: node scripts/send-bargain-alerts.js
+      - name: Notify failure
+        if: failure()
+        env:
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+        run: node scripts/notify-failure.js
