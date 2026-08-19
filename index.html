@@ -2767,6 +2767,7 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   currentUserDoc = null;
   userDocReady = false;
+  allocSaveQueue = Promise.resolve(); // 이전 세션의 대기 저장 체인 끊기
   if (!user) {
     googleAccessToken = null;
     // 로그아웃하면 "사용자가 직접 고른 탭" 표시를 지운다. 그러지 않으면 같은 화면에서
