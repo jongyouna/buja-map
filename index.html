@@ -3929,9 +3929,16 @@ function currentAllocBook() {
   return defaultAllocBook();
 }
 
-function persistAllocBook(book) {
+function persistAllocBook(book, { allowAccountCountDecrease = false } = {}) {
   // 로그인 상태가 확정되기 전에 쓰면 계정에 저장해 둔 자산 내역을 기본값으로 덮어쓴다.
   if (!authSettled || !currentUser) return;
+  const savedBook = normalizeAllocBook(currentUserDoc?.assetAllocation);
+  if (savedBook && savedBook.accounts.length > book.accounts.length && !allowAccountCountDecrease) {
+    const error = new Error("저장된 계좌 구성이 현재 화면보다 많아 저장을 중단했습니다.");
+    console.error("자산 배분 저장을 중단했습니다:", error);
+    setAllocSync({ state: "error", error });
+    return;
+  }
   const payload = { ...book, updatedAt: new Date().toISOString() };
   if (currentUserDoc) currentUserDoc.assetAllocation = payload;
   setAllocSync({ state: "saving", error: null });
@@ -4679,7 +4686,7 @@ function initAllocationTab() {
     renderHeader();
     renderRows();
     renderComputed();
-    persistAllocBook(book);
+    persistAllocBook(book, { allowAccountCountDecrease: true });
     refreshQuotes();
   }
 
