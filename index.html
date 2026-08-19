@@ -1400,6 +1400,20 @@
     .alloc-table tbody tr[data-idx] td input:not(.alloc-name-input) { width: 140px; flex: 0 0 auto; font-size: 0.85rem; }
     .alloc-table tbody tr[data-idx] td input.alloc-name-input { width: auto; flex: 1 1 auto; min-width: 0; }
     .alloc-table tbody tr[data-idx] td.num { text-align: right; font-size: 0.85rem; }
+    .alloc-stepper { display: flex; align-items: stretch; width: 140px; flex: 0 0 auto; }
+    .alloc-stepper input { width: auto !important; flex: 1 1 auto; min-width: 0; text-align: right; }
+    .alloc-stepper-btns { display: flex !important; flex-direction: column; width: 28px; }
+    .alloc-stepper-btn {
+      flex: 1 1 50%;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.7rem;
+      line-height: 1;
+      padding: 0;
+    }
+    .alloc-stepper-btn + .alloc-stepper-btn { border-top: 0; }
 
     /* 삭제 버튼은 카드 오른쪽 위 모서리로 */
     .alloc-table tbody tr[data-idx] td.alloc-col-remove {
@@ -1476,6 +1490,7 @@
   .alloc-quote-state.error { color: var(--bad); }
   .alloc-quote-actions { display: flex; align-items: center; gap: 10px; }
   .alloc-quote-read-at { color: var(--muted); font-size: 0.74rem; white-space: nowrap; }
+  .alloc-stepper-btns { display: none; }
 </style>
 </head>
 <body>
@@ -4554,6 +4569,14 @@ function initAllocationTab() {
   const quoteReadAtEl = document.getElementById("allocQuoteReadAt");
   const depositInput = document.getElementById("allocDeposit");
   const thresholdInput = document.getElementById("allocThreshold");
+  const mobileAllocQuery = window.matchMedia("(max-width: 820px)");
+
+  function syncMobileStepperInputs() {
+    tbody.querySelectorAll('input[data-field="avgPrice"], input[data-field="qty"]').forEach((input) => {
+      input.readOnly = mobileAllocQuery.matches;
+    });
+  }
+  mobileAllocQuery.addEventListener("change", syncMobileStepperInputs);
 
   // book = 계좌 묶음, state = 지금 보고 있는 계좌. 아래 계산·렌더 코드는 전부 state만 본다.
   let book = currentAllocBook();
@@ -4790,12 +4813,12 @@ function initAllocationTab() {
           </td>
           <td class="num alloc-cell-input" data-label="목표비중"><input class="num" type="number" data-field="target" value="${r.target || ""}" min="0" max="100" step="0.1" placeholder="0" /></td>
           <td class="num" data-cell="weight1" data-label="보유비중">–</td>
-          <td class="num alloc-more" data-cell="change" data-label="전일대비(%)">–</td>
+          <td class="num" data-cell="change" data-label="전일대비(%)">–</td>
           <td class="num alloc-heat" data-cell="profitRate" data-label="수익률(%)">–</td>
           <td class="num" data-cell="tradeQty" data-label="리밸런싱 수량">–</td>
           <td class="num alloc-cell-price alloc-more" data-label="현재가"><input class="num" type="text" inputmode="numeric" data-money data-field="price" value="${r.price == null ? "" : fmtWon(r.price)}" placeholder="–" title="비워 두면 시세를 자동으로 채웁니다" /></td>
-          <td class="num alloc-cell-input alloc-more" data-label="평균매입가"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /></td>
-          <td class="num alloc-cell-input" data-label="잔고수량"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /></td>
+          <td class="num alloc-cell-input" data-label="평균매입가"><div class="alloc-stepper"><input class="num" type="text" inputmode="numeric" data-money data-field="avgPrice" value="${r.avgPrice ? fmtWon(r.avgPrice) : ""}" placeholder="0" /><span class="alloc-stepper-btns"><button class="alloc-stepper-btn" type="button" data-action="step" data-field="avgPrice" data-step="1" aria-label="평균매입가 올리기">▲</button><button class="alloc-stepper-btn" type="button" data-action="step" data-field="avgPrice" data-step="-1" aria-label="평균매입가 내리기">▼</button></span></div></td>
+          <td class="num alloc-cell-input" data-label="잔고수량"><div class="alloc-stepper"><input class="num" type="text" inputmode="numeric" data-money data-field="qty" value="${r.qty ? fmtWon(r.qty) : ""}" placeholder="0" /><span class="alloc-stepper-btns"><button class="alloc-stepper-btn" type="button" data-action="step" data-field="qty" data-step="1" aria-label="잔고수량 올리기">▲</button><button class="alloc-stepper-btn" type="button" data-action="step" data-field="qty" data-step="-1" aria-label="잔고수량 내리기">▼</button></span></div></td>
           <td class="num alloc-more" data-cell="gap" data-label="포트편차(%)">–</td>
           <td class="num alloc-more" data-cell="thresholdBase" data-label="Threshold 기준">–</td>
           <td class="num alloc-more" data-cell="profit" data-label="손익(원)">–</td>
@@ -4813,6 +4836,7 @@ function initAllocationTab() {
         </tr>`);
     });
     tbody.innerHTML = html.join("");
+    syncMobileStepperInputs();
   }
 
   // 수익률·전일대비 같은 값에 이미지처럼 빨강(+)/파랑(−) 색을 준다.
@@ -5262,6 +5286,18 @@ function initAllocationTab() {
     if (pick) {
       const tr = pick.closest("tr[data-idx]");
       pickSuggestion(Number(tr.dataset.idx), pick.dataset.pick, pick.dataset.pickName);
+      return;
+    }
+    const step = e.target.closest('[data-action="step"]');
+    if (step) {
+      const tr = step.closest("tr[data-idx]");
+      const row = state.rows[Number(tr.dataset.idx)];
+      const field = step.dataset.field;
+      if (!row || !["avgPrice", "qty"].includes(field)) return;
+      row[field] = Math.max(0, (Number(row[field]) || 0) + Number(step.dataset.step));
+      renderRows();
+      renderComputed();
+      persistSoon();
       return;
     }
     const ask = e.target.closest('[data-action="ask"]');
