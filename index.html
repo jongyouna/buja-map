@@ -1403,7 +1403,8 @@
     .alloc-table tbody tr[data-idx] td input.alloc-name-input { width: auto; flex: 1 1 auto; min-width: 0; }
     .alloc-table tbody tr[data-idx] td.num { text-align: right; font-size: 0.85rem; }
     .alloc-table tbody tr[data-idx] td.alloc-cell-input { min-width: 0; }
-    .alloc-stepper { display: flex; align-items: stretch; justify-content: flex-end; width: min(140px, 100%); max-width: 100%; min-width: 0; flex: 1 1 140px; margin-left: auto; }
+    .alloc-table tbody tr[data-idx] td.alloc-cell-input:has(.alloc-stepper) { justify-content: flex-end; }
+    .alloc-stepper { display: flex; align-items: stretch; justify-content: flex-end; width: 118px; max-width: 100%; min-width: 0; flex: 0 1 118px; margin-left: auto; }
     .alloc-stepper input { width: 90px !important; flex: 0 0 90px; min-width: 0; text-align: right; }
     .alloc-stepper-btns { display: flex !important; flex-direction: column; width: 28px; }
     .alloc-stepper-btn {
