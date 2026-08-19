@@ -3933,25 +3933,30 @@ function currentAllocBook() {
   return defaultAllocBook();
 }
 
+let allocSaveQueue = Promise.resolve();
+
 function persistAllocBook(book, { allowAccountCountDecrease = false } = {}) {
   // 로그인 상태가 확정되기 전에 쓰면 계정에 저장해 둔 자산 내역을 기본값으로 덮어쓴다.
   if (!authSettled || !currentUser || !userDocReady || !currentUserDoc) return;
-  const payload = { ...book, updatedAt: new Date().toISOString() };
-  const ref = doc(db, "users", currentUser.uid);
+  const uid = currentUser.uid;
+  const payload = structuredClone({ ...book, updatedAt: new Date().toISOString() });
+  const ref = doc(db, "users", uid);
   setAllocSync({ state: "saving", error: null });
-  runTransaction(db, async (transaction) => {
+  allocSaveQueue = allocSaveQueue.catch(() => {}).then(() => runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(ref);
     const savedBook = normalizeAllocBook(snapshot.data()?.assetAllocation);
-    if (savedBook && savedBook.accounts.length > book.accounts.length && !allowAccountCountDecrease) {
+    if (savedBook && savedBook.accounts.length > payload.accounts.length && !allowAccountCountDecrease) {
       throw new Error("저장된 계좌 구성이 현재 화면보다 많아 저장을 중단했습니다.");
     }
     transaction.set(ref, { assetAllocation: payload }, { merge: true });
-  })
+  }))
     .then(() => {
+      if (currentUser?.uid !== uid) return;
       if (currentUserDoc) currentUserDoc.assetAllocation = payload;
       setAllocSync({ state: "saved", error: null, at: new Date() });
     })
     .catch((err) => {
+      if (currentUser?.uid !== uid) return;
       console.error("자산 배분 저장을 중단하거나 실패했습니다:", err);
       setAllocSync({ state: "error", error: err });
     });
