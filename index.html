@@ -3683,7 +3683,7 @@ function indexTo100(series, valueKey, rangeStart, baseDate) {
 async function main() {
   let data;
   try {
-    const res = await fetch("/api/data");
+    const res = await fetch("./data/data.json");
     data = await res.json();
   } catch (e) {
     document.body.innerHTML = '<div class="err">data/data.json을 불러올 수 없습니다. scripts/fetch-data.js를 먼저 실행하세요.</div>';
@@ -6942,7 +6942,7 @@ async function initNaverTab() {
   const topBadge = document.getElementById("naverTopBadge");
   let payload;
   try {
-    const res = await fetch("/api/naver-land");
+    const res = await fetch("./data/naver-land.json");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     payload = await res.json();
   } catch (e) {
