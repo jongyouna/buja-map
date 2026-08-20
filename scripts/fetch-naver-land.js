@@ -948,8 +948,10 @@ function updateDailySnapshot(merged, updatedAt) {
   });
 
     // 6. 저장
+    console.log(`[daily] 경로: ${dailyPath}`);
     fs.mkdirSync(path.dirname(dailyPath), { recursive: true });
     fs.writeFileSync(dailyPath, JSON.stringify(daily, null, 2));
+    console.log(`[daily] 파일 저장됨: ${fs.existsSync(dailyPath)}`);
 
     console.log(`[daily] ${todayStr} 추가 (신규 ${newComplexes.length}개, 총 ${Object.keys(daily).length}일)`);
   } catch (err) {
@@ -1017,7 +1019,9 @@ async function main() {
   );
 
   // 일자별 요약 데이터 저장
+  console.log(`[DEBUG] updateDailySnapshot 호출 직전: merged=${merged.length}, updatedAt=${data.updatedAt}`);
   updateDailySnapshot(merged, data.updatedAt);
+  console.log(`[DEBUG] updateDailySnapshot 호출 완료`);
 }
 
 main().catch((err) => {

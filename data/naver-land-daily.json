@@ -1,0 +1,168 @@
+{
+  "2026-08-20": {
+    "updatedAt": "2026-08-20T10:05:54.476Z",
+    "totalComplexes": 14390,
+    "totalListings": 56805,
+    "bargainCount": 1452,
+    "avgPyeongPrice": 5890,
+    "regions": [
+      {
+        "name": "서울 강남구",
+        "complexes": 1479,
+        "listings": 7835,
+        "bargainCount": 189
+      },
+      {
+        "name": "서울 강동구",
+        "complexes": 772,
+        "listings": 3267,
+        "bargainCount": 56
+      },
+      {
+        "name": "서울 강북구",
+        "complexes": 241,
+        "listings": 772,
+        "bargainCount": 33
+      },
+      {
+        "name": "서울 강서구",
+        "complexes": 861,
+        "listings": 2529,
+        "bargainCount": 67
+      },
+      {
+        "name": "서울 관악구",
+        "complexes": 401,
+        "listings": 1484,
+        "bargainCount": 51
+      },
+      {
+        "name": "서울 광진구",
+        "complexes": 358,
+        "listings": 1103,
+        "bargainCount": 24
+      },
+      {
+        "name": "서울 구로구",
+        "complexes": 604,
+        "listings": 1872,
+        "bargainCount": 73
+      },
+      {
+        "name": "서울 금천구",
+        "complexes": 246,
+        "listings": 881,
+        "bargainCount": 39
+      },
+      {
+        "name": "서울 노원구",
+        "complexes": 512,
+        "listings": 2183,
+        "bargainCount": 67
+      },
+      {
+        "name": "서울 도봉구",
+        "complexes": 364,
+        "listings": 1511,
+        "bargainCount": 97
+      },
+      {
+        "name": "서울 동대문구",
+        "complexes": 574,
+        "listings": 1783,
+        "bargainCount": 47
+      },
+      {
+        "name": "서울 동작구",
+        "complexes": 438,
+        "listings": 1795,
+        "bargainCount": 31
+      },
+      {
+        "name": "서울 동작구 흑석동",
+        "complexes": 60,
+        "listings": 318,
+        "bargainCount": 9
+      },
+      {
+        "name": "서울 마포구",
+        "complexes": 595,
+        "listings": 1960,
+        "bargainCount": 55
+      },
+      {
+        "name": "서울 서대문구",
+        "complexes": 466,
+        "listings": 1527,
+        "bargainCount": 44
+      },
+      {
+        "name": "서울 서초구",
+        "complexes": 1293,
+        "listings": 6996,
+        "bargainCount": 141
+      },
+      {
+        "name": "서울 성동구",
+        "complexes": 412,
+        "listings": 2174,
+        "bargainCount": 44
+      },
+      {
+        "name": "서울 성북구",
+        "complexes": 454,
+        "listings": 1599,
+        "bargainCount": 33
+      },
+      {
+        "name": "서울 송파구",
+        "complexes": 682,
+        "listings": 4545,
+        "bargainCount": 69
+      },
+      {
+        "name": "서울 양천구",
+        "complexes": 572,
+        "listings": 1556,
+        "bargainCount": 29
+      },
+      {
+        "name": "서울 영등포구",
+        "complexes": 636,
+        "listings": 2145,
+        "bargainCount": 50
+      },
+      {
+        "name": "서울 용산구",
+        "complexes": 545,
+        "listings": 1739,
+        "bargainCount": 39
+      },
+      {
+        "name": "서울 은평구",
+        "complexes": 888,
+        "listings": 2586,
+        "bargainCount": 65
+      },
+      {
+        "name": "서울 종로구",
+        "complexes": 230,
+        "listings": 498,
+        "bargainCount": 21
+      },
+      {
+        "name": "서울 중구",
+        "complexes": 267,
+        "listings": 959,
+        "bargainCount": 37
+      },
+      {
+        "name": "서울 중랑구",
+        "complexes": 440,
+        "listings": 1188,
+        "bargainCount": 42
+      }
+    ],
+    "newComplexes": []
+  }
+}
