@@ -1522,6 +1522,8 @@
   .alloc-subtotal .alloc-col-remove { background: #eef6ee; }
   .alloc-table tbody tr:hover .alloc-col-remove { background: #fcfcfd; }
   .alloc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .alloc-sheets-btn { border-color: #2f8f5b; color: #2f8f5b; }
+  .alloc-sheets-btn:hover:not(:disabled) { border-color: #49b879; color: #49b879; background: rgba(47, 143, 91, 0.08); }
   .alloc-note { font-size: 0.74rem; color: var(--muted); margin: 12px 0 0; line-height: 1.6; }
   .alloc-note.error { color: var(--bad); }
   .alloc-warn {
@@ -2558,6 +2560,10 @@
 
         <p class="alloc-warn" id="allocTargetWarn" hidden></p>
         <div class="alloc-actions">
+          <button class="toggle-btn alloc-sheets-btn" id="allocExportSheetsBtn" type="button" title="현재 계좌 내용을 새 구글 시트로 내보냅니다">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8l4 4v13H6z" /><path d="M14 3.5v4h4M9 12h6M9 16h6" /></svg>
+            구글 시트로 내보내기
+          </button>
           <button class="region-btn include" id="allocAddRowBtn" type="button">종목 추가</button>
           <button class="toggle-btn" id="allocImportBtn" type="button">표 붙여넣기</button>
           <button class="toggle-btn" id="allocResetBtn" type="button">기본값으로 되돌리기</button>
@@ -3539,6 +3545,28 @@ async function ensureGoogleAccessToken() {
   return googleAccessToken;
 }
 
+async function createGoogleSheetFromTable(title, headers, rows, token) {
+  const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ properties: { title }, sheets: [{ properties: { title: "데이터" } }] }),
+  });
+  if (!createRes.ok) throw Object.assign(new Error(`스프레드시트 생성 실패 (${createRes.status})`), { status: createRes.status });
+  const created = await createRes.json();
+
+  const updateRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${created.spreadsheetId}/values/${encodeURIComponent("데이터!A1")}?valueInputOption=RAW`,
+    {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ values: [headers, ...rows] }),
+    }
+  );
+  if (!updateRes.ok) throw Object.assign(new Error(`데이터 입력 실패 (${updateRes.status})`), { status: updateRes.status });
+
+  return created.spreadsheetUrl;
+}
+
 const fmtPct = (v) => (v == null || isNaN(v) ? "–" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
 const fmtNum = (v, d = 2) => (v == null || isNaN(v) ? "–" : v.toLocaleString("en-US", { maximumFractionDigits: d }));
 
@@ -4371,27 +4399,7 @@ async function main() {
   // Google Sheets API로 사용자 본인의 구글 드라이브에 새 스프레드시트를 만들고 데이터를 채운 뒤 엶.
   async function createGoogleSheet(view, datasets, token) {
     const { headers, rows } = buildExportRows(datasets);
-    const title = exportFileTitle(view);
-
-    const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ properties: { title }, sheets: [{ properties: { title: "데이터" } }] }),
-    });
-    if (!createRes.ok) throw Object.assign(new Error(`스프레드시트 생성 실패 (${createRes.status})`), { status: createRes.status });
-    const created = await createRes.json();
-
-    const updateRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${created.spreadsheetId}/values/${encodeURIComponent("데이터!A1")}?valueInputOption=RAW`,
-      {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ values: [headers, ...rows] }),
-      }
-    );
-    if (!updateRes.ok) throw Object.assign(new Error(`데이터 입력 실패 (${updateRes.status})`), { status: updateRes.status });
-
-    return created.spreadsheetUrl;
+    return createGoogleSheetFromTable(exportFileTitle(view), headers, rows, token);
   }
 
   async function exportViewToGoogleSheets(view, datasets) {
@@ -6114,6 +6122,71 @@ function initAllocationTab() {
     const last = tbody.querySelector(`tr[data-idx="${state.rows.length - 1}"] input[data-field="name"]`);
     if (last) last.focus();
   });
+
+  function allocationExportTable() {
+    const c = compute();
+    const headers = ["분류", "종목", "종목코드", "목표비중(%)", "보유비중(%)", "전일대비(%)", "수익률(%)", "리밸런싱수량", "현재가", "평균매입가", "잔고수량", "포트편차(%)", "Threshold 기준(%)", "손익(원)"];
+    const rows = c.rows.map((r) => [
+      r.cat,
+      r.name,
+      r.code,
+      r.target,
+      r.price === null ? "" : r.weight,
+      Number.isFinite(r.changeRate) ? r.changeRate : "",
+      Number.isFinite(r.profitRate) ? r.profitRate : "",
+      r.price === null ? "" : r.tradeQty,
+      r.price === null ? "" : r.price,
+      r.avgPrice,
+      r.qty,
+      r.price === null ? "" : r.gap,
+      r.thresholdBase,
+      Number.isFinite(r.profit) ? r.profit : "",
+    ]);
+    const summary = [
+      ["계좌명", state.name],
+      ["내보낸 시각", new Date().toLocaleString("ko-KR")],
+      ["현재총자산", c.nowTotal],
+      ["총 매입액", c.buyTotal],
+      ["평가손익", c.profit],
+      ["평가손익(%)", c.evalRate === null ? "" : c.evalRate],
+      ["수익률(%)", c.returnRate === null ? "" : c.returnRate],
+      ["리밸런싱 필요 종목 수", c.rebalCount],
+      [],
+    ];
+    return { headers, rows: [...summary, headers, ...rows] };
+  }
+
+  async function exportAllocationToGoogleSheets() {
+    if (!currentUser) {
+      alert("먼저 오른쪽 위에서 Google 계정으로 로그인하세요.");
+      return;
+    }
+    const button = document.getElementById("allocExportSheetsBtn");
+    button.disabled = true;
+    button.textContent = "생성 중...";
+    try {
+      const { headers, rows } = allocationExportTable();
+      let url;
+      try {
+        const token = await ensureGoogleAccessToken();
+        url = await createGoogleSheetFromTable(`buja-map_${state.name}_계좌내용`, headers, rows, token);
+      } catch (e) {
+        if (e.status !== 401) throw e;
+        googleAccessToken = null;
+        const freshToken = await ensureGoogleAccessToken();
+        url = await createGoogleSheetFromTable(`buja-map_${state.name}_계좌내용`, headers, rows, freshToken);
+      }
+      window.open(url, "_blank");
+    } catch (e) {
+      console.error("계좌 내용을 구글 시트로 내보내지 못했습니다:", e);
+      alert("구글 시트 내보내기에 실패했습니다: " + e.message);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8l4 4v13H6z" /><path d="M14 3.5v4h4M9 12h6M9 16h6" /></svg> 구글 시트로 내보내기`;
+    }
+  }
+
+  document.getElementById("allocExportSheetsBtn").addEventListener("click", exportAllocationToGoogleSheets);
 
   document.getElementById("allocResetBtn").addEventListener("click", () => {
     // 지금 보고 있는 계좌만 되돌린다. 다른 계좌는 건드리지 않는다.
