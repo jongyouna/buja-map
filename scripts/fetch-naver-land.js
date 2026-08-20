@@ -837,10 +837,11 @@ async function probeOnce() {
 
 // 일자별 요약 데이터를 naver-land-daily.json에 저장
 function updateDailySnapshot(merged, updatedAt) {
-  const todayStr = new Date(updatedAt).toISOString().split('T')[0];
-  const dailyPath = path.join(__dirname, "..", "data", "naver-land-daily.json");
+  try {
+    const todayStr = new Date(updatedAt).toISOString().split('T')[0];
+    const dailyPath = path.join(__dirname, "..", "data", "naver-land-daily.json");
 
-  // 1. 통계 계산
+    // 1. 통계 계산
   let totalComplexes = 0, totalListings = 0, bargainCount = 0;
   let sumPyeongPrice = 0, countPyeongPrice = 0;
   const regionStats = [];
@@ -946,11 +947,14 @@ function updateDailySnapshot(merged, updatedAt) {
     if (date < cutoffStr) delete daily[date];
   });
 
-  // 6. 저장
-  fs.mkdirSync(path.dirname(dailyPath), { recursive: true });
-  fs.writeFileSync(dailyPath, JSON.stringify(daily, null, 2));
+    // 6. 저장
+    fs.mkdirSync(path.dirname(dailyPath), { recursive: true });
+    fs.writeFileSync(dailyPath, JSON.stringify(daily, null, 2));
 
-  console.log(`[daily] ${todayStr} 추가 (신규 ${newComplexes.length}개, 총 ${Object.keys(daily).length}일)`);
+    console.log(`[daily] ${todayStr} 추가 (신규 ${newComplexes.length}개, 총 ${Object.keys(daily).length}일)`);
+  } catch (err) {
+    console.error(`[daily] 일자별 요약 저장 실패: ${err.message}`);
+  }
 }
 
 // 급매 할인율 계산
