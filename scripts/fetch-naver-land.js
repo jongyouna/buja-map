@@ -77,44 +77,79 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = (baseMs) => baseMs + Math.floor(Math.random() * baseMs * 0.5);
 
 async function launchStealthBrowser() {
-  return chromium.launch({
-    headless: true,
-    args: ["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
-  });
+  try {
+    console.log(`[브라우저] Playwright chromium 실행 중...`);
+    const browser = await chromium.launch({
+      headless: true,
+      args: ["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
+    });
+    console.log(`[브라우저] 실행 성공`);
+    return browser;
+  } catch (err) {
+    console.error(`[브라우저] 실행 실패: ${err.message}`);
+    console.error(`[브라우저] 스택: ${err.stack}`);
+    throw err;
+  }
 }
 
 async function newStealthPage(browser) {
-  const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    locale: "ko-KR",
-    timezoneId: "Asia/Seoul",
-    viewport: { width: 1400, height: 1000 },
-  });
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-  });
-  const page = await context.newPage();
-  await page.goto("https://fin.land.naver.com/", { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.waitForTimeout(jitter(2000));
-  return { context, page };
+  try {
+    console.log(`[페이지] 새 컨텍스트 생성 중...`);
+    const context = await browser.newContext({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      locale: "ko-KR",
+      timezoneId: "Asia/Seoul",
+      viewport: { width: 1400, height: 1000 },
+    });
+    console.log(`[페이지] 컨텍스트 생성 완료`);
+
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    });
+
+    const page = await context.newPage();
+    console.log(`[페이지] fin.land.naver.com으로 이동 중...`);
+    const startTime = Date.now();
+    await page.goto("https://fin.land.naver.com/", { waitUntil: "domcontentloaded", timeout: 45000 });
+    const elapsed = Date.now() - startTime;
+    console.log(`[페이지] 이동 완료 (${elapsed}ms)`);
+
+    await page.waitForTimeout(jitter(2000));
+    return { context, page };
+  } catch (err) {
+    console.error(`[페이지] 생성 실패: ${err.message}`);
+    console.error(`[페이지] 스택: ${err.stack}`);
+    throw err;
+  }
 }
 
 async function callApi(page, apiPath, body) {
-  return page.evaluate(
-    async ({ apiPath, body }) => {
-      const options = { headers: { Accept: "application/json, text/plain, */*" } };
-      if (body) {
-        options.method = "POST";
-        options.headers["Content-Type"] = "application/json";
-        options.body = JSON.stringify(body);
-      }
-      const res = await fetch(apiPath, options);
-      const text = await res.text();
-      return { status: res.status, text };
-    },
-    { apiPath, body }
-  );
+  try {
+    const startTime = Date.now();
+    const result = await page.evaluate(
+      async ({ apiPath, body }) => {
+        const options = { headers: { Accept: "application/json, text/plain, */*" } };
+        if (body) {
+          options.method = "POST";
+          options.headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(body);
+        }
+        const res = await fetch(apiPath, options);
+        const text = await res.text();
+        return { status: res.status, text };
+      },
+      { apiPath, body }
+    );
+    const elapsed = Date.now() - startTime;
+    if (result.status !== 200) {
+      console.log(`[API] ${apiPath} → HTTP ${result.status} (${elapsed}ms) - 응답: ${result.text.slice(0, 150)}`);
+    }
+    return result;
+  } catch (err) {
+    console.error(`[API] ${apiPath} 호출 실패: ${err.message}`);
+    throw err;
+  }
 }
 
 async function subInfoList(page, legalDivisionLevelType, legalDivisionNumber) {
@@ -230,9 +265,24 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
     };
 
     const res = await callApi(page, "/front-api/v1/article/boundedArticles", body);
-    if (res.status !== 200) throw new Error(`boundedArticles HTTP ${res.status}: ${res.text.slice(0, 200)}`);
-    const json = JSON.parse(res.text);
-    if (!json.isSuccess) throw new Error(`boundedArticles API error: ${res.text.slice(0, 200)}`);
+    if (res.status !== 200) {
+      const errMsg = `boundedArticles HTTP ${res.status}: ${res.text.slice(0, 200)}`;
+      console.error(`[API] ${errMsg}`);
+      throw new Error(errMsg);
+    }
+    let json;
+    try {
+      json = JSON.parse(res.text);
+    } catch (parseErr) {
+      const errMsg = `boundedArticles JSON 파싱 실패: ${parseErr.message} - 응답: ${res.text.slice(0, 200)}`;
+      console.error(`[API] ${errMsg}`);
+      throw new Error(errMsg);
+    }
+    if (!json.isSuccess) {
+      const errMsg = `boundedArticles API error (isSuccess=false): ${res.text.slice(0, 300)}`;
+      console.error(`[API] ${errMsg}`);
+      throw new Error(errMsg);
+    }
 
     for (const group of json.result?.list || []) {
       const rep = group.representativeArticleInfo;
@@ -376,6 +426,7 @@ async function enrichWithComplexDetail(regions) {
         const types = await fetchPyeongList(session.page, complexNo);
         await sleep(jitter(DETAIL_DELAY_MS));
         if (!types) {
+          console.log(`  [상세] ${i}/${byComplex.size} 단지: complexNo=${complexNo} 평형 목록 조회 실패`);
           stat.failed++;
           continue;
         }
@@ -541,7 +592,8 @@ async function fetchAllRegions() {
           await sleep(jitter(TILE_DELAY_MS));
         }
       } catch (err) {
-        console.log(`[${i + 1}/${tiles.length}] 오류(건너뜀): ${err.message}`);
+        console.error(`[${i + 1}/${tiles.length}] 타일 조회 오류: ${err.message}`);
+        console.error(`[스택] ${err.stack}`);
       }
     }
   } finally {
@@ -968,7 +1020,8 @@ function bargainDiscount(complex) {
 async function main() {
   const outPath = path.join(__dirname, "..", "data", "naver-land.json");
   const histPath = path.join(__dirname, "..", "data", "naver-land-history.json");
-  console.log(`수집 범위: ${SCOPE} (${SCOPE_CONFIG.label})`);
+  console.log(`[시작] 수집 범위: ${SCOPE} (${SCOPE_CONFIG.label})`);
+  console.log(`[시작] 환경: NODE_ENV=${process.env.NODE_ENV}, 러너=${process.env.RUNNER || '로컬'}`);
   if (SCOPE_CONFIG.probe) {
     await probeOnce();
     return;
@@ -978,16 +1031,26 @@ async function main() {
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      console.log(`[시도 ${attempt}/${MAX_ATTEMPTS}] 네이버 부동산 매물 수집 중...`);
+      console.log(`\n[시도 ${attempt}/${MAX_ATTEMPTS}] 네이버 부동산 매물 수집 시작 (${new Date().toISOString()})`);
       regions = await fetchAllRegions();
       const totalComplexes = regions.reduce((s, r) => s + r.complexes.length, 0);
-      if (totalComplexes > 0) break;
+      console.log(`[시도 ${attempt}] 수집 완료: 총 ${regions.length}개 지역, ${totalComplexes}개 단지`);
+      if (totalComplexes > 0) {
+        console.log(`[성공] 첫 시도에서 데이터 수집 완료`);
+        break;
+      }
       console.log("  0건 수집됨, 재시도 전 대기...");
     } catch (err) {
       lastError = err;
-      console.log(`  오류: ${err.message}`);
+      console.error(`  [시도 ${attempt}] 오류 발생`);
+      console.error(`  메시지: ${err.message}`);
+      console.error(`  스택: ${err.stack}`);
     }
-    if (attempt < MAX_ATTEMPTS) await sleep(jitter(5000 * attempt));
+    if (attempt < MAX_ATTEMPTS) {
+      const waitMs = jitter(5000 * attempt);
+      console.log(`  ${waitMs}ms 대기 후 재시도...`);
+      await sleep(waitMs);
+    }
   }
 
   const totalComplexes = regions.reduce((s, r) => s + r.complexes.length, 0);
@@ -995,33 +1058,55 @@ async function main() {
     console.error(
       "[실패] 수집된 매물이 한 건도 없습니다. 네이버 차단 여부를 확인하세요. 기존 파일을 유지합니다."
     );
-    if (lastError) console.error(lastError.stack || lastError.message);
+    if (lastError) {
+      console.error(`최종 에러 메시지: ${lastError.message}`);
+      console.error(`최종 에러 스택:\n${lastError.stack}`);
+    }
     process.exit(1);
   }
 
   // 이번에 수집한 지역에 "일주일 전 평당호가최저가"를 붙이고 이력을 갱신한다.
   const today = new Date().toISOString().slice(0, 10);
+  console.log(`[저장] 변화율 이력 적용 중...`);
   const series = applyWeeklyChange(regions, readHistory(histPath), today);
 
-  const merged = mergeRegions(readExistingRegions(outPath), regions);
+  console.log(`[저장] 기존 지역 데이터 병합 중...`);
+  const existing = readExistingRegions(outPath);
+  console.log(`  기존: ${existing.length}개 지역`);
+  const merged = mergeRegions(existing, regions);
+  console.log(`  병합 후: ${merged.length}개 지역`);
+
   const data = { updatedAt: new Date().toISOString(), scope: SCOPE, regions: merged };
+  console.log(`[저장] 디렉토리 생성 및 파일 저장 중...`);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(histPath, JSON.stringify({ updatedAt: new Date().toISOString(), series }));
-  // 개별 매물 가격까지 담으면서 파일이 커졌다. 들여쓰기를 빼면 절반 크기가 되고,
-  // 어차피 기계가 만드는 파일이라 사람이 diff를 읽을 일은 없다.
-  fs.writeFileSync(outPath, JSON.stringify(data));
+
+  try {
+    fs.writeFileSync(histPath, JSON.stringify({ updatedAt: new Date().toISOString(), series }));
+    console.log(`  이력 파일 저장: ${histPath} (${Math.round(fs.statSync(histPath).size / 1024)}KB)`);
+  } catch (err) {
+    console.error(`  이력 파일 저장 실패: ${err.message}`);
+    throw err;
+  }
+
+  try {
+    fs.writeFileSync(outPath, JSON.stringify(data));
+    console.log(`  메인 파일 저장: ${outPath} (${Math.round(fs.statSync(outPath).size / 1024)}KB)`);
+  } catch (err) {
+    console.error(`  메인 파일 저장 실패: ${err.message}`);
+    throw err;
+  }
 
   const keptCount = merged.length - regions.length;
   console.log(
     `[성공] 이번 수집 ${regions.length}개 지역(${totalComplexes}개 단지×면적×거래유형)` +
       (keptCount > 0 ? `, 기존 유지 ${keptCount}개 지역` : "") +
-      ` → 총 ${merged.length}개 지역 저장 (${outPath})`
+      ` → 총 ${merged.length}개 지역 저장`
   );
 
   // 일자별 요약 데이터 저장
-  console.log(`[DEBUG] updateDailySnapshot 호출 직전: merged=${merged.length}, updatedAt=${data.updatedAt}`);
+  console.log(`[저장] 일자별 요약 데이터 저장 중...`);
   updateDailySnapshot(merged, data.updatedAt);
-  console.log(`[DEBUG] updateDailySnapshot 호출 완료`);
+  console.log(`[완료] 수집 및 저장 작업 완료!`);
 }
 
 main().catch((err) => {
