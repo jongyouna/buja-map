@@ -4,11 +4,10 @@
   "private": true,
   "description": "SpaceX(SPCX) x 미국 M2 유동성 x 나스닥 상관관계 대시보드",
   "scripts": {
-    "start": "node server.js",
-    "serve": "node server.js",
     "update": "node scripts/fetch-data.js",
     "update:naver-land": "node scripts/fetch-naver-land.js",
-    "alert:test": "node scripts/send-bargain-alerts.js --to=jongyouna@gmail.com"
+    "alert:test": "node scripts/send-bargain-alerts.js --to=jongyouna@gmail.com",
+    "serve": "node server.js"
   },
   "dependencies": {
     "nodemailer": "^9.0.5",
