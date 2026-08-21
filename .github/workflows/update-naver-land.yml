@@ -68,6 +68,7 @@ jobs:
           rem 두 파일을 한 줄에 add하면 하나라도 없을 때 전체가 실패해 아무것도 스테이징되지 않는다.
           git add data/naver-land.json
           git add data/naver-land-history.json
+          git add data/naver-land-daily.json
           git diff --cached --quiet
           if errorlevel 1 goto commit
           echo no changes
