@@ -1522,7 +1522,8 @@
   .alloc-subtotal .alloc-col-remove { background: #eef6ee; }
   .alloc-table tbody tr:hover .alloc-col-remove { background: #fcfcfd; }
   .alloc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-  .alloc-sheets-btn { border-color: #2f8f5b; color: #2f8f5b; }
+  .alloc-sheets-btn { display: inline-flex; align-items: center; gap: 6px; border-color: #2f8f5b; color: #2f8f5b; }
+  .alloc-sheets-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
   .alloc-sheets-btn:hover:not(:disabled) { border-color: #49b879; color: #49b879; background: rgba(47, 143, 91, 0.08); }
   .alloc-note { font-size: 0.74rem; color: var(--muted); margin: 12px 0 0; line-height: 1.6; }
   .alloc-note.error { color: var(--bad); }
@@ -1806,7 +1807,6 @@
     .alloc-suggest { width: min(320px, calc(100vw - 80px)); }
 
     /* 소개 문구 옆 배지·버튼이 좁은 칸에 갇혀 세로로 찌그러지지 않게 아래로 내린다. */
-    #tabPanel-allocation .panel-header > .updated,
     #tabPanel-allocation .panel-header > p.intro,
     #tabPanel-allocation .panel-header > div { flex: 1 1 100%; }
     #tabPanel-allocation .panel-header .toggle-btn { align-self: flex-start; }
@@ -2434,7 +2434,6 @@
   <section class="tab-panel" id="tabPanel-allocation" hidden>
     <div class="panel-header">
       <p class="intro">보유 종목과 목표 비중을 넣으면 현재 비중·포트편차·리밸런싱 필요 수량을 계산합니다. 종목명을 입력하면 국내 상장 ETF를 검색해 현재가를 가져옵니다. 시세는 자산배분 탭에 접속할 때 최신 시세를 읽어오며, 표에 기준 시각을 함께 표시합니다. 입력한 내용은 로그인한 구글 계정에 저장됩니다.</p>
-      <div class="updated" id="allocTopBadge"></div>
     </div>
 
     <!-- 계좌 탭. 계좌마다 보유 종목·목표비중·총입금액이 따로 저장된다. -->
@@ -5367,7 +5366,6 @@ function initAllocationTab() {
   const tbody = document.getElementById("allocTableBody");
   const tfoot = document.getElementById("allocTableFoot");
   const warnEl = document.getElementById("allocTargetWarn");
-  const badgeEl = document.getElementById("allocTopBadge");
   const noteEl = document.getElementById("allocSyncNote");
   const quoteStateEl = document.getElementById("allocQuoteState");
   const quoteReadAtEl = document.getElementById("allocQuoteReadAt");
@@ -5919,7 +5917,6 @@ function initAllocationTab() {
     await loadEtfQuotes(force);
     if (!etfQuotes) {
       setQuoteState(`시세를 불러오지 못했습니다(${etfQuotesError?.message || "원인 불명"}). 현재가를 직접 입력해 주세요.`, true);
-      badgeEl.textContent = "";
       renderComputed();
       return;
     }
@@ -5953,8 +5950,7 @@ function initAllocationTab() {
     const parts = [`${applied}종목 반영`];
     if (missing) parts.push(`목록에 없음 ${missing}종목`);
     if (unresolved.length) parts.push(`코드 미확인 ${unresolved.length}종목(종목명을 검색해 골라 주세요)`);
-    setQuoteState(`${quoteAgeLabel()} · ${parts.join(" · ")}`, missing > 0 || unresolved.length > 0);
-    badgeEl.textContent = quoteAgeLabel();
+    setQuoteState(parts.join(" · "), missing > 0 || unresolved.length > 0);
   }
 
   // ---- 종목 검색 드롭다운 ----
@@ -6013,7 +6009,7 @@ function initAllocationTab() {
       row.priceSource = "quotes";
       renderRows();
       renderComputed();
-      setQuoteState(`${name} 현재가 ${fmtWon(quote.price)}원 · ${quoteAgeLabel()}`, false);
+      setQuoteState(`${name} 현재가 ${fmtWon(quote.price)}원`, false);
     } else {
       setQuoteState(`${name}의 현재가가 시세 목록에 없습니다. 현재가 칸에 직접 입력해 주세요.`, true);
     }
