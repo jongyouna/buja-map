@@ -65,10 +65,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          rem 두 파일을 한 줄에 add하면 하나라도 없을 때 전체가 실패해 아무것도 스테이징되지 않는다.
-          git add data/naver-land.json
-          git add data/naver-land-history.json
-          git add data/naver-land-daily.json
+          rem naver-land*.json 모든 파일을 스테이징하고, 실패 시 즉시 중단
+          git add data/naver-land*.json
+          if errorlevel 1 exit /b 1
           git diff --cached --quiet
           if errorlevel 1 goto commit
           echo no changes
@@ -76,6 +75,9 @@ jobs:
           exit /b 0
           :commit
           git commit -m "chore: 네이버 부동산 매물 갱신 - %NAVER_SCOPE%"
+          if errorlevel 1 exit /b 1
+          rem rebase 전 unstaged changes 확인 (파일 누락이나 예상치 못한 변경 방지)
+          git diff --quiet
           if errorlevel 1 exit /b 1
           git pull --rebase origin main
           if errorlevel 1 exit /b 1
