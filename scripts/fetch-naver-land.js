@@ -660,7 +660,10 @@ async function fetchAllRegions() {
 // 네이버는 호가 이력을 주지 않는다. 그래서 수집할 때마다 (단지|전용면적)별 평당호가최저가를
 // 따로 쌓아 두고, 오늘 값과 일주일 전 값을 비교한다.
 // 매일 수집하므로 하루 한 점이면 충분하고, 비교에 필요한 만큼만 남기고 버린다.
-const HISTORY_KEEP_DAYS = 12; // 7일 전 값을 찾을 수 있을 만큼만
+// 30일치를 보관하는 건 급매Now 탭의 "신규 등록 매물" 위젯(최대 과거 30일 조회)도 같이 쓰기
+// 때문이다 — 과거 데이터를 소급 생성할 수는 없어서, 실제로 30일 전까지 조회되려면 이 값을
+// 늘린 시점부터 매일 수집이 30일간 쌓여야 한다.
+const HISTORY_KEEP_DAYS = 30; // 7일 전 값 비교 + 신규 등록 매물 위젯(최대 30일 조회)용
 const HISTORY_MATCH_MIN_DAYS = 5; // "일주일 전"으로 인정할 최소 간격
 const HISTORY_MATCH_MAX_DAYS = 12; // 최대 간격(수집이 며칠 걸러도 비교는 되도록)
 // 매일 수집한 점을 전부 남기면 서울 전체 기준 하루 2MB씩 저장소가 불어난다.
@@ -724,7 +727,9 @@ function applyWeeklyChange(regions, series, today) {
       }
 
       if (!touched.has(key)) {
-        older.push([today, row.pyeongAskMin]);
+        // 세 번째 값(row.minPrice, 만원)은 그날 실제로 수집된 최저 호가 원본이다.
+        // 급매Now 탭의 "신규 등록 매물" 위젯이 평당가를 역산하지 않고 이 값을 그대로 쓴다.
+        older.push([today, row.pyeongAskMin, row.minPrice ?? null]);
         series[key] = thinHistory(older, today);
         touched.add(key);
       }

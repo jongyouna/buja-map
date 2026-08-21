@@ -2354,6 +2354,35 @@
 
     <div class="summary-bar" id="naverSummaryBar"></div>
 
+    <div class="panel" id="newListingsPanel">
+      <div class="panel-header">
+        <h2>신규 등록 매물</h2>
+        <div class="naver-controls">
+          <label class="naver-limit">
+            <span>조회 날짜</span>
+            <select id="newListingsDateSelect"></select>
+          </label>
+        </div>
+      </div>
+      <p class="desc" id="newListingsDesc">데이터를 불러오는 중입니다...</p>
+      <div class="naver-table-scroll">
+        <table class="naver-table" id="newListingsTable">
+          <thead>
+            <tr>
+              <th>지역</th>
+              <th>단지명</th>
+              <th class="num">평형</th>
+              <th class="num">등록일</th>
+              <th class="num">신규호가</th>
+              <th class="num">실거래가 대비</th>
+            </tr>
+          </thead>
+          <tbody id="newListingsTableBody"></tbody>
+        </table>
+      </div>
+      <p class="naver-more" id="newListingsEmptyNote" hidden></p>
+    </div>
+
     <div class="panel">
       <div class="panel-header">
         <h2>단지별 매물 분석</h2>
@@ -7924,6 +7953,127 @@ async function initNaverTab() {
   applyPrefs(currentNaverPrefs());
   updateSyncNote();
   prefsReady = true;
+
+  // ---- 신규 등록 매물 위젯 ----
+  // naver-land-history.json의 (단지|전용면적|거래유형) 이력에서, 각 키의 가장 오래된
+  // 데이터포인트를 "이 시스템이 그 매물을 처음 관측한 날짜"로 본다. 네이버의 실제 등록일이
+  // 아니라 우리 수집 이력상의 최초 관측일이라는 점을 화면에 그대로 밝힌다.
+  // 가격은 그 데이터포인트에 함께 저장된 실제 호가(row.minPrice, 만원)를 그대로 쓰고
+  // 평당가로 역산하지 않는다.
+  async function initNewListingsWidget() {
+    const panel = document.getElementById("newListingsPanel");
+    const dateSelect = document.getElementById("newListingsDateSelect");
+    const desc = document.getElementById("newListingsDesc");
+    const newTbody = document.getElementById("newListingsTableBody");
+    const emptyNote = document.getElementById("newListingsEmptyNote");
+
+    let history;
+    try {
+      const res = await fetch("./data/naver-land-history.json");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      history = await res.json();
+    } catch (e) {
+      console.log("[신규 등록 매물] 이력 데이터를 불러오지 못했습니다:", e.message);
+      panel.hidden = true;
+      return;
+    }
+
+    // (단지, 전용면적, 거래유형) 조합별로 오늘 수집된 단지명·지역·실거래 최고가를 찾아 둔다.
+    const complexMeta = new Map();
+    for (const region of regions) {
+      for (const c of region.complexes) {
+        if (c.exclusiveArea == null) continue;
+        const key = `${c.complexNo ?? c.complexName}|${c.exclusiveArea.toFixed(2)}|${c.tradeType}`;
+        if (!complexMeta.has(key)) {
+          complexMeta.set(key, {
+            complexNo: c.complexNo,
+            complexName: c.complexName,
+            exclusiveArea: c.exclusiveArea,
+            regionLabel: regionLabelFor(region, c),
+            realMaxPrice: c.realMaxPrice,
+          });
+        }
+      }
+    }
+
+    // 키별 이력을 날짜순으로 정렬해 첫 데이터포인트만 골라, 날짜별로 묶는다.
+    const newRowsByDate = new Map();
+    for (const [key, points] of Object.entries(history.series || {})) {
+      if (!Array.isArray(points) || points.length === 0) continue;
+      const sorted = points.slice().sort((a, b) => (a[0] < b[0] ? -1 : 1));
+      const [firstDate, , minPrice] = sorted[0];
+      if (!newRowsByDate.has(firstDate)) newRowsByDate.set(firstDate, []);
+      newRowsByDate.get(firstDate).push({ key, minPrice: minPrice ?? null });
+    }
+
+    const dates = [...newRowsByDate.keys()].sort((a, b) => (a < b ? 1 : -1)); // 최신순
+    if (dates.length === 0) {
+      desc.textContent = "아직 신규 등록 매물 이력이 없습니다.";
+      dateSelect.closest(".naver-controls").hidden = true;
+      return;
+    }
+
+    dateSelect.innerHTML = dates
+      .map((d, i) => `<option value="${d}">${d}${i === 0 ? " (최신)" : ""}</option>`)
+      .join("");
+
+    function renderForDate(date) {
+      const rows = (newRowsByDate.get(date) || [])
+        .map(({ key, minPrice }) => {
+          const meta = complexMeta.get(key);
+          const off = bargainDiscount({ realMaxPrice: meta?.realMaxPrice, minPrice });
+          return { minPrice, meta, off };
+        })
+        .sort((a, b) => (b.off ?? -Infinity) - (a.off ?? -Infinity));
+
+      if (rows.length === 0) {
+        newTbody.innerHTML = "";
+        emptyNote.hidden = false;
+        emptyNote.textContent = `${date}에는 새로 관측된 매물이 없습니다.`;
+        return;
+      }
+      emptyNote.hidden = true;
+
+      newTbody.innerHTML = rows
+        .map(({ minPrice, meta, off }) => {
+          const bargain = off != null && off >= effectiveBargainPct();
+          const exArea = meta?.exclusiveArea;
+          const areaCell =
+            exArea == null
+              ? "–"
+              : `${exArea.toFixed(1)}㎡ <span class="naver-pyeong">${(exArea / 3.305785).toFixed(1)}평</span>`;
+          const nameCell = meta?.complexNo
+            ? `<a class="naver-complex-link" href="${complexUrl({
+                complexNo: meta.complexNo,
+                exclusiveArea: exArea,
+              })}" target="_blank" rel="noopener">${escapeHtml(meta.complexName)}</a>`
+            : escapeHtml(meta?.complexName || "–");
+          return `
+        <tr${bargain ? ' class="row-bargain"' : ""}>
+          <td class="naver-region">${escapeHtml(meta?.regionLabel || "–")}</td>
+          <td>${bargain ? BARGAIN_ICON : ""}${nameCell}</td>
+          <td class="num">${areaCell}</td>
+          <td class="num">${date}</td>
+          <td class="num">${minPrice == null ? "–" : fmtEok(minPrice)}${
+            bargain
+              ? `<span class="bargain-badge" title="실거래 최고가 ${fmtEok(meta.realMaxPrice)} 대비">-${off.toFixed(
+                  1
+                )}%</span>`
+              : ""
+          }</td>
+          <td class="num">${off == null ? "–" : `${off.toFixed(1)}%`}</td>
+        </tr>`;
+        })
+        .join("");
+    }
+
+    desc.textContent =
+      "네이버가 제공하는 매물 등록일이 아니라, 이 시스템이 해당 매물을 처음 수집한 날짜 기준입니다.";
+    dateSelect.value = dates[0];
+    renderForDate(dates[0]);
+    dateSelect.addEventListener("change", () => renderForDate(dateSelect.value));
+  }
+  initNewListingsWidget();
 }
 
 // ---- 일자별 비교 데이터 로드 및 표시 ----
