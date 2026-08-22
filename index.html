@@ -8158,16 +8158,21 @@ async function initNaverTab() {
 }
 
 // ---- 일자별 비교 데이터 로드 및 표시 ----
+// UTC 기준 today는 KST 새벽 실행 데이터와 하루 어긋난다. Node 쪽과 동일한 방식으로
+// Asia/Seoul 기준 YYYY-MM-DD 문자열을 만든다.
+const kstDateStr = (d = new Date()) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(d);
+
 async function loadDailyComparison() {
   try {
     const resp = await fetch('data/naver-land-daily.json');
     if (!resp.ok) return;
 
     const daily = await resp.json();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = kstDateStr();
     const yesterdayDate = new Date();
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+    const yesterdayStr = kstDateStr(yesterdayDate);
 
     const todayData = daily[todayStr];
     const yesterdayData = daily[yesterdayStr];

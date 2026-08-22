@@ -76,6 +76,10 @@ const COMPLEXES_PER_DETAIL_SESSION = 150; // 이 개수마다 브라우저를 �
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = (baseMs) => baseMs + Math.floor(Math.random() * baseMs * 0.5);
 
+// new Date().toISOString()은 항상 UTC라서 KST 새벽 실행 시 하루 이른 날짜로 어긋난다.
+const kstDateStr = (d = new Date()) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(d);
+
 async function launchStealthBrowser() {
   try {
     console.log(`[브라우저] Playwright chromium 실행 중...`);
@@ -893,16 +897,14 @@ async function probeOnce() {
 }
 
 // 일자별 요약 데이터를 naver-land-daily.json에 저장
-function updateDailySnapshot(merged, updatedAt) {
+function updateDailySnapshot(merged, updatedAt, series, todayStr) {
   try {
-    const todayStr = new Date(updatedAt).toISOString().split('T')[0];
     const dailyPath = path.join(__dirname, "..", "data", "naver-land-daily.json");
 
     // 1. 통계 계산
   let totalComplexes = 0, totalListings = 0, bargainCount = 0;
   let sumPyeongPrice = 0, countPyeongPrice = 0;
   const regionStats = [];
-  const todayComplexesMap = {}; // { "complexNo|area|trade": complex }
 
   for (const region of merged) {
     const complexes = region.complexes || [];
@@ -927,10 +929,6 @@ function updateDailySnapshot(merged, updatedAt) {
         sumPyeongPrice += complex.pyeongAskMin * count;
         countPyeongPrice += count;
       }
-
-      // 오늘 단지 맵 추가
-      const key = `${complex.complexNo || 0}|${complex.supplyArea}|${complex.tradeType}`;
-      todayComplexesMap[key] = complex;
     }
 
     regionStats.push({
@@ -952,33 +950,28 @@ function updateDailySnapshot(merged, updatedAt) {
     // 첫 실행이거나 파일 손상 → 빈 객체로 시작
   }
 
-  // 3. 신규 단지 탐지
+  // 3. 신규 단지 탐지 — history.json의 (단지|전용면적|거래유형)별 최초 관측일이 오늘이면
+  // 신규로 본다. #newListingsPanel(index.html)과 같은 기준이라 두 화면의 "신규"가 어긋나지 않는다.
   const newComplexes = [];
-  const yesterdayDate = new Date(updatedAt);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
-
-  if (daily[yesterdayStr]?.newComplexes) {
-    // 어제의 신규 단지 목록
-    const yesterdayNewComplexNos = new Set(
-      daily[yesterdayStr].newComplexes.map(c => c.complexNo)
-    );
-
-    // 오늘 단지 중 어제 신규에 없던 것이 신규
-    for (const key in todayComplexesMap) {
-      const complex = todayComplexesMap[key];
-      if (!yesterdayNewComplexNos.has(complex.complexNo)) {
-        newComplexes.push({
-          complexNo: complex.complexNo || null,
-          complexName: complex.complexName,
-          area: complex.supplyArea,
-          minPrice: complex.minPrice,
-          maxPrice: complex.maxPrice,
-          region: complex.dong || '미상',
-          url: complex.complexNo ? `https://land.naver.com/complexes/${complex.complexNo}` : null,
-          count: complex.count || 0
-        });
-      }
+  const firstSeenToday = new Set();
+  for (const [key, points] of Object.entries(series || {})) {
+    if (!Array.isArray(points) || points.length === 0) continue;
+    const earliest = points.reduce((a, b) => (a[0] < b[0] ? a : b));
+    if (earliest[0] === todayStr) firstSeenToday.add(key);
+  }
+  for (const region of merged) {
+    for (const complex of region.complexes || []) {
+      if (!firstSeenToday.has(historyKey(complex))) continue;
+      newComplexes.push({
+        complexNo: complex.complexNo || null,
+        complexName: complex.complexName,
+        area: complex.supplyArea,
+        minPrice: complex.minPrice,
+        maxPrice: complex.maxPrice,
+        region: complex.dong || '미상',
+        url: complex.complexNo ? `https://land.naver.com/complexes/${complex.complexNo}` : null,
+        count: complex.count || 0
+      });
     }
   }
 
@@ -998,7 +991,7 @@ function updateDailySnapshot(merged, updatedAt) {
   // 5. 90일 이상 된 항목 삭제
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - 90);
-  const cutoffStr = cutoffDate.toISOString().split('T')[0];
+  const cutoffStr = kstDateStr(cutoffDate);
 
   Object.keys(daily).forEach(date => {
     if (date < cutoffStr) delete daily[date];
@@ -1071,7 +1064,7 @@ async function main() {
   }
 
   // 이번에 수집한 지역에 "일주일 전 평당호가최저가"를 붙이고 이력을 갱신한다.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = kstDateStr();
   console.log(`[저장] 변화율 이력 적용 중...`);
   const series = applyWeeklyChange(regions, readHistory(histPath), today);
 
@@ -1110,11 +1103,15 @@ async function main() {
 
   // 일자별 요약 데이터 저장
   console.log(`[저장] 일자별 요약 데이터 저장 중...`);
-  updateDailySnapshot(merged, data.updatedAt);
+  updateDailySnapshot(merged, data.updatedAt, series, today);
   console.log(`[완료] 수집 및 저장 작업 완료!`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { kstDateStr, historyKey, updateDailySnapshot };

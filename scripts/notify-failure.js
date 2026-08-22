@@ -18,9 +18,11 @@ async function main() {
   const context = process.env.NOTIFY_CONTEXT;
   const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
 
-  const subject = `[buja-map] ${workflow} 실패`;
+  // NOTIFY_SUBJECT/NOTIFY_MESSAGE가 있으면 우선 사용한다(신선도 체크 등 실패가 아닌
+  // 경고성 알림도 같은 메일 발송 로직을 재사용하기 위함). 없으면 기존 실패 알림 문구 그대로.
+  const subject = process.env.NOTIFY_SUBJECT || `[buja-map] ${workflow} 실패`;
   const text = [
-    `${workflow} 실행이 실패했습니다.`,
+    process.env.NOTIFY_MESSAGE || `${workflow} 실행이 실패했습니다.`,
     context ? `범위: ${context}` : null,
     `시각: ${new Date().toISOString()}`,
     `로그: ${runUrl}`,
