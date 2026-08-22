@@ -143431,5 +143431,2402 @@
         "count": 1
       }
     ]
+  },
+  "2026-08-22": {
+    "updatedAt": "2026-08-22T10:42:42.507Z",
+    "totalComplexes": 14468,
+    "totalListings": 57859,
+    "bargainCount": 1448,
+    "avgPyeongPrice": 5891,
+    "regions": [
+      {
+        "name": "서울 강남구",
+        "complexes": 1445,
+        "listings": 7887,
+        "bargainCount": 192
+      },
+      {
+        "name": "서울 강동구",
+        "complexes": 791,
+        "listings": 3310,
+        "bargainCount": 56
+      },
+      {
+        "name": "서울 강북구",
+        "complexes": 244,
+        "listings": 782,
+        "bargainCount": 32
+      },
+      {
+        "name": "서울 강서구",
+        "complexes": 873,
+        "listings": 2572,
+        "bargainCount": 68
+      },
+      {
+        "name": "서울 관악구",
+        "complexes": 411,
+        "listings": 1513,
+        "bargainCount": 55
+      },
+      {
+        "name": "서울 광진구",
+        "complexes": 358,
+        "listings": 1125,
+        "bargainCount": 25
+      },
+      {
+        "name": "서울 구로구",
+        "complexes": 609,
+        "listings": 1915,
+        "bargainCount": 72
+      },
+      {
+        "name": "서울 금천구",
+        "complexes": 250,
+        "listings": 889,
+        "bargainCount": 39
+      },
+      {
+        "name": "서울 노원구",
+        "complexes": 511,
+        "listings": 2226,
+        "bargainCount": 68
+      },
+      {
+        "name": "서울 도봉구",
+        "complexes": 361,
+        "listings": 1488,
+        "bargainCount": 97
+      },
+      {
+        "name": "서울 동대문구",
+        "complexes": 573,
+        "listings": 1808,
+        "bargainCount": 49
+      },
+      {
+        "name": "서울 동작구",
+        "complexes": 437,
+        "listings": 1841,
+        "bargainCount": 31
+      },
+      {
+        "name": "서울 동작구 흑석동",
+        "complexes": 59,
+        "listings": 328,
+        "bargainCount": 8
+      },
+      {
+        "name": "서울 마포구",
+        "complexes": 599,
+        "listings": 2005,
+        "bargainCount": 53
+      },
+      {
+        "name": "서울 서대문구",
+        "complexes": 474,
+        "listings": 1584,
+        "bargainCount": 44
+      },
+      {
+        "name": "서울 서초구",
+        "complexes": 1311,
+        "listings": 7201,
+        "bargainCount": 140
+      },
+      {
+        "name": "서울 성동구",
+        "complexes": 413,
+        "listings": 2219,
+        "bargainCount": 45
+      },
+      {
+        "name": "서울 성북구",
+        "complexes": 455,
+        "listings": 1619,
+        "bargainCount": 31
+      },
+      {
+        "name": "서울 송파구",
+        "complexes": 690,
+        "listings": 4682,
+        "bargainCount": 70
+      },
+      {
+        "name": "서울 양천구",
+        "complexes": 571,
+        "listings": 1567,
+        "bargainCount": 27
+      },
+      {
+        "name": "서울 영등포구",
+        "complexes": 648,
+        "listings": 2223,
+        "bargainCount": 48
+      },
+      {
+        "name": "서울 용산구",
+        "complexes": 547,
+        "listings": 1759,
+        "bargainCount": 38
+      },
+      {
+        "name": "서울 은평구",
+        "complexes": 893,
+        "listings": 2635,
+        "bargainCount": 62
+      },
+      {
+        "name": "서울 종로구",
+        "complexes": 231,
+        "listings": 501,
+        "bargainCount": 19
+      },
+      {
+        "name": "서울 중구",
+        "complexes": 273,
+        "listings": 992,
+        "bargainCount": 36
+      },
+      {
+        "name": "서울 중랑구",
+        "complexes": 441,
+        "listings": 1188,
+        "bargainCount": 43
+      }
+    ],
+    "newComplexes": [
+      {
+        "complexNo": 107458,
+        "complexName": "강남한양수자인",
+        "area": 81.78,
+        "minPrice": 195000,
+        "maxPrice": 198000,
+        "region": "자곡동",
+        "url": "https://land.naver.com/complexes/107458",
+        "count": 2
+      },
+      {
+        "complexNo": 112228,
+        "complexName": "래미안블레스티지",
+        "area": 80.86,
+        "minPrice": 287000,
+        "maxPrice": 290000,
+        "region": "개포동",
+        "url": "https://land.naver.com/complexes/112228",
+        "count": 2
+      },
+      {
+        "complexNo": 156127,
+        "complexName": "클래스원",
+        "area": 69.92,
+        "minPrice": 139000,
+        "maxPrice": 139000,
+        "region": "도곡동",
+        "url": "https://land.naver.com/complexes/156127",
+        "count": 1
+      },
+      {
+        "complexNo": 13237,
+        "complexName": "양재SK허브프리모(주상복합)",
+        "area": 98.16,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "도곡동",
+        "url": "https://land.naver.com/complexes/13237",
+        "count": 1
+      },
+      {
+        "complexNo": 24081,
+        "complexName": "역삼2차아이파크",
+        "area": 106.95,
+        "minPrice": 325000,
+        "maxPrice": 325000,
+        "region": "역삼동",
+        "url": "https://land.naver.com/complexes/24081",
+        "count": 1
+      },
+      {
+        "complexNo": 19418,
+        "complexName": "대치아이파크",
+        "area": 111.3,
+        "minPrice": 395000,
+        "maxPrice": 395000,
+        "region": "대치동",
+        "url": "https://land.naver.com/complexes/19418",
+        "count": 1
+      },
+      {
+        "complexNo": 104032,
+        "complexName": "테헤란아이파크",
+        "area": 104.22,
+        "minPrice": 320000,
+        "maxPrice": 320000,
+        "region": "역삼동",
+        "url": "https://land.naver.com/complexes/104032",
+        "count": 1
+      },
+      {
+        "complexNo": 139570,
+        "complexName": "원에디션강남(도시형)",
+        "area": 60.85,
+        "minPrice": 107000,
+        "maxPrice": 107000,
+        "region": "역삼동",
+        "url": "https://land.naver.com/complexes/139570",
+        "count": 1
+      },
+      {
+        "complexNo": 22828,
+        "complexName": "논현월드메르디앙",
+        "area": 105.02,
+        "minPrice": 198000,
+        "maxPrice": 198000,
+        "region": "논현동",
+        "url": "https://land.naver.com/complexes/22828",
+        "count": 1
+      },
+      {
+        "complexNo": 16299,
+        "complexName": "삼성더파크뷰",
+        "area": 215.58,
+        "minPrice": 450000,
+        "maxPrice": 450000,
+        "region": "삼성동",
+        "url": "https://land.naver.com/complexes/16299",
+        "count": 1
+      },
+      {
+        "complexNo": 13442,
+        "complexName": "삼성월드타워",
+        "area": 66.98,
+        "minPrice": 155000,
+        "maxPrice": 155000,
+        "region": "삼성동",
+        "url": "https://land.naver.com/complexes/13442",
+        "count": 1
+      },
+      {
+        "complexNo": 143377,
+        "complexName": "위레벤646(도시형)",
+        "area": 68.76,
+        "minPrice": 180000,
+        "maxPrice": 180000,
+        "region": "삼성동",
+        "url": "https://land.naver.com/complexes/143377",
+        "count": 1
+      },
+      {
+        "complexNo": 8436,
+        "complexName": "삼성풍림2차",
+        "area": 81,
+        "minPrice": 250000,
+        "maxPrice": 250000,
+        "region": "삼성동",
+        "url": "https://land.naver.com/complexes/8436",
+        "count": 2
+      },
+      {
+        "complexNo": 102972,
+        "complexName": "대우로얄카운티II",
+        "area": 259.27,
+        "minPrice": 550000,
+        "maxPrice": 550000,
+        "region": "청담동",
+        "url": "https://land.naver.com/complexes/102972",
+        "count": 1
+      },
+      {
+        "complexNo": 104784,
+        "complexName": "청담매스터빌",
+        "area": 274.11,
+        "minPrice": 580000,
+        "maxPrice": 580000,
+        "region": "청담동",
+        "url": "https://land.naver.com/complexes/104784",
+        "count": 1
+      },
+      {
+        "complexNo": 200337,
+        "complexName": "올림픽파크포레(도시형)",
+        "area": 60.66,
+        "minPrice": 62000,
+        "maxPrice": 62000,
+        "region": "성내동",
+        "url": "https://land.naver.com/complexes/200337",
+        "count": 1
+      },
+      {
+        "complexNo": 200337,
+        "complexName": "올림픽파크포레(도시형)",
+        "area": 38.83,
+        "minPrice": 49000,
+        "maxPrice": 49000,
+        "region": "성내동",
+        "url": "https://land.naver.com/complexes/200337",
+        "count": 1
+      },
+      {
+        "complexNo": 127721,
+        "complexName": "힐데스하임올림픽파크",
+        "area": 75.32,
+        "minPrice": 138000,
+        "maxPrice": 138000,
+        "region": "성내동",
+        "url": "https://land.naver.com/complexes/127721",
+        "count": 1
+      },
+      {
+        "complexNo": 3071,
+        "complexName": "둔촌신성미소지움2차",
+        "area": 84.42,
+        "minPrice": 149000,
+        "maxPrice": 149000,
+        "region": "둔촌동",
+        "url": "https://land.naver.com/complexes/3071",
+        "count": 1
+      },
+      {
+        "complexNo": 18282,
+        "complexName": "이안강동(주상복합)",
+        "area": 110.32,
+        "minPrice": 120000,
+        "maxPrice": 120000,
+        "region": "성내동",
+        "url": "https://land.naver.com/complexes/18282",
+        "count": 1
+      },
+      {
+        "complexNo": 148488,
+        "complexName": "광남캐스빌(105동)",
+        "area": 142.29,
+        "minPrice": 125000,
+        "maxPrice": 125000,
+        "region": "둔촌동",
+        "url": "https://land.naver.com/complexes/148488",
+        "count": 1
+      },
+      {
+        "complexNo": 27241,
+        "complexName": "한솔애리즈6차(주상복합)",
+        "area": 103.16,
+        "minPrice": 95000,
+        "maxPrice": 95000,
+        "region": "성내동",
+        "url": "https://land.naver.com/complexes/27241",
+        "count": 1
+      },
+      {
+        "complexNo": 123434,
+        "complexName": "다성이즈빌(456-4,주상복합)",
+        "area": 20.88,
+        "minPrice": 18500,
+        "maxPrice": 18500,
+        "region": "길동",
+        "url": "https://land.naver.com/complexes/123434",
+        "count": 1
+      },
+      {
+        "complexNo": 25468,
+        "complexName": "하이브(주상복합)",
+        "area": 60.93,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "길동",
+        "url": "https://land.naver.com/complexes/25468",
+        "count": 1
+      },
+      {
+        "complexNo": 200578,
+        "complexName": "아성플러스(도시형)",
+        "area": 53.13,
+        "minPrice": 52000,
+        "maxPrice": 52000,
+        "region": "둔촌동",
+        "url": "https://land.naver.com/complexes/200578",
+        "count": 1
+      },
+      {
+        "complexNo": 828,
+        "complexName": "동아(621)",
+        "area": 85.44,
+        "minPrice": 90000,
+        "maxPrice": 90000,
+        "region": "둔촌동",
+        "url": "https://land.naver.com/complexes/828",
+        "count": 1
+      },
+      {
+        "complexNo": 1301,
+        "complexName": "둔촌현대4차",
+        "area": 75.28,
+        "minPrice": 120000,
+        "maxPrice": 120000,
+        "region": "둔촌동",
+        "url": "https://land.naver.com/complexes/1301",
+        "count": 2
+      },
+      {
+        "complexNo": 11448,
+        "complexName": "둔촌청원",
+        "area": 134.96,
+        "minPrice": 125000,
+        "maxPrice": 125000,
+        "region": "둔촌동",
+        "url": "https://land.naver.com/complexes/11448",
+        "count": 1
+      },
+      {
+        "complexNo": 11980,
+        "complexName": "한빛(주상복합)",
+        "area": 61.81,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "길동",
+        "url": "https://land.naver.com/complexes/11980",
+        "count": 1
+      },
+      {
+        "complexNo": 3122,
+        "complexName": "성원",
+        "area": 117.84,
+        "minPrice": 100000,
+        "maxPrice": 100000,
+        "region": "천호동",
+        "url": "https://land.naver.com/complexes/3122",
+        "count": 2
+      },
+      {
+        "complexNo": 11980,
+        "complexName": "한빛(주상복합)",
+        "area": 98.99,
+        "minPrice": 85000,
+        "maxPrice": 85000,
+        "region": "길동",
+        "url": "https://land.naver.com/complexes/11980",
+        "count": 1
+      },
+      {
+        "complexNo": 14092,
+        "complexName": "광남(380-18)",
+        "area": 97.1,
+        "minPrice": 70000,
+        "maxPrice": 70000,
+        "region": "길동",
+        "url": "https://land.naver.com/complexes/14092",
+        "count": 1
+      },
+      {
+        "complexNo": 116836,
+        "complexName": "힐스테이트강동리버뷰",
+        "area": 112.79,
+        "minPrice": 179000,
+        "maxPrice": 179000,
+        "region": "암사동",
+        "url": "https://land.naver.com/complexes/116836",
+        "count": 1
+      },
+      {
+        "complexNo": 132053,
+        "complexName": "제이빌더스(도시형)",
+        "area": 36.72,
+        "minPrice": 38000,
+        "maxPrice": 38000,
+        "region": "암사동",
+        "url": "https://land.naver.com/complexes/132053",
+        "count": 1
+      },
+      {
+        "complexNo": 200197,
+        "complexName": "삼익맨션(5동)",
+        "area": 176.38,
+        "minPrice": 177000,
+        "maxPrice": 185000,
+        "region": "명일동",
+        "url": "https://land.naver.com/complexes/200197",
+        "count": 2
+      },
+      {
+        "complexNo": 3116,
+        "complexName": "삼성광나루",
+        "area": 77.65,
+        "minPrice": 155000,
+        "maxPrice": 155000,
+        "region": "암사동",
+        "url": "https://land.naver.com/complexes/3116",
+        "count": 1
+      },
+      {
+        "complexNo": 27479,
+        "complexName": "강일리버파크7단지",
+        "area": 83.01,
+        "minPrice": 127000,
+        "maxPrice": 127000,
+        "region": "강일동",
+        "url": "https://land.naver.com/complexes/27479",
+        "count": 1
+      },
+      {
+        "complexNo": 3889,
+        "complexName": "한일",
+        "area": 60.84,
+        "minPrice": 40000,
+        "maxPrice": 40000,
+        "region": "미아동",
+        "url": "https://land.naver.com/complexes/3889",
+        "count": 1
+      },
+      {
+        "complexNo": 3127,
+        "complexName": "쌍용",
+        "area": 105.31,
+        "minPrice": 60000,
+        "maxPrice": 60000,
+        "region": "번동",
+        "url": "https://land.naver.com/complexes/3127",
+        "count": 1
+      },
+      {
+        "complexNo": 188822,
+        "complexName": "고센아트빌(도시형)",
+        "area": 34.8,
+        "minPrice": 21000,
+        "maxPrice": 21000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/188822",
+        "count": 1
+      },
+      {
+        "complexNo": 119512,
+        "complexName": "드림시드1차(주상복합)",
+        "area": 42.03,
+        "minPrice": 30000,
+        "maxPrice": 30000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/119512",
+        "count": 1
+      },
+      {
+        "complexNo": 13398,
+        "complexName": "태창네스트힐",
+        "area": 107.24,
+        "minPrice": 75000,
+        "maxPrice": 75000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/13398",
+        "count": 1
+      },
+      {
+        "complexNo": 13848,
+        "complexName": "화곡보람3차",
+        "area": 107.92,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/13848",
+        "count": 1
+      },
+      {
+        "complexNo": 102001,
+        "complexName": "화곡예다움",
+        "area": 80.62,
+        "minPrice": 50000,
+        "maxPrice": 50000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/102001",
+        "count": 1
+      },
+      {
+        "complexNo": 11671,
+        "complexName": "화곡보람쉬움1차",
+        "area": 76.62,
+        "minPrice": 49000,
+        "maxPrice": 49000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/11671",
+        "count": 1
+      },
+      {
+        "complexNo": 1038,
+        "complexName": "초록",
+        "area": 107.14,
+        "minPrice": 122000,
+        "maxPrice": 122000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/1038",
+        "count": 1
+      },
+      {
+        "complexNo": 103305,
+        "complexName": "강서힐스테이트",
+        "area": 151.89,
+        "minPrice": 172000,
+        "maxPrice": 172000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/103305",
+        "count": 1
+      },
+      {
+        "complexNo": 23664,
+        "complexName": "까치산",
+        "area": 107.17,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "화곡동",
+        "url": "https://land.naver.com/complexes/23664",
+        "count": 1
+      },
+      {
+        "complexNo": 26128,
+        "complexName": "마곡수명산파크7단지",
+        "area": 109.61,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "내발산동",
+        "url": "https://land.naver.com/complexes/26128",
+        "count": 1
+      },
+      {
+        "complexNo": 13797,
+        "complexName": "현대아이파크(주상복합)",
+        "area": 115.92,
+        "minPrice": 150000,
+        "maxPrice": 150000,
+        "region": "염창동",
+        "url": "https://land.naver.com/complexes/13797",
+        "count": 1
+      },
+      {
+        "complexNo": 127304,
+        "complexName": "에스엠파크뷰(도시형)",
+        "area": 27.7,
+        "minPrice": 30000,
+        "maxPrice": 30000,
+        "region": "내발산동",
+        "url": "https://land.naver.com/complexes/127304",
+        "count": 1
+      },
+      {
+        "complexNo": 18526,
+        "complexName": "신세계4차",
+        "area": 90.63,
+        "minPrice": 70000,
+        "maxPrice": 70000,
+        "region": "내발산동",
+        "url": "https://land.naver.com/complexes/18526",
+        "count": 1
+      },
+      {
+        "complexNo": 127314,
+        "complexName": "등촌파밀리에더클래식",
+        "area": 61.61,
+        "minPrice": 73000,
+        "maxPrice": 73000,
+        "region": "등촌동",
+        "url": "https://land.naver.com/complexes/127314",
+        "count": 1
+      },
+      {
+        "complexNo": 10255,
+        "complexName": "등촌3차보람쉬움",
+        "area": 142.28,
+        "minPrice": 150000,
+        "maxPrice": 150000,
+        "region": "등촌동",
+        "url": "https://land.naver.com/complexes/10255",
+        "count": 1
+      },
+      {
+        "complexNo": 8138,
+        "complexName": "대동황토방2차",
+        "area": 104.95,
+        "minPrice": 170000,
+        "maxPrice": 170000,
+        "region": "등촌동",
+        "url": "https://land.naver.com/complexes/8138",
+        "count": 1
+      },
+      {
+        "complexNo": 131224,
+        "complexName": "마곡엠밸리9단지",
+        "area": 117.77,
+        "minPrice": 168000,
+        "maxPrice": 168000,
+        "region": "마곡동",
+        "url": "https://land.naver.com/complexes/131224",
+        "count": 1
+      },
+      {
+        "complexNo": 148084,
+        "complexName": "힐스테이트신방화역(민간임대)",
+        "area": 90.16,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "방화동",
+        "url": "https://land.naver.com/complexes/148084",
+        "count": 1
+      },
+      {
+        "complexNo": 10432,
+        "complexName": "마곡우림1차",
+        "area": 73.92,
+        "minPrice": 75000,
+        "maxPrice": 75000,
+        "region": "방화동",
+        "url": "https://land.naver.com/complexes/10432",
+        "count": 1
+      },
+      {
+        "complexNo": 19220,
+        "complexName": "신림푸르지오2차",
+        "area": 76.77,
+        "minPrice": 73000,
+        "maxPrice": 73000,
+        "region": "신림동",
+        "url": "https://land.naver.com/complexes/19220",
+        "count": 2
+      },
+      {
+        "complexNo": 16995,
+        "complexName": "태양(1563-2)",
+        "area": 54.39,
+        "minPrice": 22000,
+        "maxPrice": 22000,
+        "region": "신림동",
+        "url": "https://land.naver.com/complexes/16995",
+        "count": 1
+      },
+      {
+        "complexNo": 10966,
+        "complexName": "한라타운",
+        "area": 103.65,
+        "minPrice": 57000,
+        "maxPrice": 57000,
+        "region": "신림동",
+        "url": "https://land.naver.com/complexes/10966",
+        "count": 1
+      },
+      {
+        "complexNo": 110193,
+        "complexName": "푸르빌5차",
+        "area": 119.21,
+        "minPrice": 90000,
+        "maxPrice": 90000,
+        "region": "봉천동",
+        "url": "https://land.naver.com/complexes/110193",
+        "count": 1
+      },
+      {
+        "complexNo": 3166,
+        "complexName": "복권",
+        "area": 54.96,
+        "minPrice": 32000,
+        "maxPrice": 32000,
+        "region": "봉천동",
+        "url": "https://land.naver.com/complexes/3166",
+        "count": 1
+      },
+      {
+        "complexNo": 170442,
+        "complexName": "힐스테이트관악센트씨엘",
+        "area": 83.53,
+        "minPrice": 150000,
+        "maxPrice": 150000,
+        "region": "봉천동",
+        "url": "https://land.naver.com/complexes/170442",
+        "count": 1
+      },
+      {
+        "complexNo": 125278,
+        "complexName": "자양호반써밋(주상복합)",
+        "area": 56.26,
+        "minPrice": 145000,
+        "maxPrice": 145000,
+        "region": "자양동",
+        "url": "https://land.naver.com/complexes/125278",
+        "count": 1
+      },
+      {
+        "complexNo": 3342,
+        "complexName": "우방리버파크",
+        "area": 110.37,
+        "minPrice": 225000,
+        "maxPrice": 225000,
+        "region": "자양동",
+        "url": "https://land.naver.com/complexes/3342",
+        "count": 1
+      },
+      {
+        "complexNo": 93,
+        "complexName": "자양우성3차",
+        "area": 87.91,
+        "minPrice": 185000,
+        "maxPrice": 185000,
+        "region": "자양동",
+        "url": "https://land.naver.com/complexes/93",
+        "count": 2
+      },
+      {
+        "complexNo": 133915,
+        "complexName": "자양명진센트라임(도시형)",
+        "area": 41.62,
+        "minPrice": 54000,
+        "maxPrice": 54000,
+        "region": "자양동",
+        "url": "https://land.naver.com/complexes/133915",
+        "count": 1
+      },
+      {
+        "complexNo": 112103,
+        "complexName": "파크타운",
+        "area": 79.3,
+        "minPrice": 89000,
+        "maxPrice": 89000,
+        "region": "구의동",
+        "url": "https://land.naver.com/complexes/112103",
+        "count": 1
+      },
+      {
+        "complexNo": 120605,
+        "complexName": "삼성베스트빌",
+        "area": 53.19,
+        "minPrice": 52000,
+        "maxPrice": 52000,
+        "region": "중곡동",
+        "url": "https://land.naver.com/complexes/120605",
+        "count": 1
+      },
+      {
+        "complexNo": 102853,
+        "complexName": "천왕이펜하우스5단지",
+        "area": 110.59,
+        "minPrice": 85000,
+        "maxPrice": 85000,
+        "region": "천왕동",
+        "url": "https://land.naver.com/complexes/102853",
+        "count": 1
+      },
+      {
+        "complexNo": 102850,
+        "complexName": "천왕이펜하우스1단지",
+        "area": 85.98,
+        "minPrice": 80000,
+        "maxPrice": 89000,
+        "region": "천왕동",
+        "url": "https://land.naver.com/complexes/102850",
+        "count": 2
+      },
+      {
+        "complexNo": 165078,
+        "complexName": "웰타운(주상복합)",
+        "area": 27.25,
+        "minPrice": 26500,
+        "maxPrice": 26500,
+        "region": "개봉동",
+        "url": "https://land.naver.com/complexes/165078",
+        "count": 1
+      },
+      {
+        "complexNo": 8073,
+        "complexName": "삼성래미안",
+        "area": 134.16,
+        "minPrice": 130000,
+        "maxPrice": 130000,
+        "region": "구로동",
+        "url": "https://land.naver.com/complexes/8073",
+        "count": 2
+      },
+      {
+        "complexNo": 3349,
+        "complexName": "현대",
+        "area": 109.75,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "개봉동",
+        "url": "https://land.naver.com/complexes/3349",
+        "count": 1
+      },
+      {
+        "complexNo": 103516,
+        "complexName": "다울숲",
+        "area": 90.21,
+        "minPrice": 75000,
+        "maxPrice": 75000,
+        "region": "구로동",
+        "url": "https://land.naver.com/complexes/103516",
+        "count": 1
+      },
+      {
+        "complexNo": 1068,
+        "complexName": "고척대우",
+        "area": 108.73,
+        "minPrice": 81000,
+        "maxPrice": 81000,
+        "region": "고척동",
+        "url": "https://land.naver.com/complexes/1068",
+        "count": 1
+      },
+      {
+        "complexNo": 1068,
+        "complexName": "고척대우",
+        "area": 84.64,
+        "minPrice": 71000,
+        "maxPrice": 71000,
+        "region": "고척동",
+        "url": "https://land.naver.com/complexes/1068",
+        "count": 1
+      },
+      {
+        "complexNo": 102638,
+        "complexName": "비즈트위트레인보우(도시형)",
+        "area": 22.56,
+        "minPrice": 11000,
+        "maxPrice": 11000,
+        "region": "구로동",
+        "url": "https://land.naver.com/complexes/102638",
+        "count": 1
+      },
+      {
+        "complexNo": 174483,
+        "complexName": "가우디캐슬(도시형)",
+        "area": 63.88,
+        "minPrice": 42000,
+        "maxPrice": 42000,
+        "region": "시흥동",
+        "url": "https://land.naver.com/complexes/174483",
+        "count": 1
+      },
+      {
+        "complexNo": 25869,
+        "complexName": "백운한비치Ⅱ",
+        "area": 75.09,
+        "minPrice": 61000,
+        "maxPrice": 61000,
+        "region": "시흥동",
+        "url": "https://land.naver.com/complexes/25869",
+        "count": 1
+      },
+      {
+        "complexNo": 162519,
+        "complexName": "동부에이스",
+        "area": 36.59,
+        "minPrice": 22000,
+        "maxPrice": 22000,
+        "region": "가산동",
+        "url": "https://land.naver.com/complexes/162519",
+        "count": 1
+      },
+      {
+        "complexNo": 151244,
+        "complexName": "리베라움(142-59,도시형)",
+        "area": 36.59,
+        "minPrice": 26500,
+        "maxPrice": 26500,
+        "region": "가산동",
+        "url": "https://land.naver.com/complexes/151244",
+        "count": 1
+      },
+      {
+        "complexNo": 11956,
+        "complexName": "월드힐",
+        "area": 83.13,
+        "minPrice": 50000,
+        "maxPrice": 50000,
+        "region": "독산동",
+        "url": "https://land.naver.com/complexes/11956",
+        "count": 1
+      },
+      {
+        "complexNo": 8663,
+        "complexName": "대아(492-1)",
+        "area": 76.22,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "공릉동",
+        "url": "https://land.naver.com/complexes/8663",
+        "count": 1
+      },
+      {
+        "complexNo": 3255,
+        "complexName": "초안2단지",
+        "area": 84.27,
+        "minPrice": 50000,
+        "maxPrice": 50000,
+        "region": "월계동",
+        "url": "https://land.naver.com/complexes/3255",
+        "count": 2
+      },
+      {
+        "complexNo": 154177,
+        "complexName": "테라파크뷰(주상복합)",
+        "area": 65.16,
+        "minPrice": 68000,
+        "maxPrice": 68000,
+        "region": "공릉동",
+        "url": "https://land.naver.com/complexes/154177",
+        "count": 1
+      },
+      {
+        "complexNo": 105098,
+        "complexName": "중계한화꿈에그린더퍼스트",
+        "area": 81.99,
+        "minPrice": 95000,
+        "maxPrice": 95000,
+        "region": "중계동",
+        "url": "https://land.naver.com/complexes/105098",
+        "count": 1
+      },
+      {
+        "complexNo": 17249,
+        "complexName": "초안산신도브래뉴",
+        "area": 81.5,
+        "minPrice": 58000,
+        "maxPrice": 58000,
+        "region": "창동",
+        "url": "https://land.naver.com/complexes/17249",
+        "count": 1
+      },
+      {
+        "complexNo": 24451,
+        "complexName": "창동리치",
+        "area": 61.77,
+        "minPrice": 39000,
+        "maxPrice": 39000,
+        "region": "창동",
+        "url": "https://land.naver.com/complexes/24451",
+        "count": 1
+      },
+      {
+        "complexNo": 2980,
+        "complexName": "대상타운현대",
+        "area": 109.43,
+        "minPrice": 98000,
+        "maxPrice": 98000,
+        "region": "방학동",
+        "url": "https://land.naver.com/complexes/2980",
+        "count": 1
+      },
+      {
+        "complexNo": 19500,
+        "complexName": "장한평월드메르디앙1차",
+        "area": 110.62,
+        "minPrice": 94000,
+        "maxPrice": 94000,
+        "region": "장안동",
+        "url": "https://land.naver.com/complexes/19500",
+        "count": 1
+      },
+      {
+        "complexNo": 112259,
+        "complexName": "포레스트힐시티(도시형)",
+        "area": 23.76,
+        "minPrice": 17000,
+        "maxPrice": 17000,
+        "region": "신설동",
+        "url": "https://land.naver.com/complexes/112259",
+        "count": 1
+      },
+      {
+        "complexNo": 25667,
+        "complexName": "롯데캐슬피렌체(주상복합)",
+        "area": 105.73,
+        "minPrice": 120000,
+        "maxPrice": 120000,
+        "region": "용두동",
+        "url": "https://land.naver.com/complexes/25667",
+        "count": 1
+      },
+      {
+        "complexNo": 19223,
+        "complexName": "장안현대홈타운3차",
+        "area": 97.71,
+        "minPrice": 120000,
+        "maxPrice": 120000,
+        "region": "장안동",
+        "url": "https://land.naver.com/complexes/19223",
+        "count": 1
+      },
+      {
+        "complexNo": 350,
+        "complexName": "현대",
+        "area": 99.92,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "청량리동",
+        "url": "https://land.naver.com/complexes/350",
+        "count": 1
+      },
+      {
+        "complexNo": 111786,
+        "complexName": "어진재(도시형)",
+        "area": 29.78,
+        "minPrice": 18000,
+        "maxPrice": 18000,
+        "region": "제기동",
+        "url": "https://land.naver.com/complexes/111786",
+        "count": 1
+      },
+      {
+        "complexNo": 359,
+        "complexName": "휘경현대",
+        "area": 98.59,
+        "minPrice": 100000,
+        "maxPrice": 100000,
+        "region": "휘경동",
+        "url": "https://land.naver.com/complexes/359",
+        "count": 1
+      },
+      {
+        "complexNo": 3278,
+        "complexName": "휘경롯데",
+        "area": 109.18,
+        "minPrice": 97000,
+        "maxPrice": 97000,
+        "region": "휘경동",
+        "url": "https://land.naver.com/complexes/3278",
+        "count": 1
+      },
+      {
+        "complexNo": 23186,
+        "complexName": "오림",
+        "area": 87.23,
+        "minPrice": 80000,
+        "maxPrice": 80000,
+        "region": "사당동",
+        "url": "https://land.naver.com/complexes/23186",
+        "count": 1
+      },
+      {
+        "complexNo": 8499,
+        "complexName": "르메이에르",
+        "area": 100.78,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "사당동",
+        "url": "https://land.naver.com/complexes/8499",
+        "count": 1
+      },
+      {
+        "complexNo": 22491,
+        "complexName": "힐스테이트상도센트럴파크",
+        "area": 109.1,
+        "minPrice": 200000,
+        "maxPrice": 200000,
+        "region": "상도동",
+        "url": "https://land.naver.com/complexes/22491",
+        "count": 1
+      },
+      {
+        "complexNo": 934,
+        "complexName": "한강쌍용",
+        "area": 109.78,
+        "minPrice": 165000,
+        "maxPrice": 165000,
+        "region": "본동",
+        "url": "https://land.naver.com/complexes/934",
+        "count": 1
+      },
+      {
+        "complexNo": 1155,
+        "complexName": "밤섬현대",
+        "area": 110.3,
+        "minPrice": 210000,
+        "maxPrice": 210000,
+        "region": "현석동",
+        "url": "https://land.naver.com/complexes/1155",
+        "count": 1
+      },
+      {
+        "complexNo": 107438,
+        "complexName": "래미안웰스트림",
+        "area": 151.14,
+        "minPrice": 330000,
+        "maxPrice": 330000,
+        "region": "현석동",
+        "url": "https://land.naver.com/complexes/107438",
+        "count": 1
+      },
+      {
+        "complexNo": 406,
+        "complexName": "정우맨션(주상복합)",
+        "area": 126.73,
+        "minPrice": 160000,
+        "maxPrice": 160000,
+        "region": "도화동",
+        "url": "https://land.naver.com/complexes/406",
+        "count": 1
+      },
+      {
+        "complexNo": 3291,
+        "complexName": "고려(주상복합)",
+        "area": 116.49,
+        "minPrice": 128000,
+        "maxPrice": 128000,
+        "region": "도화동",
+        "url": "https://land.naver.com/complexes/3291",
+        "count": 1
+      },
+      {
+        "complexNo": 100682,
+        "complexName": "마포KCC웰츠타워(주상복합)",
+        "area": 133.96,
+        "minPrice": 250000,
+        "maxPrice": 250000,
+        "region": "신공덕동",
+        "url": "https://land.naver.com/complexes/100682",
+        "count": 1
+      },
+      {
+        "complexNo": 124280,
+        "complexName": "블레스하임(주상복합)",
+        "area": 34.68,
+        "minPrice": 41000,
+        "maxPrice": 41000,
+        "region": "신공덕동",
+        "url": "https://land.naver.com/complexes/124280",
+        "count": 1
+      },
+      {
+        "complexNo": 22476,
+        "complexName": "두영이지안(468)",
+        "area": 92.18,
+        "minPrice": 125000,
+        "maxPrice": 125000,
+        "region": "합정동",
+        "url": "https://land.naver.com/complexes/22476",
+        "count": 1
+      },
+      {
+        "complexNo": 11542,
+        "complexName": "함성월드빌1차",
+        "area": 73.81,
+        "minPrice": 80000,
+        "maxPrice": 80000,
+        "region": "망원동",
+        "url": "https://land.naver.com/complexes/11542",
+        "count": 1
+      },
+      {
+        "complexNo": 100315,
+        "complexName": "마포영화블렌하임(주상복합)",
+        "area": 134.19,
+        "minPrice": 145000,
+        "maxPrice": 145000,
+        "region": "망원동",
+        "url": "https://land.naver.com/complexes/100315",
+        "count": 1
+      },
+      {
+        "complexNo": 847,
+        "complexName": "예미원(주상복합)",
+        "area": 66.94,
+        "minPrice": 72000,
+        "maxPrice": 72000,
+        "region": "아현동",
+        "url": "https://land.naver.com/complexes/847",
+        "count": 1
+      },
+      {
+        "complexNo": 104535,
+        "complexName": "JK캠퍼스(도시형)",
+        "area": 44.24,
+        "minPrice": 19000,
+        "maxPrice": 19000,
+        "region": "창천동",
+        "url": "https://land.naver.com/complexes/104535",
+        "count": 1
+      },
+      {
+        "complexNo": 26029,
+        "complexName": "DMC아이파크",
+        "area": 86,
+        "minPrice": 135000,
+        "maxPrice": 135000,
+        "region": "북가좌동",
+        "url": "https://land.naver.com/complexes/26029",
+        "count": 1
+      },
+      {
+        "complexNo": 16022,
+        "complexName": "동진",
+        "area": 93.96,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "연희동",
+        "url": "https://land.naver.com/complexes/16022",
+        "count": 1
+      },
+      {
+        "complexNo": 1162,
+        "complexName": "남양",
+        "area": 109.66,
+        "minPrice": 100000,
+        "maxPrice": 100000,
+        "region": "홍제동",
+        "url": "https://land.naver.com/complexes/1162",
+        "count": 1
+      },
+      {
+        "complexNo": 111149,
+        "complexName": "굿모닝하이츠",
+        "area": 71.76,
+        "minPrice": 62000,
+        "maxPrice": 62000,
+        "region": "홍제동",
+        "url": "https://land.naver.com/complexes/111149",
+        "count": 2
+      },
+      {
+        "complexNo": 112312,
+        "complexName": "제일",
+        "area": 105.82,
+        "minPrice": 85000,
+        "maxPrice": 85000,
+        "region": "홍제동",
+        "url": "https://land.naver.com/complexes/112312",
+        "count": 1
+      },
+      {
+        "complexNo": 432,
+        "complexName": "홍은벽산",
+        "area": 78.34,
+        "minPrice": 82000,
+        "maxPrice": 82000,
+        "region": "홍은동",
+        "url": "https://land.naver.com/complexes/432",
+        "count": 1
+      },
+      {
+        "complexNo": 106011,
+        "complexName": "서초네이처힐1단지",
+        "area": 110.84,
+        "minPrice": 210000,
+        "maxPrice": 210000,
+        "region": "우면동",
+        "url": "https://land.naver.com/complexes/106011",
+        "count": 1
+      },
+      {
+        "complexNo": 9651,
+        "complexName": "방배신주",
+        "area": 115.38,
+        "minPrice": 168000,
+        "maxPrice": 168000,
+        "region": "방배동",
+        "url": "https://land.naver.com/complexes/9651",
+        "count": 1
+      },
+      {
+        "complexNo": 119431,
+        "complexName": "서초훼미리하우스",
+        "area": 73.4,
+        "minPrice": 135000,
+        "maxPrice": 135000,
+        "region": "방배동",
+        "url": "https://land.naver.com/complexes/119431",
+        "count": 1
+      },
+      {
+        "complexNo": 105179,
+        "complexName": "서초삼원그린빌",
+        "area": 129.23,
+        "minPrice": 165000,
+        "maxPrice": 165000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/105179",
+        "count": 1
+      },
+      {
+        "complexNo": 104569,
+        "complexName": "서초코아",
+        "area": 108.79,
+        "minPrice": 120000,
+        "maxPrice": 120000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/104569",
+        "count": 1
+      },
+      {
+        "complexNo": 117726,
+        "complexName": "비버리하임(도시형)",
+        "area": 54.7,
+        "minPrice": 60000,
+        "maxPrice": 60000,
+        "region": "양재동",
+        "url": "https://land.naver.com/complexes/117726",
+        "count": 1
+      },
+      {
+        "complexNo": 14192,
+        "complexName": "방배한진로즈힐",
+        "area": 110.49,
+        "minPrice": 250000,
+        "maxPrice": 250000,
+        "region": "방배동",
+        "url": "https://land.naver.com/complexes/14192",
+        "count": 1
+      },
+      {
+        "complexNo": 11661,
+        "complexName": "서초e-편한세상2차",
+        "area": 146.92,
+        "minPrice": 290000,
+        "maxPrice": 290000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/11661",
+        "count": 1
+      },
+      {
+        "complexNo": 103229,
+        "complexName": "서초대우로얄카운티",
+        "area": 244.51,
+        "minPrice": 250000,
+        "maxPrice": 250000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/103229",
+        "count": 1
+      },
+      {
+        "complexNo": 24236,
+        "complexName": "서초우방유쉘",
+        "area": 104.79,
+        "minPrice": 210000,
+        "maxPrice": 210000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/24236",
+        "count": 1
+      },
+      {
+        "complexNo": 3408,
+        "complexName": "서초한신",
+        "area": 147.27,
+        "minPrice": 245000,
+        "maxPrice": 245000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/3408",
+        "count": 1
+      },
+      {
+        "complexNo": 128792,
+        "complexName": "디아레나서초(주상복합)",
+        "area": 34.19,
+        "minPrice": 42000,
+        "maxPrice": 42000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/128792",
+        "count": 1
+      },
+      {
+        "complexNo": 3408,
+        "complexName": "서초한신",
+        "area": 115.12,
+        "minPrice": 220000,
+        "maxPrice": 220000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/3408",
+        "count": 1
+      },
+      {
+        "complexNo": 3517,
+        "complexName": "초원현대",
+        "area": 87.93,
+        "minPrice": 150000,
+        "maxPrice": 150000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/3517",
+        "count": 1
+      },
+      {
+        "complexNo": 121314,
+        "complexName": "서초아트갤러리(도시형)",
+        "area": 34.13,
+        "minPrice": 36000,
+        "maxPrice": 36000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/121314",
+        "count": 1
+      },
+      {
+        "complexNo": 24792,
+        "complexName": "푸른마을",
+        "area": 78.42,
+        "minPrice": 125000,
+        "maxPrice": 125000,
+        "region": "방배동",
+        "url": "https://land.naver.com/complexes/24792",
+        "count": 1
+      },
+      {
+        "complexNo": 3511,
+        "complexName": "서울탑빌라트",
+        "area": 222.44,
+        "minPrice": 230000,
+        "maxPrice": 230000,
+        "region": "방배동",
+        "url": "https://land.naver.com/complexes/3511",
+        "count": 1
+      },
+      {
+        "complexNo": 105330,
+        "complexName": "강남역푸르지오시티(도시형)",
+        "area": 30.38,
+        "minPrice": 20500,
+        "maxPrice": 20500,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/105330",
+        "count": 1
+      },
+      {
+        "complexNo": 12226,
+        "complexName": "밀라텔쉐르빌(엠쉐르빌,주상복합)",
+        "area": 59.19,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/12226",
+        "count": 1
+      },
+      {
+        "complexNo": 12226,
+        "complexName": "밀라텔쉐르빌(엠쉐르빌,주상복합)",
+        "area": 65.24,
+        "minPrice": 75000,
+        "maxPrice": 75000,
+        "region": "서초동",
+        "url": "https://land.naver.com/complexes/12226",
+        "count": 1
+      },
+      {
+        "complexNo": 189717,
+        "complexName": "반포래미안트리니원",
+        "area": 129.97,
+        "minPrice": 680000,
+        "maxPrice": 680000,
+        "region": "반포동",
+        "url": "https://land.naver.com/complexes/189717",
+        "count": 1
+      },
+      {
+        "complexNo": 193639,
+        "complexName": "오티에르반포",
+        "area": 135.74,
+        "minPrice": 650000,
+        "maxPrice": 650000,
+        "region": "잠원동",
+        "url": "https://land.naver.com/complexes/193639",
+        "count": 1
+      },
+      {
+        "complexNo": 8312,
+        "complexName": "보미리전빌",
+        "area": 135.15,
+        "minPrice": 230000,
+        "maxPrice": 230000,
+        "region": "잠원동",
+        "url": "https://land.naver.com/complexes/8312",
+        "count": 1
+      },
+      {
+        "complexNo": 3531,
+        "complexName": "극동옥정",
+        "area": 76.08,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "옥수동",
+        "url": "https://land.naver.com/complexes/3531",
+        "count": 1
+      },
+      {
+        "complexNo": 179118,
+        "complexName": "라체르보푸르지오써밋",
+        "area": 113.31,
+        "minPrice": 310000,
+        "maxPrice": 310000,
+        "region": "행당동",
+        "url": "https://land.naver.com/complexes/179118",
+        "count": 1
+      },
+      {
+        "complexNo": 8854,
+        "complexName": "두산",
+        "area": 104.26,
+        "minPrice": 135000,
+        "maxPrice": 135000,
+        "region": "행당동",
+        "url": "https://land.naver.com/complexes/8854",
+        "count": 1
+      },
+      {
+        "complexNo": 1185,
+        "complexName": "삼익",
+        "area": 100.55,
+        "minPrice": 87000,
+        "maxPrice": 87000,
+        "region": "안암동3가",
+        "url": "https://land.naver.com/complexes/1185",
+        "count": 1
+      },
+      {
+        "complexNo": 156637,
+        "complexName": "보문더루나",
+        "area": 59.72,
+        "minPrice": 70000,
+        "maxPrice": 70000,
+        "region": "보문동2가",
+        "url": "https://land.naver.com/complexes/156637",
+        "count": 1
+      },
+      {
+        "complexNo": 1181,
+        "complexName": "코오롱",
+        "area": 104.97,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "삼선동4가",
+        "url": "https://land.naver.com/complexes/1181",
+        "count": 1
+      },
+      {
+        "complexNo": 22106,
+        "complexName": "돈암힐스테이트",
+        "area": 102.73,
+        "minPrice": 105000,
+        "maxPrice": 105000,
+        "region": "돈암동",
+        "url": "https://land.naver.com/complexes/22106",
+        "count": 1
+      },
+      {
+        "complexNo": 9539,
+        "complexName": "정릉중앙하이츠빌1단지",
+        "area": 78.34,
+        "minPrice": 70000,
+        "maxPrice": 79000,
+        "region": "정릉동",
+        "url": "https://land.naver.com/complexes/9539",
+        "count": 2
+      },
+      {
+        "complexNo": 1190,
+        "complexName": "길음뉴타운데시앙",
+        "area": 154.03,
+        "minPrice": 85000,
+        "maxPrice": 85000,
+        "region": "정릉동",
+        "url": "https://land.naver.com/complexes/1190",
+        "count": 1
+      },
+      {
+        "complexNo": 26638,
+        "complexName": "길음서희스타힐스(주상복합)",
+        "area": 112.55,
+        "minPrice": 110000,
+        "maxPrice": 120000,
+        "region": "하월곡동",
+        "url": "https://land.naver.com/complexes/26638",
+        "count": 3
+      },
+      {
+        "complexNo": 103698,
+        "complexName": "서라벌(주상복합)",
+        "area": 37.6,
+        "minPrice": 20000,
+        "maxPrice": 20000,
+        "region": "돈암동",
+        "url": "https://land.naver.com/complexes/103698",
+        "count": 1
+      },
+      {
+        "complexNo": 27283,
+        "complexName": "종암SK뷰2차",
+        "area": 81.16,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "종암동",
+        "url": "https://land.naver.com/complexes/27283",
+        "count": 1
+      },
+      {
+        "complexNo": 27211,
+        "complexName": "석관신동아파밀리에",
+        "area": 114.07,
+        "minPrice": 101000,
+        "maxPrice": 101000,
+        "region": "석관동",
+        "url": "https://land.naver.com/complexes/27211",
+        "count": 1
+      },
+      {
+        "complexNo": 26107,
+        "complexName": "송파파인타운9단지",
+        "area": 84.03,
+        "minPrice": 180000,
+        "maxPrice": 180000,
+        "region": "장지동",
+        "url": "https://land.naver.com/complexes/26107",
+        "count": 2
+      },
+      {
+        "complexNo": 105367,
+        "complexName": "위례신도시송파푸르지오",
+        "area": 138.04,
+        "minPrice": 250000,
+        "maxPrice": 250000,
+        "region": "장지동",
+        "url": "https://land.naver.com/complexes/105367",
+        "count": 1
+      },
+      {
+        "complexNo": 139917,
+        "complexName": "포레나송파",
+        "area": 91.47,
+        "minPrice": 217000,
+        "maxPrice": 217000,
+        "region": "거여동",
+        "url": "https://land.naver.com/complexes/139917",
+        "count": 1
+      },
+      {
+        "complexNo": 103620,
+        "complexName": "하늘공원",
+        "area": 93.84,
+        "minPrice": 200000,
+        "maxPrice": 200000,
+        "region": "삼전동",
+        "url": "https://land.naver.com/complexes/103620",
+        "count": 1
+      },
+      {
+        "complexNo": 12948,
+        "complexName": "송파성원상떼빌(주상복합)",
+        "area": 182.06,
+        "minPrice": 190000,
+        "maxPrice": 190000,
+        "region": "가락동",
+        "url": "https://land.naver.com/complexes/12948",
+        "count": 1
+      },
+      {
+        "complexNo": 1274,
+        "complexName": "삼호",
+        "area": 119.5,
+        "minPrice": 140000,
+        "maxPrice": 140000,
+        "region": "거여동",
+        "url": "https://land.naver.com/complexes/1274",
+        "count": 1
+      },
+      {
+        "complexNo": 106759,
+        "complexName": "레이크시티(도시형)",
+        "area": 24.72,
+        "minPrice": 26000,
+        "maxPrice": 26000,
+        "region": "삼전동",
+        "url": "https://land.naver.com/complexes/106759",
+        "count": 1
+      },
+      {
+        "complexNo": 106759,
+        "complexName": "레이크시티(도시형)",
+        "area": 24.68,
+        "minPrice": 25000,
+        "maxPrice": 25000,
+        "region": "삼전동",
+        "url": "https://land.naver.com/complexes/106759",
+        "count": 1
+      },
+      {
+        "complexNo": 9260,
+        "complexName": "월드",
+        "area": 69.03,
+        "minPrice": 60000,
+        "maxPrice": 60000,
+        "region": "석촌동",
+        "url": "https://land.naver.com/complexes/9260",
+        "count": 1
+      },
+      {
+        "complexNo": 116180,
+        "complexName": "한영해시안(주상복합)",
+        "area": 71.18,
+        "minPrice": 130000,
+        "maxPrice": 130000,
+        "region": "잠실동",
+        "url": "https://land.naver.com/complexes/116180",
+        "count": 1
+      },
+      {
+        "complexNo": 17373,
+        "complexName": "신동아로쟌뷰(주상복합)",
+        "area": 155,
+        "minPrice": 215000,
+        "maxPrice": 215000,
+        "region": "석촌동",
+        "url": "https://land.naver.com/complexes/17373",
+        "count": 1
+      },
+      {
+        "complexNo": 26911,
+        "complexName": "서경",
+        "area": 79.02,
+        "minPrice": 65000,
+        "maxPrice": 65000,
+        "region": "방이동",
+        "url": "https://land.naver.com/complexes/26911",
+        "count": 1
+      },
+      {
+        "complexNo": 3443,
+        "complexName": "신트리3단지",
+        "area": 109.87,
+        "minPrice": 135000,
+        "maxPrice": 135000,
+        "region": "신정동",
+        "url": "https://land.naver.com/complexes/3443",
+        "count": 1
+      },
+      {
+        "complexNo": 11831,
+        "complexName": "원능한빛",
+        "area": 103.98,
+        "minPrice": 48000,
+        "maxPrice": 48000,
+        "region": "신월동",
+        "url": "https://land.naver.com/complexes/11831",
+        "count": 1
+      },
+      {
+        "complexNo": 110022,
+        "complexName": "태산(주상복합)",
+        "area": 71.79,
+        "minPrice": 39000,
+        "maxPrice": 39000,
+        "region": "신월동",
+        "url": "https://land.naver.com/complexes/110022",
+        "count": 2
+      },
+      {
+        "complexNo": 118627,
+        "complexName": "온누리베일리",
+        "area": 70.09,
+        "minPrice": 42000,
+        "maxPrice": 42000,
+        "region": "신월동",
+        "url": "https://land.naver.com/complexes/118627",
+        "count": 1
+      },
+      {
+        "complexNo": 154098,
+        "complexName": "로얄스위트캐슬(도시형)",
+        "area": 32.77,
+        "minPrice": 20000,
+        "maxPrice": 20000,
+        "region": "신월동",
+        "url": "https://land.naver.com/complexes/154098",
+        "count": 1
+      },
+      {
+        "complexNo": 154098,
+        "complexName": "로얄스위트캐슬(도시형)",
+        "area": 32.06,
+        "minPrice": 20000,
+        "maxPrice": 20000,
+        "region": "신월동",
+        "url": "https://land.naver.com/complexes/154098",
+        "count": 1
+      },
+      {
+        "complexNo": 17522,
+        "complexName": "힐탑이루미(주상복합)",
+        "area": 106.29,
+        "minPrice": 80000,
+        "maxPrice": 80000,
+        "region": "신정동",
+        "url": "https://land.naver.com/complexes/17522",
+        "count": 1
+      },
+      {
+        "complexNo": 24841,
+        "complexName": "목동트라팰리스이스턴에비뉴(주상복합)",
+        "area": 182.24,
+        "minPrice": 380000,
+        "maxPrice": 380000,
+        "region": "목동",
+        "url": "https://land.naver.com/complexes/24841",
+        "count": 1
+      },
+      {
+        "complexNo": 651,
+        "complexName": "건영",
+        "area": 103.44,
+        "minPrice": 85000,
+        "maxPrice": 85000,
+        "region": "목동",
+        "url": "https://land.naver.com/complexes/651",
+        "count": 1
+      },
+      {
+        "complexNo": 651,
+        "complexName": "건영",
+        "area": 101.2,
+        "minPrice": 90000,
+        "maxPrice": 90000,
+        "region": "목동",
+        "url": "https://land.naver.com/complexes/651",
+        "count": 1
+      },
+      {
+        "complexNo": 1151,
+        "complexName": "서강GS",
+        "area": 114.84,
+        "minPrice": 190000,
+        "maxPrice": 190000,
+        "region": "신정동",
+        "url": "https://land.naver.com/complexes/1151",
+        "count": 1
+      },
+      {
+        "complexNo": 24763,
+        "complexName": "新대림한솔솔파크",
+        "area": 126.99,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "대림동",
+        "url": "https://land.naver.com/complexes/24763",
+        "count": 1
+      },
+      {
+        "complexNo": 1277,
+        "complexName": "무림",
+        "area": 83.2,
+        "minPrice": 82000,
+        "maxPrice": 82000,
+        "region": "대림동",
+        "url": "https://land.naver.com/complexes/1277",
+        "count": 1
+      },
+      {
+        "complexNo": 890,
+        "complexName": "대원",
+        "area": 75.67,
+        "minPrice": 105000,
+        "maxPrice": 105000,
+        "region": "문래동6가",
+        "url": "https://land.naver.com/complexes/890",
+        "count": 1
+      },
+      {
+        "complexNo": 710,
+        "complexName": "현대1차",
+        "area": 85.85,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "문래동6가",
+        "url": "https://land.naver.com/complexes/710",
+        "count": 1
+      },
+      {
+        "complexNo": 3795,
+        "complexName": "여의",
+        "area": 68.07,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "신길동",
+        "url": "https://land.naver.com/complexes/3795",
+        "count": 1
+      },
+      {
+        "complexNo": 102252,
+        "complexName": "양평태승훼미리",
+        "area": 106.03,
+        "minPrice": 150000,
+        "maxPrice": 150000,
+        "region": "양평동3가",
+        "url": "https://land.naver.com/complexes/102252",
+        "count": 2
+      },
+      {
+        "complexNo": 26771,
+        "complexName": "양평우림루미아트",
+        "area": 103.66,
+        "minPrice": 135000,
+        "maxPrice": 135000,
+        "region": "양평동3가",
+        "url": "https://land.naver.com/complexes/26771",
+        "count": 1
+      },
+      {
+        "complexNo": 26771,
+        "complexName": "양평우림루미아트",
+        "area": 103.48,
+        "minPrice": 130000,
+        "maxPrice": 130000,
+        "region": "양평동3가",
+        "url": "https://land.naver.com/complexes/26771",
+        "count": 1
+      },
+      {
+        "complexNo": 23852,
+        "complexName": "리치",
+        "area": 87.52,
+        "minPrice": 60000,
+        "maxPrice": 60000,
+        "region": "영등포동7가",
+        "url": "https://land.naver.com/complexes/23852",
+        "count": 1
+      },
+      {
+        "complexNo": 2985,
+        "complexName": "동부센트레빌",
+        "area": 117.98,
+        "minPrice": 178000,
+        "maxPrice": 178000,
+        "region": "당산동3가",
+        "url": "https://land.naver.com/complexes/2985",
+        "count": 1
+      },
+      {
+        "complexNo": 100508,
+        "complexName": "당산반도유보라팰리스",
+        "area": 160.44,
+        "minPrice": 235000,
+        "maxPrice": 235000,
+        "region": "당산동4가",
+        "url": "https://land.naver.com/complexes/100508",
+        "count": 1
+      },
+      {
+        "complexNo": 3143,
+        "complexName": "LG한강자이",
+        "area": 92.11,
+        "minPrice": 340000,
+        "maxPrice": 340000,
+        "region": "이촌동",
+        "url": "https://land.naver.com/complexes/3143",
+        "count": 1
+      },
+      {
+        "complexNo": 198817,
+        "complexName": "아페르파크",
+        "area": 304.18,
+        "minPrice": 1000000,
+        "maxPrice": 1000000,
+        "region": "서빙고동",
+        "url": "https://land.naver.com/complexes/198817",
+        "count": 1
+      },
+      {
+        "complexNo": 198817,
+        "complexName": "아페르파크",
+        "area": 291.81,
+        "minPrice": 1200000,
+        "maxPrice": 1200000,
+        "region": "서빙고동",
+        "url": "https://land.naver.com/complexes/198817",
+        "count": 1
+      },
+      {
+        "complexNo": 198817,
+        "complexName": "아페르파크",
+        "area": 292.77,
+        "minPrice": 850000,
+        "maxPrice": 850000,
+        "region": "서빙고동",
+        "url": "https://land.naver.com/complexes/198817",
+        "count": 1
+      },
+      {
+        "complexNo": 10583,
+        "complexName": "한강로대우아이빌(주상복합)",
+        "area": 48.55,
+        "minPrice": 40000,
+        "maxPrice": 40000,
+        "region": "한강로2가",
+        "url": "https://land.naver.com/complexes/10583",
+        "count": 1
+      },
+      {
+        "complexNo": 25907,
+        "complexName": "동원베네스트(주상복합)",
+        "area": 73.67,
+        "minPrice": 143000,
+        "maxPrice": 143000,
+        "region": "한남동",
+        "url": "https://land.naver.com/complexes/25907",
+        "count": 1
+      },
+      {
+        "complexNo": 189017,
+        "complexName": "동양",
+        "area": 71.74,
+        "minPrice": 80000,
+        "maxPrice": 80000,
+        "region": "갈월동",
+        "url": "https://land.naver.com/complexes/189017",
+        "count": 1
+      },
+      {
+        "complexNo": 104710,
+        "complexName": "우찬",
+        "area": 115.86,
+        "minPrice": 140000,
+        "maxPrice": 140000,
+        "region": "신사동",
+        "url": "https://land.naver.com/complexes/104710",
+        "count": 1
+      },
+      {
+        "complexNo": 27289,
+        "complexName": "디엠씨자이1단지(주상복합)",
+        "area": 150.73,
+        "minPrice": 150000,
+        "maxPrice": 150000,
+        "region": "수색동",
+        "url": "https://land.naver.com/complexes/27289",
+        "count": 1
+      },
+      {
+        "complexNo": 27290,
+        "complexName": "디엠씨자이2단지(주상복합)",
+        "area": 135.74,
+        "minPrice": 130000,
+        "maxPrice": 130000,
+        "region": "증산동",
+        "url": "https://land.naver.com/complexes/27290",
+        "count": 1
+      },
+      {
+        "complexNo": 27264,
+        "complexName": "백련산힐스테이트3차",
+        "area": 108.84,
+        "minPrice": 105000,
+        "maxPrice": 105000,
+        "region": "응암동",
+        "url": "https://land.naver.com/complexes/27264",
+        "count": 1
+      },
+      {
+        "complexNo": 109936,
+        "complexName": "정익제이원(15-114,주상복합)",
+        "area": 36.45,
+        "minPrice": 28000,
+        "maxPrice": 28000,
+        "region": "대조동",
+        "url": "https://land.naver.com/complexes/109936",
+        "count": 1
+      },
+      {
+        "complexNo": 111575,
+        "complexName": "래미안베라힐즈",
+        "area": 119.53,
+        "minPrice": 138000,
+        "maxPrice": 138000,
+        "region": "녹번동",
+        "url": "https://land.naver.com/complexes/111575",
+        "count": 1
+      },
+      {
+        "complexNo": 3819,
+        "complexName": "남해그린힐",
+        "area": 81.17,
+        "minPrice": 40000,
+        "maxPrice": 40000,
+        "region": "불광동",
+        "url": "https://land.naver.com/complexes/3819",
+        "count": 1
+      },
+      {
+        "complexNo": 133867,
+        "complexName": "유성아이비(주상복합)",
+        "area": 52.36,
+        "minPrice": 40000,
+        "maxPrice": 40000,
+        "region": "불광동",
+        "url": "https://land.naver.com/complexes/133867",
+        "count": 1
+      },
+      {
+        "complexNo": 199917,
+        "complexName": "아이반타운(도시형)",
+        "area": 35.75,
+        "minPrice": 32000,
+        "maxPrice": 32000,
+        "region": "불광동",
+        "url": "https://land.naver.com/complexes/199917",
+        "count": 1
+      },
+      {
+        "complexNo": 118247,
+        "complexName": "정익제이원5차(도시형)",
+        "area": 32.6,
+        "minPrice": 29800,
+        "maxPrice": 29800,
+        "region": "불광동",
+        "url": "https://land.naver.com/complexes/118247",
+        "count": 1
+      },
+      {
+        "complexNo": 24727,
+        "complexName": "해피플러스1(주상복합)",
+        "area": 106.65,
+        "minPrice": 78000,
+        "maxPrice": 78000,
+        "region": "불광동",
+        "url": "https://land.naver.com/complexes/24727",
+        "count": 1
+      },
+      {
+        "complexNo": 26876,
+        "complexName": "은평뉴타운우물골7단지",
+        "area": 166.32,
+        "minPrice": 190000,
+        "maxPrice": 190000,
+        "region": "진관동",
+        "url": "https://land.naver.com/complexes/26876",
+        "count": 1
+      },
+      {
+        "complexNo": 26875,
+        "complexName": "은평뉴타운우물골6단지",
+        "area": 165.44,
+        "minPrice": 136000,
+        "maxPrice": 136000,
+        "region": "진관동",
+        "url": "https://land.naver.com/complexes/26875",
+        "count": 1
+      },
+      {
+        "complexNo": 7959,
+        "complexName": "세종로대우(주상복합)",
+        "area": 105.12,
+        "minPrice": 95000,
+        "maxPrice": 95000,
+        "region": "내수동",
+        "url": "https://land.naver.com/complexes/7959",
+        "count": 1
+      },
+      {
+        "complexNo": 792,
+        "complexName": "아남(201동)",
+        "area": 139.04,
+        "minPrice": 180000,
+        "maxPrice": 180000,
+        "region": "명륜2가",
+        "url": "https://land.naver.com/complexes/792",
+        "count": 1
+      },
+      {
+        "complexNo": 16584,
+        "complexName": "중앙빌라",
+        "area": 115.68,
+        "minPrice": 60000,
+        "maxPrice": 60000,
+        "region": "신영동",
+        "url": "https://land.naver.com/complexes/16584",
+        "count": 1
+      },
+      {
+        "complexNo": 16671,
+        "complexName": "현대",
+        "area": 160.86,
+        "minPrice": 130000,
+        "maxPrice": 130000,
+        "region": "평창동",
+        "url": "https://land.naver.com/complexes/16671",
+        "count": 1
+      },
+      {
+        "complexNo": 16671,
+        "complexName": "현대",
+        "area": 170.29,
+        "minPrice": 110000,
+        "maxPrice": 110000,
+        "region": "평창동",
+        "url": "https://land.naver.com/complexes/16671",
+        "count": 1
+      },
+      {
+        "complexNo": 15832,
+        "complexName": "정동",
+        "area": 44.96,
+        "minPrice": 67000,
+        "maxPrice": 67000,
+        "region": "정동",
+        "url": "https://land.naver.com/complexes/15832",
+        "count": 1
+      },
+      {
+        "complexNo": 104133,
+        "complexName": "청계천두산위브더제니스(주상복합)",
+        "area": 334.55,
+        "minPrice": 380000,
+        "maxPrice": 380000,
+        "region": "흥인동",
+        "url": "https://land.naver.com/complexes/104133",
+        "count": 1
+      },
+      {
+        "complexNo": 128414,
+        "complexName": "센트럴파크55(주상복합)",
+        "area": 61.51,
+        "minPrice": 60000,
+        "maxPrice": 60000,
+        "region": "상봉동",
+        "url": "https://land.naver.com/complexes/128414",
+        "count": 1
+      },
+      {
+        "complexNo": 200797,
+        "complexName": "루체빌(도시형)",
+        "area": 48.98,
+        "minPrice": 44000,
+        "maxPrice": 44000,
+        "region": "중화동",
+        "url": "https://land.naver.com/complexes/200797",
+        "count": 1
+      },
+      {
+        "complexNo": 824,
+        "complexName": "한신",
+        "area": 116.49,
+        "minPrice": 107000,
+        "maxPrice": 107000,
+        "region": "중화동",
+        "url": "https://land.naver.com/complexes/824",
+        "count": 1
+      },
+      {
+        "complexNo": 109587,
+        "complexName": "금강",
+        "area": 65.34,
+        "minPrice": 30000,
+        "maxPrice": 30000,
+        "region": "중화동",
+        "url": "https://land.naver.com/complexes/109587",
+        "count": 1
+      },
+      {
+        "complexNo": 132211,
+        "complexName": "레그노시티",
+        "area": 34.16,
+        "minPrice": 30000,
+        "maxPrice": 30000,
+        "region": "상봉동",
+        "url": "https://land.naver.com/complexes/132211",
+        "count": 1
+      },
+      {
+        "complexNo": 200657,
+        "complexName": "천우네오젠(도시형)",
+        "area": 48.68,
+        "minPrice": 64800,
+        "maxPrice": 64800,
+        "region": "묵동",
+        "url": "https://land.naver.com/complexes/200657",
+        "count": 2
+      }
+    ]
   }
 }
