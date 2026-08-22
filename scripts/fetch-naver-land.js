@@ -302,10 +302,47 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
   return { articles: collected, hasMore: true };
 }
 
+// ---- 규칙 6: 매물별(article) 상세 정보 ----
+// 아래 필드 경로는 전부 미확정 추정치다(priceInfo/spaceInfo처럼 그룹화된 응답 구조를
+// 근거로 한 최선의 추측). 실제 확인은 NAVER_SCOPE=probe로 국내 러너에서만 가능하다
+// (이 저장소의 개발 환경은 네이버 접속 자체가 차단돼 있음). probeOnce()가 이 함수를
+// 실제 응답에 돌려 발견/미발견을 로그로 남긴다. updateArticlesSnapshot()의 히트율
+// 가드가, 추정이 틀렸을 때 null투성이 파일이 저장되는 걸 막는다.
+const BARGAIN_KEYWORDS = ["급매", "급급매", "급처", "급매물"];
+
+function textHasBargainKeyword(text) {
+  if (!text) return false;
+  return BARGAIN_KEYWORDS.some((k) => text.includes(k));
+}
+
+function extractArticleFeatures(a) {
+  const tags = Array.isArray(a.tagList)
+    ? a.tagList
+    : Array.isArray(a.articleFeatureDescription?.tagList)
+      ? a.articleFeatureDescription.tagList
+      : [];
+  const featureSummary =
+    (typeof a.articleFeatureDescription === "string" ? a.articleFeatureDescription : null) ??
+    a.articleFeatureDescription?.text ??
+    null;
+  return {
+    floor: a.floorInfo?.floor ?? (typeof a.floorInfo === "string" ? a.floorInfo : null),
+    direction: a.direction ?? a.directionTypeName ?? null,
+    roomCount: a.spaceInfo?.roomCount ?? a.roomCount ?? null,
+    bathRoomCount: a.spaceInfo?.bathRoomCount ?? a.bathRoomCount ?? null,
+    priceRaw: a.priceInfo?.priceString ?? a.priceInfo?.dealOrWarrantyPriceText ?? null,
+    tags,
+    featureSummary,
+    hasBargainKeyword: textHasBargainKeyword(tags.join(",")) || textHasBargainKeyword(featureSummary),
+  };
+}
+
 // 같은 단지라도 전용면적이 다르면 사실상 다른 상품이라 가격대가 겹치지 않는다.
 // 그래서 (단지, 전용면적) 단위로 한 줄씩 만든다. 면적을 모르는 매물은 따로 모은다.
+// complexes(기존 단지×면적 집계)와 articleRecords(규칙 6용 매물별 상세)를 함께 반환한다.
 function aggregateComplexes(articles, tradeType) {
   const byUnit = new Map();
+  const articleRecords = [];
   for (const a of articles) {
     const rawPrice = tradeType === "A1" ? a.priceInfo?.dealPrice : a.priceInfo?.warrantyPrice;
     const price = rawPrice > 0 ? rawPrice / 10000 : null; // 원 -> 만원
@@ -328,6 +365,7 @@ function aggregateComplexes(articles, tradeType) {
         dong: a.address?.sector || null,
         prices: [],
         approvalElapsedYears: [],
+        hasBargainKeyword: false,
       });
     }
     const bucket = byUnit.get(key);
@@ -335,6 +373,24 @@ function aggregateComplexes(articles, tradeType) {
     if (price != null) bucket.prices.push(price);
     if (typeof a.buildingInfo?.approvalElapsedYear === "number") {
       bucket.approvalElapsedYears.push(a.buildingInfo.approvalElapsedYear);
+    }
+
+    // 규칙 6: 매물별 상세(태그/특징/급매 키워드)를 뽑아 단지 버킷에는 급매 여부만
+    // 반영하고, 매물 단위 원본은 articleRecords로 따로 모은다(naver-land-articles.json용).
+    const feat = extractArticleFeatures(a);
+    if (feat.hasBargainKeyword) bucket.hasBargainKeyword = true;
+    const articleNumber = a.articleNumber ?? a.articleId ?? null;
+    if (articleNumber != null) {
+      articleRecords.push({
+        articleNumber: String(articleNumber),
+        complexNo: a.complexNumber ?? null,
+        complexName: a.complexName,
+        tradeType,
+        exclusiveArea: area,
+        supplyArea: supply,
+        price,
+        ...feat,
+      });
     }
   }
 
@@ -365,9 +421,10 @@ function aggregateComplexes(articles, tradeType) {
           ? Math.round(minPrice / (bucket.supplyArea / PYEONG_M2))
           : null,
       approvalElapsedYear: years.length ? Math.round(years.reduce((s, v) => s + v, 0) / years.length) : null,
+      hasBargainKeyword: bucket.hasBargainKeyword,
     });
   }
-  return complexes;
+  return { complexes, articleRecords };
 }
 
 // ---- 단지 상세 보강 ----
@@ -616,12 +673,15 @@ async function fetchAllRegions() {
 
   // 구 단위 지역: 그 구의 모든 동에서 모은 매물을 한 번에 집계
   const results = [];
+  const allArticleRecords = [];
   for (const { gu, articles } of byGu.values()) {
     const complexes = [];
     let total = 0;
     for (const [tradeType, list] of articles) {
       total += list.length;
-      complexes.push(...aggregateComplexes(list, tradeType));
+      const agg = aggregateComplexes(list, tradeType);
+      complexes.push(...agg.complexes);
+      allArticleRecords.push(...agg.articleRecords);
     }
     if (complexes.length === 0) continue; // 전부 실패한 구는 기존 데이터를 남겨둔다
     const complexCount = new Set(complexes.map((c) => c.complexNo ?? c.complexName)).size;
@@ -642,7 +702,11 @@ async function fetchAllRegions() {
   // 정밀 동 지역(구 집계와 별개로 동 단위 행도 제공)
   for (const spot of spotlightArticles.values()) {
     const complexes = [];
-    for (const [tradeType, list] of spot.byTradeType) complexes.push(...aggregateComplexes(list, tradeType));
+    for (const [tradeType, list] of spot.byTradeType) {
+      const agg = aggregateComplexes(list, tradeType);
+      complexes.push(...agg.complexes);
+      allArticleRecords.push(...agg.articleRecords);
+    }
     if (complexes.length === 0) continue;
     results.push({
       cortarNo: spot.dongNumber,
@@ -657,7 +721,7 @@ async function fetchAllRegions() {
 
   await enrichWithComplexDetail(results);
 
-  return results;
+  return { regions: results, articleRecords: allArticleRecords };
 }
 
 // ---- 평당호가최저가 주간 변화율 ----
@@ -804,9 +868,70 @@ async function probeOnce() {
     console.log(`받은 그룹 ${list.length}개`);
     console.log("=== RESULT KEYS ===");
     console.log(JSON.stringify(Object.keys(json.result || {})));
-    for (const [i, group] of list.slice(0, 1).entries()) {
+    for (const [i, group] of list.slice(0, 5).entries()) {
       console.log(`=== GROUP ${i} 전체 ===`);
       console.log(JSON.stringify(group, null, 2));
+    }
+
+    // 규칙 6(매물별 상세 정보) 필드명 추정치가 맞는지 한 번에 확인 — 실제 응답으로
+    // extractArticleFeatures()를 돌려보고 어떤 후보 경로가 값을 채우는지 표로 남긴다.
+    console.log("=== 규칙 6 필드 추정 확인 (extractArticleFeatures) ===");
+    const repSamples = list.slice(0, 5).map((g) => g.representativeArticleInfo).filter(Boolean);
+    for (const [i, rep] of repSamples.entries()) {
+      console.log(`  [매물 ${i}] articleNumber=${rep.articleNumber ?? rep.articleId ?? "?"}`);
+      console.log(`    ${JSON.stringify(extractArticleFeatures(rep))}`);
+    }
+    const fieldHit = (getter) => repSamples.filter((r) => {
+      try {
+        const v = getter(r);
+        return v != null && v !== "" && !(Array.isArray(v) && v.length === 0);
+      } catch (e) {
+        return false;
+      }
+    }).length;
+    console.log("  후보 필드별 발견 건수:");
+    console.log(`    floorInfo.floor: ${fieldHit((r) => r.floorInfo?.floor)}/${repSamples.length}`);
+    console.log(`    direction: ${fieldHit((r) => r.direction)}/${repSamples.length}`);
+    console.log(`    directionTypeName: ${fieldHit((r) => r.directionTypeName)}/${repSamples.length}`);
+    console.log(`    spaceInfo.roomCount: ${fieldHit((r) => r.spaceInfo?.roomCount)}/${repSamples.length}`);
+    console.log(`    priceInfo.priceString: ${fieldHit((r) => r.priceInfo?.priceString)}/${repSamples.length}`);
+    console.log(`    tagList: ${fieldHit((r) => r.tagList)}/${repSamples.length}`);
+    console.log(`    articleFeatureDescription: ${fieldHit((r) => r.articleFeatureDescription)}/${repSamples.length}`);
+
+    // 매물 상세(관리비/설명/부동산 정보로 추정)는 목록 응답에 없을 가능성이 높다.
+    // 개별 매물 상세 페이지가 어떤 API를 부르는지 실제로 열어보고 잡아낸다.
+    const probeArticleNumber = repSamples[0]?.articleNumber ?? repSamples[0]?.articleId;
+    if (probeArticleNumber) {
+      console.log(`=== 매물 상세 페이지 네트워크 조사: articleNumber=${probeArticleNumber} ===`);
+      const articleSeen = [];
+      const onArticleResponse = async (r) => {
+        const url = r.url();
+        if (!url.includes("/front-api/")) return;
+        let respBody = "";
+        try {
+          respBody = (await r.text()).slice(0, 1200);
+        } catch (e) {
+          respBody = `(본문 읽기 실패: ${e.message})`;
+        }
+        articleSeen.push({ url, status: r.status(), body: respBody });
+      };
+      page.on("response", onArticleResponse);
+      try {
+        // 정확한 URL 패턴이 확인되지 않아 추정값으로 시도한다 — 실패해도 무해함(로그만 남김).
+        await page.goto(`https://fin.land.naver.com/articles/${probeArticleNumber}`, {
+          waitUntil: "networkidle",
+          timeout: 45000,
+        });
+        await page.waitForTimeout(3000);
+      } catch (e) {
+        console.log(`  매물 상세 페이지 이동 실패(추정 URL이 틀렸을 수 있음): ${e.message.split("\n")[0]}`);
+      }
+      page.off("response", onArticleResponse);
+      console.log(`  front-api 호출 ${articleSeen.length}건`);
+      for (const s of articleSeen) {
+        console.log(`  --- ${s.status} ${s.url}`);
+        console.log(`  ${s.body}`);
+      }
     }
 
     // 세대수·실거래가는 매물 목록 응답에 없다. 단지 상세 페이지가 어떤 API를 부르는지
@@ -1009,6 +1134,114 @@ function updateDailySnapshot(merged, updatedAt, series, todayStr) {
   }
 }
 
+// ---- 규칙 6: 매물별(article) 상세 스냅샷 ----
+// naver-land-articles.json: "상세할 가치가 있는" 매물(신규 또는 급매 키워드 해당)만
+// 개별 저장한다(하루 5.7만 건 전체를 저장하면 naver-land-daily.json처럼 파일이
+// 급격히 불어난다). extractArticleFeatures()의 필드명이 대부분 미확정 추정치라,
+// 실제로 값이 채워지는 비율(히트율)이 너무 낮으면 파일 쓰기 자체를 건너뛴다 —
+// 필드명이 틀렸을 때 null투성이 파일이 퍼블릭 저장소에 커밋되는 걸 막기 위함.
+const ARTICLES_KEEP_DAYS = 45;
+const ARTICLE_HIT_RATE_THRESHOLD = 0.05;
+
+function readArticlesFile(articlesPath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(articlesPath, "utf8"));
+    return parsed && typeof parsed.articles === "object" ? parsed.articles : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function updateArticlesSnapshot(articleRecords, todayStr) {
+  const articlesPath = path.join(__dirname, "..", "data", "naver-land-articles.json");
+  const existing = readArticlesFile(articlesPath);
+
+  const presentNumbers = new Set();
+  const byNumber = new Map();
+  for (const r of articleRecords || []) {
+    if (r.articleNumber == null) continue;
+    presentNumbers.add(r.articleNumber);
+    byNumber.set(r.articleNumber, r); // 같은 매물이 구/정밀동 양쪽에 잡히면 나중 값으로 덮어써도 무해(동일 원본)
+  }
+
+  const detailWorthy = [...byNumber.entries()].filter(
+    ([no, r]) => !existing[no] || r.hasBargainKeyword
+  );
+
+  if (detailWorthy.length === 0) {
+    console.log("[매물상세] 신규/급매 후보 매물이 없어 건너뜁니다.");
+    return;
+  }
+
+  const hits = detailWorthy.filter(
+    ([, r]) => (r.tags && r.tags.length > 0) || r.featureSummary != null
+  ).length;
+  const hitRate = hits / detailWorthy.length;
+  console.log(
+    `[매물상세] 상세 대상 ${detailWorthy.length}건 중 태그/특징 발견 ${hits}건 ` +
+      `(히트율 ${(hitRate * 100).toFixed(1)}%)`
+  );
+
+  if (hitRate < ARTICLE_HIT_RATE_THRESHOLD) {
+    console.warn(
+      `[매물상세] 히트율이 ${(ARTICLE_HIT_RATE_THRESHOLD * 100).toFixed(0)}% 미만이라 ` +
+        "필드명 추정이 틀린 것으로 보입니다. naver-land-articles.json 쓰기를 건너뜁니다 — " +
+        "NAVER_SCOPE=probe로 재확인 후 extractArticleFeatures()를 교정해 주세요."
+    );
+    return;
+  }
+
+  const detailWorthySet = new Set(detailWorthy.map(([no]) => no));
+  const next = {};
+
+  // 기존에 저장돼 있던 매물 중 이번 상세 갱신 대상이 아닌 것들
+  for (const [no, rec] of Object.entries(existing)) {
+    if (detailWorthySet.has(no)) continue; // 아래에서 새로 씀
+    next[no] = presentNumbers.has(no)
+      ? { ...rec, lastSeenDate: todayStr, removedDate: null } // 여전히 보임 — 생존 기간만 갱신
+      : { ...rec, removedDate: rec.removedDate ?? todayStr }; // 이번엔 안 보임 — 내려간 것으로 기록
+  }
+
+  // 신규/급매 후보는 상세 정보로 새로 쓰거나 갱신
+  for (const [no, r] of detailWorthy) {
+    const prev = existing[no];
+    next[no] = {
+      complexNo: r.complexNo,
+      complexName: r.complexName,
+      tradeType: r.tradeType,
+      exclusiveArea: r.exclusiveArea,
+      supplyArea: r.supplyArea,
+      floor: r.floor,
+      direction: r.direction,
+      roomCount: r.roomCount,
+      bathRoomCount: r.bathRoomCount,
+      priceRaw: r.priceRaw,
+      price: r.price,
+      tags: r.tags,
+      featureSummary: r.featureSummary,
+      hasBargainKeyword: r.hasBargainKeyword,
+      firstSeenDate: prev?.firstSeenDate ?? todayStr,
+      lastSeenDate: todayStr,
+      removedDate: null,
+    };
+  }
+
+  // 45일 넘게 안 보인 매물 정리
+  const cutoffStr = kstDateStr(new Date(Date.now() - ARTICLES_KEEP_DAYS * 86400000));
+  for (const no of Object.keys(next)) {
+    if (next[no].lastSeenDate < cutoffStr) delete next[no];
+  }
+
+  fs.mkdirSync(path.dirname(articlesPath), { recursive: true });
+  fs.writeFileSync(
+    articlesPath,
+    JSON.stringify({ updatedAt: new Date().toISOString(), articles: next }, null, 2)
+  );
+  console.log(
+    `[매물상세] 저장 완료 — 총 ${Object.keys(next).length}건 보관 (이번 갱신 ${detailWorthy.length}건)`
+  );
+}
+
 // 급매 할인율 계산
 function bargainDiscount(complex) {
   if (!(complex.realMaxPrice > 0) || complex.minPrice == null) return null;
@@ -1025,12 +1258,15 @@ async function main() {
     return;
   }
   let regions = [];
+  let articleRecords = [];
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       console.log(`\n[시도 ${attempt}/${MAX_ATTEMPTS}] 네이버 부동산 매물 수집 시작 (${new Date().toISOString()})`);
-      regions = await fetchAllRegions();
+      const fetched = await fetchAllRegions();
+      regions = fetched.regions;
+      articleRecords = fetched.articleRecords;
       const totalComplexes = regions.reduce((s, r) => s + r.complexes.length, 0);
       console.log(`[시도 ${attempt}] 수집 완료: 총 ${regions.length}개 지역, ${totalComplexes}개 단지`);
       if (totalComplexes > 0) {
@@ -1104,6 +1340,10 @@ async function main() {
   // 일자별 요약 데이터 저장
   console.log(`[저장] 일자별 요약 데이터 저장 중...`);
   updateDailySnapshot(merged, data.updatedAt, series, today);
+
+  // 매물별(article) 상세 스냅샷 저장 (규칙 6) — 필드명 히트율이 낮으면 내부적으로 건너뜀
+  console.log(`[저장] 매물별 상세 스냅샷 저장 중...`);
+  updateArticlesSnapshot(articleRecords, today);
   console.log(`[완료] 수집 및 저장 작업 완료!`);
 }
 
@@ -1114,4 +1354,11 @@ if (require.main === module) {
   });
 }
 
-module.exports = { kstDateStr, historyKey, updateDailySnapshot };
+module.exports = {
+  kstDateStr,
+  historyKey,
+  updateDailySnapshot,
+  extractArticleFeatures,
+  textHasBargainKeyword,
+  updateArticlesSnapshot,
+};

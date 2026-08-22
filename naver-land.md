@@ -11,6 +11,7 @@
 | `data/naver-land.json` | 최신 스냅샷 (지역 → 단지×면적×거래유형 행) | `regions[].complexes[]` |
 | `data/naver-land-daily.json` | 날짜별 집계 스냅샷 + 그날의 "신규 단지" 목록. 90일 보관 | 날짜(UTC) 문자열 |
 | `data/naver-land-history.json` | `(complexNo\|전용면적\|거래유형)`별 일별 시계열 `[날짜, 평당호가최저가, 최저호가원본]`. 30일 보관, 3일 간격으로 솎음 | `series["복합키"]` |
+| `data/naver-land-articles.json` | 매물(article) 단위 상세 스냅샷(신규/급매 후보만). 45일 보관 | `articles[articleNumber]` — 설계만, 아직 없음. 규칙 6 참고 |
 
 ## 점검 결과 — Run #39 (2026-08-22)
 
@@ -100,7 +101,8 @@ UTC로는 여전히 "전날"이 되어 하루 이른 날짜에 데이터가 쌓�
 | 2 | 관리자 탭의 신규 등록 매물은 과거 30일 조회 가능해야 함 | 설계상 충족, 축적 중 ⚠️ | `#newListingsPanel`의 날짜 셀렉트가 `naver-land-history.json`의 (단지\|면적) 최초 관측일들로 채워짐(`HISTORY_KEEP_DAYS=30`). 이 이력 추적이 2026-08-20 도입돼 아직 30일치가 다 안 쌓임(2026-09-19경 완성 예정). **문제 1 해결**로 날짜 라벨 자체는 이제 정확함 |
 | 3 | 신규 등록 매물 중 호가가 실거래가 대비 하락율 순으로 조회할 수 있어야 함 | **충족 ✅** | `#newListingsPanel`의 `renderForDate()`가 각 행을 `bargainDiscount()`(호가 vs `realMaxPrice`) 내림차순으로 이미 정렬해서 보여줌 |
 | 4 | 신규 등록 매물을 단지별·평형별 신규 매물 개수 증감 순위로도 조회할 수 있어야 함 | 미구현 — 설계만 | 아래 "설계: 규칙 4" 참고 |
-| 5 | 매물 수집 시 급매 등 키워드를 함께 수집해 JSON에 표시하고, 관리자 탭 신규 등록 매물에서 활용 가능하도록 설계 | 미구현 — 설계만 | 아래 "설계: 규칙 5" 참고. 현재 `boundedArticles` 응답에서 가격·면적·주소·건물정보만 추출하며 텍스트/태그 필드는 저장하지 않음 |
+| 5 | 매물 수집 시 급매 등 키워드를 함께 수집해 JSON에 표시하고, 관리자 탭 신규 등록 매물에서 활용 가능하도록 설계 | **규칙 6으로 대체됨** | 아래 "설계: 규칙 5(대체됨)" 참고 |
+| 6 | (2026-08-22 추가) 매물별 상세 정보(특징요약/특징/설명/방향/층수/방수 등)를 개별 매물 단위로 수집 | 미구현 — 설계 + 스캐폴딩만, 필드명 미확정 | 아래 "설계: 규칙 6" 참고. 실제 Naver API 필드명 확인은 실 러너의 `NAVER_SCOPE=probe` 실행 필요 |
 
 ## 설계: 규칙 4 — 단지·평형별 신규 매물 개수 증감 순위
 
@@ -124,27 +126,70 @@ series["complexNo|area|tradeType"] = [
 `applyWeeklyChange()`(현재 `[today, row.pyeongAskMin, row.minPrice ?? null]`을 미는 부분)와
 `index.html`의 소비 코드를 함께 바꿔야 한다.
 
-## 설계: 규칙 5 — 급매 키워드 수집
+## 설계: 규칙 5(대체됨) — 급매 키워드 수집
 
-- 현재 `/front-api/v1/article/boundedArticles` 응답에서 스크립트가 실제로 읽는 필드는
-  `priceInfo`, `spaceInfo`, `buildingInfo.approvalElapsedYear`, `address.sector`,
-  `complexNumber`/`complexName`뿐이다(`aggregateComplexes()` 참고). 원본 응답에 태그·설명
-  필드(`tagList`, `articleFeatureDescription` 등)가 실제로 오는지는 이번 점검 환경(클라우드/
-  개발 PC IP)에서는 네이버 접속 자체가 차단돼 확인할 수 없었다 — **국내 러너에서
-  `NAVER_SCOPE=probe` 실행으로 원본 응답 스키마를 먼저 확인해야 한다**
-  (`fetch-naver-land.js`의 `probeOnce()`가 이미 이 용도로 존재).
-- **제안 스키마**: 단지×면적 집계 행(`aggregateComplexes()`의 결과)에 아래 필드 추가:
-  ```
-  tags: string[]           // 원본에서 발견된 급매류 키워드 원문
-  hasBargainKeyword: boolean
-  ```
-  집계 단위가 (단지, 면적)이라 매물 여러 건이 한 행으로 뭉쳐지므로, 그 중 하나라도
-  키워드를 포함하면 `hasBargainKeyword=true`로 표시하고 `tags`에 실제 발견된 문구를 모아
-  둔다(중복 제거).
-- 키워드 판정은 정확 매칭보다 유사어 목록(예: "급매", "급급매", "급처") 기반으로 하고,
-  목록은 별도 상수로 분리해 오탐 시 쉽게 조정 가능하게 한다.
-- 관리자 탭 `#newListingsPanel`의 각 행에 급매 배지를 추가하고, 규칙 3의 하락율 정렬과
-  별개로 "급매 키워드만 보기" 필터를 추가한다.
+**2026-08-22: 규칙 6으로 대체됨.** 원래 설계는 단지×면적 집계 행에 `tags: string[]`를
+직접 붙이는 것이었는데, 집계 행 하나가 매물 수십 건을 대표할 수 있어("한 줄에 116건"인
+경우도 실측됨) "이 행의 tags가 정확히 무엇을 가리키는가"가 애매했다. 매물별 상세를
+아예 별도 파일(`naver-land-articles.json`)로 개별 수집하는 규칙 6이 이 문제를 근본적으로
+해소하므로, 집계 행에는 저비용 파생값 `hasBargainKeyword: boolean`만 남기고(버킷 내
+매물 중 하나라도 급매 키워드에 걸리면 true) 전체 태그/설명은 규칙 6 쪽에서 다룬다.
+유사어 목록(`BARGAIN_KEYWORDS`) 아이디어는 규칙 6에 그대로 이어받았다.
+
+## 설계: 규칙 6 — 매물별(article) 상세 정보 수집 (2026-08-22 추가)
+
+**배경**: 사용자가 참고로 제공한 외부 스크레이핑 결과(102건, "서울 급매" 검색)에는
+매물특징요약(태그)/매물특징(한 줄 요약)/매물설명(장문)/방향/층수/방수/화장실수/관리비
+등 지금 `fetch-naver-land.js`가 버리고 있는 개별 매물 단위 상세 필드가 담겨 있었다.
+현재 수집기는 `(complexNo, exclusiveArea)` 단위로 매물 여러 건을 하나의 집계 행으로
+뭉치면서 `priceInfo`/`spaceInfo`/`buildingInfo.approvalElapsedYear`/`address.sector`/
+`complexNumber`/`complexName` 외의 모든 필드를 버린다(`aggregateComplexes()` 참고).
+
+**데이터 모델**: 신규 파일 `data/naver-land-articles.json`.
+
+```jsonc
+{
+  "updatedAt": "2026-08-22T...Z",
+  "articles": {
+    "<articleNumber>": {
+      "complexNo": 12345, "complexName": "...", "tradeType": "A1",
+      "exclusiveArea": 84.97, "supplyArea": 112.4,
+      "floor": "10/20", "direction": "남향",
+      "roomCount": 3, "bathRoomCount": 2,
+      "priceRaw": "매매 18억 5,000", "price": 185000,
+      "tags": ["10년이내", "대단지", "필로티", "방세개"],
+      "featureSummary": "...", "description": "...",
+      "managementCost": null,
+      "hasBargainKeyword": false,
+      "firstSeenDate": "2026-08-22", "lastSeenDate": "2026-08-22",
+      "removedDate": null
+    }
+  }
+}
+```
+
+- **키**: `articleNumber`(폴백 `articleId`) — 이미 `fetchAllRegions()`의 중복 제거
+  로직에서 실사용 중인 확정 필드명.
+- **전체 매물(하루 약 5.7만건)을 다 저장하지 않는다.** `naver-land-daily.json`이
+  4.2MB까지 불어난 전례(과거 신규 단지 오탐 버그의 직접 결과)가 있어, 저장 대상을
+  "상세할 가치가 있는" 부분집합으로 제한: (a) 이 파일 기준으로 이번에 처음 보는 매물,
+  (b) 급매 키워드(`BARGAIN_KEYWORDS`)에 걸리는 매물.
+- **스냅샷 방식**: 매물별 전체 이력이 아니라 최신 스냅샷만 유지. 재관측되면
+  `lastSeenDate` 갱신, 이번에 안 보이면 `removedDate` 기록 — "제안 규칙 6"(매물 내려감
+  감지)을 부수적으로 해결.
+- **보관 기간**: `lastSeenDate` 기준 45일.
+- **개인정보**: `data/*.json`은 배포 시 퍼블릭 미러 저장소로 그대로 복사돼 bujamap.kr에
+  실린다(`docs/private-repo-pages.md`). **부동산번호1/2(전화)·부동산명·부동산주소는
+  아예 추출/저장하지 않는다** — 이미 네이버에 공개된 정보라도, 이 개인 대시보드에 저장할
+  기능적 필요가 없고 다른 공개 도메인에 재게시할 이유가 없다. 매물설명(장문)은 저장하되,
+  전화번호 패턴(`/01[0-9]-?\d{3,4}-?\d{4}/`)이 섞여 있으면 저장 전 제거한다.
+- **필드명은 전부 미확정 추정치** — `priceInfo`/`spaceInfo`처럼 그룹화된 응답 구조를
+  근거로 한 최선의 추측이며, 실제 확인은 `NAVER_SCOPE=probe`로만 가능(이 개발 환경은
+  네이버 접속 자체가 차단돼 있음). 히트율(추정 필드가 실제로 값을 채우는 비율)이 낮으면
+  `naver-land-articles.json` 쓰기 자체를 건너뛰도록 가드를 둬서, 필드명이 틀렸을 때
+  null투성이 파일이 퍼블릭 저장소에 커밋되는 걸 막는다.
+- **후속 UI 작업(별도 범위)**: `#newListingsPanel`의 각 행에 태그 칩/설명 표시,
+  `hasBargainKeyword`를 기존 하락율 기반 급매 판정과 함께 필터링에 반영.
 
 ## 제안 규칙 (추가로 고려할 것)
 
@@ -158,8 +203,9 @@ series["complexNo|area|tradeType"] = [
 5. `naver-land-daily.json`(90일) / `naver-land-history.json`(30일) 보관 기간이 서로
    다른 이유(용도가 다름: 전자는 일별 집계 그래프용, 후자는 신규 매물 위젯 + 주간
    변화율용)를 명문화.
-6. 매물이 내려간(삭제된) 경우를 감지·표시하는 규칙 추가 — 현재는 새로 나타난 매물만
-   추적하고 사라진 매물은 별도 기록이 없음.
+6. ~~매물이 내려간(삭제된) 경우를 감지·표시하는 규칙 추가~~ — **규칙 6 설계로 해결**.
+   `naver-land-articles.json`의 스냅샷 방식(재관측 시 `lastSeenDate` 갱신, 미관측 시
+   `removedDate` 기록)이 부수적으로 이 요구를 충족.
 7. 워크플로 실패(예: 이전 run #37/#35/#34 실패) 시 데이터 정합성 체크 — 전일 대비
    건수가 비정상적으로 급감/급증하면 경고하는 규칙 추가 (이번 점검에서 발견한 문제 2도
    이런 검증이 있었다면 조기에 잡혔을 것).
