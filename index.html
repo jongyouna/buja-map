@@ -194,6 +194,23 @@
     color: #ff6b6b;
     margin-left: 3px;
   }
+  /* 급매 "키워드" 하이라이트(단지명) — 가격 기반 급매(row-bargain/bargain-badge, 빨강 계열)와
+     구분되는 신호이므로 다른 색(보라)을 쓴다. */
+  .naver-keyword-bargain {
+    color: #6d3df5;
+    background: rgba(124, 77, 255, 0.12);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 700;
+  }
+  .naver-feature-summary {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
   .pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; }
   .pager-btn {
     min-width: 38px;
@@ -2647,12 +2664,15 @@
         <table class="naver-table" id="newListingsTable">
           <thead>
             <tr>
-              <th>지역</th>
-              <th>단지명</th>
-              <th class="num">평형</th>
-              <th class="num">등록일</th>
-              <th class="num">신규호가</th>
-              <th class="num">실거래가 대비</th>
+              <th data-sort="region" class="sortable">지역</th>
+              <th data-sort="complexName" class="sortable">단지명</th>
+              <th data-sort="featureSummary" class="sortable">게시글 요약</th>
+              <th data-sort="hasBargainKeyword" class="sortable">급매 키워드</th>
+              <th data-sort="firstSeenDate" class="sortable">최초 등록일</th>
+              <th data-sort="exclusiveArea" class="sortable num">평형</th>
+              <th data-sort="date" class="sortable num">등록일</th>
+              <th data-sort="minPrice" class="sortable num">신규호가</th>
+              <th data-sort="off" class="sortable num">실거래가 대비</th>
             </tr>
           </thead>
           <tbody id="newListingsTableBody"></tbody>
@@ -6953,6 +6973,27 @@ async function initNewListingsWidget() {
     return;
   }
 
+  // 게시글 요약/급매 키워드/최초 등록일: "상세할 가치가 있는"(신규 또는 급매) 매물만
+  // 담긴 보조 파일이라 이 표의 모든 행과 매칭되지는 않는다. 이 파일이 없거나 손상돼도
+  // 나머지 위젯은 정상 동작해야 하므로 실패를 별도로 흡수한다.
+  const articleByKey = new Map();
+  try {
+    const articlesRes = await fetch("./data/naver-land-articles.json");
+    if (articlesRes.ok) {
+      const articlesPayload = await articlesRes.json();
+      for (const a of Object.values(articlesPayload.articles || {})) {
+        if (a.exclusiveArea == null) continue;
+        const key = `${a.complexNo ?? a.complexName}|${a.exclusiveArea.toFixed(2)}|${a.tradeType}`;
+        const prev = articleByKey.get(key);
+        if (!prev) articleByKey.set(key, a);
+        else if (a.hasBargainKeyword && !prev.hasBargainKeyword) articleByKey.set(key, a);
+        else if (a.hasBargainKeyword === prev.hasBargainKeyword && (a.firstSeenDate || "") > (prev.firstSeenDate || "")) articleByKey.set(key, a);
+      }
+    }
+  } catch (e) {
+    console.log("[신규 등록 매물] naver-land-articles.json을 불러오지 못했습니다(계속 진행):", e.message);
+  }
+
   // 단지 정보 수집
   const complexMeta = new Map();
   for (const region of payload.regions || []) {
@@ -6989,7 +7030,41 @@ async function initNewListingsWidget() {
   }
 
   let newListingsPageNo = 1;
+  let newListingsSortKey = "off";
+  let newListingsSortDir = "desc";
   const PAGER_WINDOW = 10;
+
+  const rowValue = (row, key) => {
+    if (key === "region") return row.meta?.regionLabel ?? null;
+    if (key === "complexName") return row.meta?.complexName ?? null;
+    if (key === "featureSummary") return row.article?.featureSummary ?? null;
+    if (key === "hasBargainKeyword") return row.article ? (row.article.hasBargainKeyword ? 1 : 0) : null;
+    if (key === "firstSeenDate") return row.article?.firstSeenDate ?? null;
+    if (key === "exclusiveArea") return row.meta?.exclusiveArea ?? null;
+    if (key === "date") return row.date ?? null;
+    if (key === "minPrice") return row.minPrice ?? null;
+    if (key === "off") return row.off ?? null;
+    return null;
+  };
+
+  function sortRows(rows) {
+    rows.sort((a, b) => {
+      const va = rowValue(a, newListingsSortKey);
+      const vb = rowValue(b, newListingsSortKey);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      const cmp = typeof va === "string" ? va.localeCompare(vb, "ko") : va - vb;
+      return newListingsSortDir === "asc" ? cmp : -cmp;
+    });
+  }
+
+  function syncNewListingsSortHeaders() {
+    document.querySelectorAll("#newListingsTable th.sortable").forEach((th) => {
+      th.classList.remove("sorted-asc", "sorted-desc");
+      if (th.dataset.sort === newListingsSortKey) th.classList.add(newListingsSortDir === "asc" ? "sorted-asc" : "sorted-desc");
+    });
+  }
 
   function renderNewListingsPager(pageCount) {
     pager.innerHTML = "";
@@ -7037,13 +7112,13 @@ async function initNewListingsWidget() {
 
   function renderForDate(date) {
     newListingsPageNo = 1;
-    const rows = (newRowsByDate.get(date) || [])
-      .map(({ key, minPrice }) => {
-        const meta = complexMeta.get(key);
-        const off = bargainDiscount({ realMaxPrice: meta?.realMaxPrice, minPrice });
-        return { minPrice, meta, off };
-      })
-      .sort((a, b) => (b.off ?? -Infinity) - (a.off ?? -Infinity));
+    syncNewListingsSortHeaders();
+    const rows = (newRowsByDate.get(date) || []).map(({ key, minPrice }) => {
+      const meta = complexMeta.get(key);
+      const off = bargainDiscount({ realMaxPrice: meta?.realMaxPrice, minPrice });
+      return { minPrice, meta, off, date, article: articleByKey.get(key) };
+    });
+    sortRows(rows);
 
     sumRows = rows.length;
 
@@ -7063,20 +7138,31 @@ async function initNewListingsWidget() {
     const pagedRows = rows.slice(start, start + itemsPerPage);
 
     newTbody.innerHTML = pagedRows
-      .map(({ minPrice, meta, off }) => {
+      .map(({ minPrice, meta, off, article }) => {
         const bargain = off != null && off >= bargainPct;
+        const keywordBargain = article?.hasBargainKeyword === true;
         const exArea = meta?.exclusiveArea;
         const areaCell =
           exArea == null
             ? "–"
             : `${exArea.toFixed(1)}㎡ <span class="naver-pyeong">${(exArea / 3.305785).toFixed(1)}평</span>`;
+        const nameText = escapeHtml(meta?.complexName || "–");
+        const nameInner = keywordBargain ? `<span class="naver-keyword-bargain">${nameText}</span>` : nameText;
         const nameCell = meta?.complexNo
-          ? `<a class="naver-complex-link" href="https://fin.land.naver.com/complex/${meta.complexNo}?realEstateType=APT&tradType=A1&exclusiveSpaceMode=true&exclusiveSpace=${exArea?.toFixed(2)}" target="_blank" rel="noopener">${escapeHtml(meta.complexName)}</a>`
-          : escapeHtml(meta?.complexName || "–");
+          ? `<a class="naver-complex-link" href="https://fin.land.naver.com/complex/${meta.complexNo}?realEstateType=APT&tradType=A1&exclusiveSpaceMode=true&exclusiveSpace=${exArea?.toFixed(2)}" target="_blank" rel="noopener">${nameInner}</a>`
+          : nameInner;
+        const featureSummaryCell = article?.featureSummary
+          ? `<span class="naver-feature-summary" title="${escapeHtml(article.featureSummary)}">${escapeHtml(article.featureSummary)}</span>`
+          : "–";
+        const keywordCell = article ? (keywordBargain ? '<span class="bargain-tag">급매</span>' : "일반") : "–";
+        const firstSeenCell = article?.firstSeenDate || "–";
         return `
         <tr${bargain ? ' class="row-bargain"' : ""}>
           <td class="naver-region">${escapeHtml(meta?.regionLabel || "–")}</td>
           <td>${bargain ? BARGAIN_ICON : ""}${nameCell}</td>
+          <td>${featureSummaryCell}</td>
+          <td>${keywordCell}</td>
+          <td class="num">${firstSeenCell}</td>
           <td class="num">${areaCell}</td>
           <td class="num">${date}</td>
           <td class="num">${minPrice == null ? "–" : fmtEok(minPrice)}${
@@ -7103,6 +7189,19 @@ async function initNewListingsWidget() {
 
   dateSelect.addEventListener("change", () => renderForDate(dateSelect.value));
   limitSelect.addEventListener("change", () => renderForDate(dateSelect.value));
+
+  document.querySelectorAll("#newListingsTable th.sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (newListingsSortKey === key) {
+        newListingsSortDir = newListingsSortDir === "asc" ? "desc" : "asc";
+      } else {
+        newListingsSortKey = key;
+        newListingsSortDir = key === "complexName" || key === "region" ? "asc" : "desc";
+      }
+      renderForDate(dateSelect.value);
+    });
+  });
 }
 
 // ---- 급매 판정 기준 (관리자만 수정) ----
