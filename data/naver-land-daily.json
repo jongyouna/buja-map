@@ -143433,17 +143433,17 @@
     ]
   },
   "2026-08-22": {
-    "updatedAt": "2026-08-22T10:42:42.507Z",
-    "totalComplexes": 14468,
-    "totalListings": 57859,
-    "bargainCount": 1448,
-    "avgPyeongPrice": 5891,
+    "updatedAt": "2026-08-22T13:38:45.633Z",
+    "totalComplexes": 14506,
+    "totalListings": 57930,
+    "bargainCount": 1449,
+    "avgPyeongPrice": 5892,
     "regions": [
       {
         "name": "서울 강남구",
-        "complexes": 1445,
-        "listings": 7887,
-        "bargainCount": 192
+        "complexes": 1483,
+        "listings": 7958,
+        "bargainCount": 193
       },
       {
         "name": "서울 강동구",
@@ -143608,6 +143608,16 @@
         "count": 2
       },
       {
+        "complexNo": 13237,
+        "complexName": "양재SK허브프리모(주상복합)",
+        "area": 98.16,
+        "minPrice": 115000,
+        "maxPrice": 115000,
+        "region": "도곡동",
+        "url": "https://land.naver.com/complexes/13237",
+        "count": 1
+      },
+      {
         "complexNo": 112228,
         "complexName": "래미안블레스티지",
         "area": 80.86,
@@ -143625,16 +143635,6 @@
         "maxPrice": 139000,
         "region": "도곡동",
         "url": "https://land.naver.com/complexes/156127",
-        "count": 1
-      },
-      {
-        "complexNo": 13237,
-        "complexName": "양재SK허브프리모(주상복합)",
-        "area": 98.16,
-        "minPrice": 115000,
-        "maxPrice": 115000,
-        "region": "도곡동",
-        "url": "https://land.naver.com/complexes/13237",
         "count": 1
       },
       {
@@ -143658,16 +143658,6 @@
         "count": 1
       },
       {
-        "complexNo": 104032,
-        "complexName": "테헤란아이파크",
-        "area": 104.22,
-        "minPrice": 320000,
-        "maxPrice": 320000,
-        "region": "역삼동",
-        "url": "https://land.naver.com/complexes/104032",
-        "count": 1
-      },
-      {
         "complexNo": 139570,
         "complexName": "원에디션강남(도시형)",
         "area": 60.85,
@@ -143675,6 +143665,16 @@
         "maxPrice": 107000,
         "region": "역삼동",
         "url": "https://land.naver.com/complexes/139570",
+        "count": 1
+      },
+      {
+        "complexNo": 104032,
+        "complexName": "테헤란아이파크",
+        "area": 104.22,
+        "minPrice": 320000,
+        "maxPrice": 320000,
+        "region": "역삼동",
+        "url": "https://land.naver.com/complexes/104032",
         "count": 1
       },
       {
@@ -143688,16 +143688,6 @@
         "count": 1
       },
       {
-        "complexNo": 16299,
-        "complexName": "삼성더파크뷰",
-        "area": 215.58,
-        "minPrice": 450000,
-        "maxPrice": 450000,
-        "region": "삼성동",
-        "url": "https://land.naver.com/complexes/16299",
-        "count": 1
-      },
-      {
         "complexNo": 13442,
         "complexName": "삼성월드타워",
         "area": 66.98,
@@ -143708,13 +143698,13 @@
         "count": 1
       },
       {
-        "complexNo": 143377,
-        "complexName": "위레벤646(도시형)",
-        "area": 68.76,
-        "minPrice": 180000,
-        "maxPrice": 180000,
+        "complexNo": 16299,
+        "complexName": "삼성더파크뷰",
+        "area": 215.58,
+        "minPrice": 450000,
+        "maxPrice": 450000,
         "region": "삼성동",
-        "url": "https://land.naver.com/complexes/143377",
+        "url": "https://land.naver.com/complexes/16299",
         "count": 1
       },
       {
@@ -143726,6 +143716,26 @@
         "region": "삼성동",
         "url": "https://land.naver.com/complexes/8436",
         "count": 2
+      },
+      {
+        "complexNo": 104710,
+        "complexName": "우찬",
+        "area": 115.86,
+        "minPrice": 140000,
+        "maxPrice": 140000,
+        "region": "신사동",
+        "url": "https://land.naver.com/complexes/104710",
+        "count": 1
+      },
+      {
+        "complexNo": 143377,
+        "complexName": "위레벤646(도시형)",
+        "area": 68.76,
+        "minPrice": 180000,
+        "maxPrice": 180000,
+        "region": "삼성동",
+        "url": "https://land.naver.com/complexes/143377",
+        "count": 1
       },
       {
         "complexNo": 102972,
