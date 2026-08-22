@@ -303,11 +303,13 @@ async function fetchArticlesForRegion(page, boundingBox, tradeType, maxPages) {
 }
 
 // ---- 규칙 6: 매물별(article) 상세 정보 ----
-// 아래 필드 경로는 전부 미확정 추정치다(priceInfo/spaceInfo처럼 그룹화된 응답 구조를
-// 근거로 한 최선의 추측). 실제 확인은 NAVER_SCOPE=probe로 국내 러너에서만 가능하다
-// (이 저장소의 개발 환경은 네이버 접속 자체가 차단돼 있음). probeOnce()가 이 함수를
-// 실제 응답에 돌려 발견/미발견을 로그로 남긴다. updateArticlesSnapshot()의 히트율
-// 가드가, 추정이 틀렸을 때 null투성이 파일이 저장되는 걸 막는다.
+// run #42(2026-08-22)에서 NAVER_SCOPE=probe로 실제 boundedArticles 응답을 확인했다.
+// 확인된 경로: a.articleDetail.direction(예: "SS", 나침반 코드), a.articleDetail.floorInfo
+// (예: "고/7", 문자열), a.articleDetail.articleFeatureDescription(자유 텍스트 한 문장).
+// roomCount/bathRoomCount/tagList/priceInfo.priceString은 이 응답에 아예 존재하지
+// 않는 것으로 확인됨(5건 중 0건 발견) — 목록 API에는 없는 필드라 null로 고정한다.
+// 매물 상세 페이지(articles/{no})의 recentView 응답에서 같은 articleDetail 구조가
+// 다시 보였으므로, 이 경로가 목록/상세 양쪽에서 쓰이는 정식 필드로 보인다.
 const BARGAIN_KEYWORDS = ["급매", "급급매", "급처", "급매물"];
 
 function textHasBargainKeyword(text) {
@@ -316,24 +318,17 @@ function textHasBargainKeyword(text) {
 }
 
 function extractArticleFeatures(a) {
-  const tags = Array.isArray(a.tagList)
-    ? a.tagList
-    : Array.isArray(a.articleFeatureDescription?.tagList)
-      ? a.articleFeatureDescription.tagList
-      : [];
-  const featureSummary =
-    (typeof a.articleFeatureDescription === "string" ? a.articleFeatureDescription : null) ??
-    a.articleFeatureDescription?.text ??
-    null;
+  const featureSummary = a.articleDetail?.articleFeatureDescription ?? null;
+  const tags = []; // 목록 응답에는 별도 태그 배열이 없음(확인 완료) — 급매 판정은 featureSummary 텍스트로만 함
   return {
-    floor: a.floorInfo?.floor ?? (typeof a.floorInfo === "string" ? a.floorInfo : null),
-    direction: a.direction ?? a.directionTypeName ?? null,
-    roomCount: a.spaceInfo?.roomCount ?? a.roomCount ?? null,
-    bathRoomCount: a.spaceInfo?.bathRoomCount ?? a.bathRoomCount ?? null,
-    priceRaw: a.priceInfo?.priceString ?? a.priceInfo?.dealOrWarrantyPriceText ?? null,
+    floor: a.articleDetail?.floorInfo ?? null,
+    direction: a.articleDetail?.direction ?? null,
+    roomCount: null, // 목록 응답에 없음(확인 완료)
+    bathRoomCount: null, // 목록 응답에 없음(확인 완료)
+    priceRaw: null, // 목록 응답에 없음(확인 완료) — 필요하면 priceInfo.dealPrice/warrantyPrice(원)를 그대로 사용
     tags,
     featureSummary,
-    hasBargainKeyword: textHasBargainKeyword(tags.join(",")) || textHasBargainKeyword(featureSummary),
+    hasBargainKeyword: textHasBargainKeyword(featureSummary),
   };
 }
 
@@ -889,14 +884,12 @@ async function probeOnce() {
         return false;
       }
     }).length;
-    console.log("  후보 필드별 발견 건수:");
-    console.log(`    floorInfo.floor: ${fieldHit((r) => r.floorInfo?.floor)}/${repSamples.length}`);
-    console.log(`    direction: ${fieldHit((r) => r.direction)}/${repSamples.length}`);
-    console.log(`    directionTypeName: ${fieldHit((r) => r.directionTypeName)}/${repSamples.length}`);
-    console.log(`    spaceInfo.roomCount: ${fieldHit((r) => r.spaceInfo?.roomCount)}/${repSamples.length}`);
-    console.log(`    priceInfo.priceString: ${fieldHit((r) => r.priceInfo?.priceString)}/${repSamples.length}`);
-    console.log(`    tagList: ${fieldHit((r) => r.tagList)}/${repSamples.length}`);
-    console.log(`    articleFeatureDescription: ${fieldHit((r) => r.articleFeatureDescription)}/${repSamples.length}`);
+    console.log("  후보 필드별 발견 건수 (run #42로 확인된 경로 기준):");
+    console.log(`    articleDetail.floorInfo: ${fieldHit((r) => r.articleDetail?.floorInfo)}/${repSamples.length}`);
+    console.log(`    articleDetail.direction: ${fieldHit((r) => r.articleDetail?.direction)}/${repSamples.length}`);
+    console.log(`    articleDetail.articleFeatureDescription: ${fieldHit((r) => r.articleDetail?.articleFeatureDescription)}/${repSamples.length}`);
+    console.log(`    (참고) spaceInfo.roomCount: ${fieldHit((r) => r.spaceInfo?.roomCount)}/${repSamples.length}`);
+    console.log(`    (참고) tagList: ${fieldHit((r) => r.tagList)}/${repSamples.length}`);
 
     // 매물 상세(관리비/설명/부동산 정보로 추정)는 목록 응답에 없을 가능성이 높다.
     // 개별 매물 상세 페이지가 어떤 API를 부르는지 실제로 열어보고 잡아낸다.
@@ -932,6 +925,10 @@ async function probeOnce() {
         console.log(`  --- ${s.status} ${s.url}`);
         console.log(`  ${s.body}`);
       }
+      // 매물 상세 페이지가 VR 투어 등 백그라운드 요청/폴링을 계속 띄워 두는 경우,
+      // 다음 페이지 이동의 waitUntil:"networkidle"이 영영 만족되지 않아 타임아웃 나는
+      // 사례를 실제로 겪었다(run #42). about:blank로 한번 비워 상태를 리셋한다.
+      await page.goto("about:blank").catch(() => {});
     }
 
     // 세대수·실거래가는 매물 목록 응답에 없다. 단지 상세 페이지가 어떤 API를 부르는지
@@ -941,79 +938,87 @@ async function probeOnce() {
       console.log("단지 번호를 찾지 못해 단지 상세 조사는 건너뜁니다.");
       return;
     }
-    console.log(`=== 단지 상세 페이지 네트워크 조사: complexNumber=${complexNumber} ===`);
-    const seen = [];
-    page.on("response", async (r) => {
-      const url = r.url();
-      if (!url.includes("/front-api/")) return;
-      let body = "";
-      try {
-        body = (await r.text()).slice(0, 1200);
-      } catch (e) {
-        body = `(본문 읽기 실패: ${e.message})`;
-      }
-      seen.push({ url, status: r.status(), body });
-    });
-    await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}`, {
-      waitUntil: "networkidle",
-      timeout: 45000,
-    });
-    await page.waitForTimeout(4000);
-    console.log(`front-api 호출 ${seen.length}건`);
-    for (const s of seen) {
-      console.log(`--- ${s.status} ${s.url}`);
-      console.log(s.body);
-    }
-
-    // URL 파라미터(tradeTypes / space / exclusiveSpaceMode)는 단지 페이지의 필터 UI에
-    // 반영되지 않는 것으로 확인됐다(필터 없이 연 것과 화면 글자가 완전히 동일했다).
-    // 그러니 파라미터 이름을 더 추측하지 말고, 화면에서 직접 필터를 걸어 네이버가
-    // 어떤 주소를 만드는지 받아 적는다.
-    console.log(`=== 필터를 직접 조작해 주소 받아내기 ===`);
-    await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}?tab=article`, {
-      waitUntil: "networkidle",
-      timeout: 45000,
-    });
-    await page.waitForTimeout(2500);
-    const clickByText = async (text) => {
-      const loc = page.locator(`text="${text}"`).first();
-      await loc.click({ timeout: 8000 });
-      await page.waitForTimeout(1500);
-    };
-    const dumpOptions = async (tag) => {
-      const opts = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("button,li,label,span"))
-          .map((el) => (el.childElementCount === 0 ? (el.textContent || "").trim() : ""))
-          .filter((t) => t && t.length < 16)
-      );
-      console.log(`   [${tag}] 보이는 항목: ${JSON.stringify([...new Set(opts)].slice(0, 40))}`);
-    };
-    for (const [label, steps] of [
-      ["거래유형", ["전체거래유형", "매매"]],
-      ["면적", ["전체면적"]],
-    ]) {
-      try {
-        for (const step of steps) {
-          await clickByText(step);
-          console.log(`   "${step}" 클릭 후 URL: ${page.url()}`);
+    // 이 구역 전체를 try로 감싼다 — probe는 진단용이라 한 구간이 타임아웃 나도
+    // 나머지 결과(위에서 이미 찍은 매물별 필드 확인표 등)는 살리고 정상 종료해야 한다.
+    // run #42에서 매물 상세 페이지 방문 직후 이 페이지 이동이 networkidle을 못 만나
+    // 45초 타임아웃으로 전체 워크플로가 실패한 적이 있다(위에서 about:blank로 리셋 추가).
+    try {
+      console.log(`=== 단지 상세 페이지 네트워크 조사: complexNumber=${complexNumber} ===`);
+      const seen = [];
+      page.on("response", async (r) => {
+        const url = r.url();
+        if (!url.includes("/front-api/")) return;
+        let body = "";
+        try {
+          body = (await r.text()).slice(0, 1200);
+        } catch (e) {
+          body = `(본문 읽기 실패: ${e.message})`;
         }
-        await dumpOptions(label);
-      } catch (e) {
-        console.log(`   [${label}] 실패: ${e.message.split("\n")[0]}`);
-        await dumpOptions(label + "(실패 시점)");
+        seen.push({ url, status: r.status(), body });
+      });
+      await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}`, {
+        waitUntil: "networkidle",
+        timeout: 45000,
+      });
+      await page.waitForTimeout(4000);
+      console.log(`front-api 호출 ${seen.length}건`);
+      for (const s of seen) {
+        console.log(`--- ${s.status} ${s.url}`);
+        console.log(s.body);
       }
-    }
-    console.log(`최종 URL: ${page.url()}`);
 
-    // [확인 완료] 표의 단지명 링크 형식.
-    //   https://fin.land.naver.com/complexes/{번호}?tab=article&tradeTypes=A1
-    //     &exclusiveSpaceMode=true&space={전용-0.5}-{전용+0.5}
-    // 이 주소는 /map 으로 리다이렉트되는데, 네 파라미터가 모두 layer 상태로 넘어간다:
-    //   [{"id":"complex_detail","params":{"complexId":109227},
-    //     "searchParams":{"tab":"article","tradeTypes":"A1",
-    //                     "exclusiveSpaceMode":"true","space":"114.0900-115.0900"}}]
-    // layer는 lz-string Base64 압축이지만, 우리가 직접 만들 필요 없이 위 주소만 쓰면 된다.
-    // tab=article 이라는 값은 네이버 자신의 recentView 응답이 알려준 것이다.
+      // URL 파라미터(tradeTypes / space / exclusiveSpaceMode)는 단지 페이지의 필터 UI에
+      // 반영되지 않는 것으로 확인됐다(필터 없이 연 것과 화면 글자가 완전히 동일했다).
+      // 그러니 파라미터 이름을 더 추측하지 말고, 화면에서 직접 필터를 걸어 네이버가
+      // 어떤 주소를 만드는지 받아 적는다.
+      console.log(`=== 필터를 직접 조작해 주소 받아내기 ===`);
+      await page.goto(`https://fin.land.naver.com/complexes/${complexNumber}?tab=article`, {
+        waitUntil: "networkidle",
+        timeout: 45000,
+      });
+      await page.waitForTimeout(2500);
+      const clickByText = async (text) => {
+        const loc = page.locator(`text="${text}"`).first();
+        await loc.click({ timeout: 8000 });
+        await page.waitForTimeout(1500);
+      };
+      const dumpOptions = async (tag) => {
+        const opts = await page.evaluate(() =>
+          Array.from(document.querySelectorAll("button,li,label,span"))
+            .map((el) => (el.childElementCount === 0 ? (el.textContent || "").trim() : ""))
+            .filter((t) => t && t.length < 16)
+        );
+        console.log(`   [${tag}] 보이는 항목: ${JSON.stringify([...new Set(opts)].slice(0, 40))}`);
+      };
+      for (const [label, steps] of [
+        ["거래유형", ["전체거래유형", "매매"]],
+        ["면적", ["전체면적"]],
+      ]) {
+        try {
+          for (const step of steps) {
+            await clickByText(step);
+            console.log(`   "${step}" 클릭 후 URL: ${page.url()}`);
+          }
+          await dumpOptions(label);
+        } catch (e) {
+          console.log(`   [${label}] 실패: ${e.message.split("\n")[0]}`);
+          await dumpOptions(label + "(실패 시점)");
+        }
+      }
+      console.log(`최종 URL: ${page.url()}`);
+
+      // [확인 완료] 표의 단지명 링크 형식.
+      //   https://fin.land.naver.com/complexes/{번호}?tab=article&tradeTypes=A1
+      //     &exclusiveSpaceMode=true&space={전용-0.5}-{전용+0.5}
+      // 이 주소는 /map 으로 리다이렉트되는데, 네 파라미터가 모두 layer 상태로 넘어간다:
+      //   [{"id":"complex_detail","params":{"complexId":109227},
+      //     "searchParams":{"tab":"article","tradeTypes":"A1",
+      //                     "exclusiveSpaceMode":"true","space":"114.0900-115.0900"}}]
+      // layer는 lz-string Base64 압축이지만, 우리가 직접 만들 필요 없이 위 주소만 쓰면 된다.
+      // tab=article 이라는 값은 네이버 자신의 recentView 응답이 알려준 것이다.
+    } catch (e) {
+      console.log(`단지 상세 조사 실패(무시하고 종료): ${e.message.split("\n")[0]}`);
+    }
 
   } finally {
     await context.close();

@@ -102,7 +102,7 @@ UTC로는 여전히 "전날"이 되어 하루 이른 날짜에 데이터가 쌓�
 | 3 | 신규 등록 매물 중 호가가 실거래가 대비 하락율 순으로 조회할 수 있어야 함 | **충족 ✅** | `#newListingsPanel`의 `renderForDate()`가 각 행을 `bargainDiscount()`(호가 vs `realMaxPrice`) 내림차순으로 이미 정렬해서 보여줌 |
 | 4 | 신규 등록 매물을 단지별·평형별 신규 매물 개수 증감 순위로도 조회할 수 있어야 함 | 미구현 — 설계만 | 아래 "설계: 규칙 4" 참고 |
 | 5 | 매물 수집 시 급매 등 키워드를 함께 수집해 JSON에 표시하고, 관리자 탭 신규 등록 매물에서 활용 가능하도록 설계 | **규칙 6으로 대체됨** | 아래 "설계: 규칙 5(대체됨)" 참고 |
-| 6 | (2026-08-22 추가) 매물별 상세 정보(특징요약/특징/설명/방향/층수/방수 등)를 개별 매물 단위로 수집 | 미구현 — 설계 + 스캐폴딩만, 필드명 미확정 | 아래 "설계: 규칙 6" 참고. 실제 Naver API 필드명 확인은 실 러너의 `NAVER_SCOPE=probe` 실행 필요 |
+| 6 | (2026-08-22 추가) 매물별 상세 정보(특징요약/방향/층수 등)를 개별 매물 단위로 수집 | 코드 반영 완료, 실 쓰기 검증 대기 | 아래 "설계: 규칙 6" 참고. run #42 probe로 방향/층수/특징설명 필드명 확정, 방수·화장실수·호가원문·태그배열은 API에 없음 확인. 다음 실 러너 실행에서 `naver-land-articles.json` 실제 생성 여부 확인 필요 |
 
 ## 설계: 규칙 4 — 단지·평형별 신규 매물 개수 증감 순위
 
@@ -154,12 +154,11 @@ series["complexNo|area|tradeType"] = [
     "<articleNumber>": {
       "complexNo": 12345, "complexName": "...", "tradeType": "A1",
       "exclusiveArea": 84.97, "supplyArea": 112.4,
-      "floor": "10/20", "direction": "남향",
-      "roomCount": 3, "bathRoomCount": 2,
-      "priceRaw": "매매 18억 5,000", "price": 185000,
-      "tags": ["10년이내", "대단지", "필로티", "방세개"],
-      "featureSummary": "...", "description": "...",
-      "managementCost": null,
+      "floor": "고/7", "direction": "SS",
+      "roomCount": null, "bathRoomCount": null,
+      "priceRaw": null, "price": 185000,
+      "tags": [],
+      "featureSummary": "가격협의 가능, 즉시입주 저렴한 매물 보유중",
       "hasBargainKeyword": false,
       "firstSeenDate": "2026-08-22", "lastSeenDate": "2026-08-22",
       "removedDate": null
@@ -183,13 +182,47 @@ series["complexNo|area|tradeType"] = [
   아예 추출/저장하지 않는다** — 이미 네이버에 공개된 정보라도, 이 개인 대시보드에 저장할
   기능적 필요가 없고 다른 공개 도메인에 재게시할 이유가 없다. 매물설명(장문)은 저장하되,
   전화번호 패턴(`/01[0-9]-?\d{3,4}-?\d{4}/`)이 섞여 있으면 저장 전 제거한다.
-- **필드명은 전부 미확정 추정치** — `priceInfo`/`spaceInfo`처럼 그룹화된 응답 구조를
-  근거로 한 최선의 추측이며, 실제 확인은 `NAVER_SCOPE=probe`로만 가능(이 개발 환경은
-  네이버 접속 자체가 차단돼 있음). 히트율(추정 필드가 실제로 값을 채우는 비율)이 낮으면
-  `naver-land-articles.json` 쓰기 자체를 건너뛰도록 가드를 둬서, 필드명이 틀렸을 때
-  null투성이 파일이 퍼블릭 저장소에 커밋되는 걸 막는다.
+- 히트율(추정 필드가 실제로 값을 채우는 비율)이 낮으면 `naver-land-articles.json` 쓰기
+  자체를 건너뛰도록 가드를 둬서, 필드명이 틀렸을 때 null투성이 파일이 퍼블릭 저장소에
+  커밋되는 걸 막는다.
 - **후속 UI 작업(별도 범위)**: `#newListingsPanel`의 각 행에 태그 칩/설명 표시,
   `hasBargainKeyword`를 기존 하락율 기반 급매 판정과 함께 필터링에 반영.
+
+### 필드명 확인 — Run #42 (`NAVER_SCOPE=probe`, 2026-08-22)
+
+사용자가 실 러너에서 probe를 돌려 실제 `boundedArticles` 응답을 확인했다. **확정된
+경로**(5건 중 5건 발견):
+
+- `articleDetail.direction` — 나침반 코드 문자열(예: `"SS"`). "남향" 같은 한글 텍스트가
+  아니므로, 화면에 표시하려면 별도 코드→한글 매핑표가 필요(아직 미구현, 원본 코드를
+  그대로 저장만 함).
+- `articleDetail.floorInfo` — 문자열(예: `"고/7"` = "고층/전체 7층"). 구조화된
+  `floorDetailInfo.targetFloor`/`totalFloor`도 같은 객체에 있어 필요시 활용 가능.
+- `articleDetail.articleFeatureDescription` — 자유 텍스트 한 문장(예: "가격협의 가능,
+  전세, 월세, 단기임대, 즉시입주 저렴한 매물 보유중"). 급매 키워드는 이 텍스트에서 찾는다.
+
+**존재하지 않는 것으로 확인됨**(5건 중 0건, 원래 추정이 틀렸음): `spaceInfo.roomCount`,
+`spaceInfo.bathRoomCount`, `priceInfo.priceString`, `tagList`(별도 태그 배열 자체가 없음).
+`extractArticleFeatures()`는 이 필드들을 항상 `null`/`[]`로 고정하도록 수정했다 —
+방수·화장실수·호가 원문·태그는 이 API로는 확보할 수 없다(첨부 엑셀 수준의 상세는 별도
+소스였던 것으로 보임).
+
+이 수정으로 히트율 가드가 통과할 것으로 예상되나, **실제 쓰기 성공은 다음 실 러너
+실행에서 최종 확인 필요**(이 세션은 probe 로그 분석만 가능, 실행은 못 함).
+
+### run #42 중 발견된 버그 — 매물 상세 페이지 이동 후 `networkidle` 타임아웃
+
+`probeOnce()`가 새로 추가한 "매물 상세 페이지 네트워크 조사" 구간(articles/{번호} 방문)
+직후, 기존에 있던 "단지 상세 페이지 네트워크 조사" 구간의 `page.goto(...,
+{waitUntil:"networkidle"})`가 45초 타임아웃으로 실패해 **워크플로 전체가 실패**했다
+(`TimeoutError`, `probeOnce`에서 미처리 예외로 `main()`까지 전파돼 `exit code 1`).
+매물 상세 페이지가 VR 투어 등 백그라운드 요청을 계속 띄워 둔 채로 다음 페이지로
+넘어가면서 `networkidle`(500ms간 요청 없음)이 영영 만족되지 않은 것으로 추정된다.
+
+**해결**: (1) 매물 상세 조사 직후 `page.goto("about:blank")`로 페이지 상태를 리셋,
+(2) 단지 상세 조사 구간 전체를 try/catch로 감싸 한 구간이 타임아웃 나도 나머지 로그는
+살리고 `probeOnce()`가 정상 종료(`exit 0`)하도록 함 — probe는 진단용이라 탐색 실패가
+전체 CI 실패로 이어지면 안 된다는 원칙 적용.
 
 ## 제안 규칙 (추가로 고려할 것)
 
