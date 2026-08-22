@@ -2657,6 +2657,10 @@
               <option value="100">100개</option>
             </select>
           </label>
+          <label class="filter-check">
+            <input type="checkbox" id="newListingsBargainOnlyCheck" />
+            <span>급매 키워드만</span>
+          </label>
         </div>
       </div>
       <p class="desc" id="newListingsDesc">데이터를 불러오는 중입니다...</p>
@@ -6721,6 +6725,35 @@ function bargainDiscount(c) {
   return ((c.realMaxPrice - c.minPrice) / c.realMaxPrice) * 100;
 }
 
+// 단지명 링크. 네이버가 자기 API(recentView)에서 매물 탭 주소로 알려주는 형식이
+// complexes/{번호}?tab=article 이라 그걸 그대로 쓴다. 이 주소는 지도 화면으로
+// 리다이렉트되면서 해당 단지의 매물 목록을 연다.
+// 전용면적 범위를 함께 넘겨 그 평형만 보이게 한다(exclusiveSpaceMode=true).
+// 네이버 면적 슬라이더는 "평" 단위로만 움직인다. space 파라미터는 그 눈금을 ㎡로
+// 환산한 값이라 정수 평 × 3.3058 형태여야 하고, 임의의 ㎡ 값을 넣으면 슬라이더가
+// 그 위치를 찾지 못해 "전체면적"으로 되돌아간다.
+//   예) 주신 URL의 46.2812-76.0334 = 14평 ~ 23평
+const NAVER_PYEONG = 3.3058;
+function spaceParamFor(exclusiveArea) {
+  const py = exclusiveArea / NAVER_PYEONG;
+  const lo = Math.floor(py);
+  const hi = Math.ceil(py);
+  return `${(lo * NAVER_PYEONG).toFixed(4)}-${((hi > lo ? hi : lo + 1) * NAVER_PYEONG).toFixed(4)}`;
+}
+
+// 이 저장소는 TRADE_TYPES=["A1"](매매)만 수집하므로(scripts/fetch-naver-land.js)
+// tradeType 기본값 "A1"이 안전하다. 급매Now 탭처럼 거래유형 필터가 있는 화면은
+// 명시적으로 넘겨서 그 값을 반영한다.
+function complexUrl(c, tradeType = "A1") {
+  const params = new URLSearchParams({ tab: "article", tradeTypes: tradeType });
+  const ex = c.exclusiveArea;
+  if (ex > 0) {
+    params.set("exclusiveSpaceMode", "true");
+    params.set("space", spaceParamFor(ex));
+  }
+  return `https://fin.land.naver.com/complexes/${c.complexNo}?${params}`;
+}
+
 // 매매가 표기: 15.1억. 데이터는 만원 단위로 들어온다.
 const fmtEok = (manwon) =>
   manwon == null || !Number.isFinite(Number(manwon)) ? "–" : `${(Number(manwon) / 10000).toFixed(1)}억`;
@@ -6956,6 +6989,7 @@ async function initNewListingsWidget() {
   const emptyNote = document.getElementById("newListingsEmptyNote");
   const pager = document.getElementById("newListingsPager");
   const pageNote = document.getElementById("newListingsPageNote");
+  const bargainOnlyCheck = document.getElementById("newListingsBargainOnlyCheck");
 
   let payload, history;
   try {
@@ -7069,9 +7103,11 @@ async function initNewListingsWidget() {
   function renderNewListingsPager(pageCount) {
     pager.innerHTML = "";
     if (pageCount <= 1) {
+      pager.hidden = true;
       pageNote.hidden = true;
       return;
     }
+    pager.hidden = false;
     pageNote.hidden = false;
 
     const start = Math.max(1, newListingsPageNo - Math.floor(PAGER_WINDOW / 2));
@@ -7113,11 +7149,14 @@ async function initNewListingsWidget() {
   function renderForDate(date) {
     newListingsPageNo = 1;
     syncNewListingsSortHeaders();
-    const rows = (newRowsByDate.get(date) || []).map(({ key, minPrice }) => {
-      const meta = complexMeta.get(key);
-      const off = bargainDiscount({ realMaxPrice: meta?.realMaxPrice, minPrice });
-      return { minPrice, meta, off, date, article: articleByKey.get(key) };
-    });
+    const bargainOnly = bargainOnlyCheck.checked;
+    const rows = (newRowsByDate.get(date) || [])
+      .map(({ key, minPrice }) => {
+        const meta = complexMeta.get(key);
+        const off = bargainDiscount({ realMaxPrice: meta?.realMaxPrice, minPrice });
+        return { minPrice, meta, off, date, article: articleByKey.get(key) };
+      })
+      .filter((r) => !bargainOnly || r.article?.hasBargainKeyword === true);
     sortRows(rows);
 
     sumRows = rows.length;
@@ -7125,8 +7164,11 @@ async function initNewListingsWidget() {
     if (rows.length === 0) {
       newTbody.innerHTML = "";
       emptyNote.hidden = false;
-      emptyNote.textContent = `${date}에는 새로 관측된 매물이 없습니다.`;
+      emptyNote.textContent = bargainOnly
+        ? `${date}에는 급매 키워드가 포함된 매물이 없습니다.`
+        : `${date}에는 새로 관측된 매물이 없습니다.`;
       pager.innerHTML = "";
+      pager.hidden = true;
       pageNote.hidden = true;
       return;
     }
@@ -7149,7 +7191,7 @@ async function initNewListingsWidget() {
         const nameText = escapeHtml(meta?.complexName || "–");
         const nameInner = keywordBargain ? `<span class="naver-keyword-bargain">${nameText}</span>` : nameText;
         const nameCell = meta?.complexNo
-          ? `<a class="naver-complex-link" href="https://fin.land.naver.com/complex/${meta.complexNo}?realEstateType=APT&tradType=A1&exclusiveSpaceMode=true&exclusiveSpace=${exArea?.toFixed(2)}" target="_blank" rel="noopener">${nameInner}</a>`
+          ? `<a class="naver-complex-link" href="${complexUrl(meta)}" target="_blank" rel="noopener">${nameInner}</a>`
           : nameInner;
         const featureSummaryCell = article?.featureSummary
           ? `<span class="naver-feature-summary" title="${escapeHtml(article.featureSummary)}">${escapeHtml(article.featureSummary)}</span>`
@@ -7189,6 +7231,7 @@ async function initNewListingsWidget() {
 
   dateSelect.addEventListener("change", () => renderForDate(dateSelect.value));
   limitSelect.addEventListener("change", () => renderForDate(dateSelect.value));
+  bargainOnlyCheck.addEventListener("change", () => renderForDate(dateSelect.value));
 
   document.querySelectorAll("#newListingsTable th.sortable").forEach((th) => {
     th.addEventListener("click", () => {
@@ -7727,32 +7770,6 @@ async function initNaverTab() {
     return Math.round(c.minPrice / (supply / 3.305785));
   }
 
-  // 단지명 링크. 네이버가 자기 API(recentView)에서 매물 탭 주소로 알려주는 형식이
-  // complexes/{번호}?tab=article 이라 그걸 그대로 쓴다. 이 주소는 지도 화면으로
-  // 리다이렉트되면서 해당 단지의 매물 목록을 연다.
-  // 전용면적 범위를 함께 넘겨 그 평형만 보이게 한다(exclusiveSpaceMode=true).
-  // 네이버 면적 슬라이더는 "평" 단위로만 움직인다. space 파라미터는 그 눈금을 ㎡로
-  // 환산한 값이라 정수 평 × 3.3058 형태여야 하고, 임의의 ㎡ 값을 넣으면 슬라이더가
-  // 그 위치를 찾지 못해 "전체면적"으로 되돌아간다.
-  //   예) 주신 URL의 46.2812-76.0334 = 14평 ~ 23평
-  const NAVER_PYEONG = 3.3058;
-  function spaceParamFor(exclusiveArea) {
-    const py = exclusiveArea / NAVER_PYEONG;
-    const lo = Math.floor(py);
-    const hi = Math.ceil(py);
-    return `${(lo * NAVER_PYEONG).toFixed(4)}-${((hi > lo ? hi : lo + 1) * NAVER_PYEONG).toFixed(4)}`;
-  }
-
-  function complexUrl(c) {
-    const params = new URLSearchParams({ tab: "article", tradeTypes: tradeSelect.value });
-    const ex = c.exclusiveArea;
-    if (ex > 0) {
-      params.set("exclusiveSpaceMode", "true");
-      params.set("space", spaceParamFor(ex));
-    }
-    return `https://fin.land.naver.com/complexes/${c.complexNo}?${params}`;
-  }
-
   function pyeongAskCell(c) {
     const v = pyeongAskMin(c);
     if (v == null) return "–";
@@ -7996,7 +8013,7 @@ async function initNaverTab() {
         <td class="naver-region">${escapeHtml(r.regionLabel || "–")}</td>
         <td>${bargain ? BARGAIN_ICON : ""}${
           r.complexNo
-            ? `<a class="naver-complex-link" href="${complexUrl(r)}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>`
+            ? `<a class="naver-complex-link" href="${complexUrl(r, tradeSelect.value)}" target="_blank" rel="noopener">${escapeHtml(r.complexName)}</a>`
             : escapeHtml(r.complexName)
         }</td>
         <td class="num">${fmtManwon(r.minPrice)}${
