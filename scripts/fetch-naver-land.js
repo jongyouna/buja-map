@@ -139,9 +139,18 @@ async function callApi(page, apiPath, body) {
           options.headers["Content-Type"] = "application/json";
           options.body = JSON.stringify(body);
         }
-        const res = await fetch(apiPath, options);
-        const text = await res.text();
-        return { status: res.status, text };
+        // 브라우저 fetch()는 기본 타임아웃이 없어서, 연결이 응답 없이 끊기면
+        // page.evaluate가 영영 안 끝난다(run #43에서 겪은 13분+ 무응답 의심 원인
+        // 중 하나). AbortController로 30초 넘으면 확실히 실패시킨다.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30000);
+        try {
+          const res = await fetch(apiPath, { ...options, signal: controller.signal });
+          const text = await res.text();
+          return { status: res.status, text };
+        } finally {
+          clearTimeout(timer);
+        }
       },
       { apiPath, body }
     );
@@ -1259,8 +1268,24 @@ async function main() {
   console.log(`[시작] 수집 범위: ${SCOPE} (${SCOPE_CONFIG.label})`);
   console.log(`[시작] 환경: NODE_ENV=${process.env.NODE_ENV}, 러너=${process.env.RUNNER || '로컬'}`);
   if (SCOPE_CONFIG.probe) {
-    await probeOnce();
-    return;
+    // probeOnce()는 진단용 탐색이라 개별 구간을 try/catch로 감쌌지만(run #42),
+    // Playwright의 page.evaluate/fetch처럼 자체 타임아웃이 없는 호출이 실제로
+    // 응답 없이 멈추면(run #43, 13분+ 무응답) catch로도 못 잡고 프로세스가 안 끝난다.
+    // 무엇이 걸리든 일정 시간 안에는 반드시 끝나도록 전체를 강제 타임아웃으로 감싸고,
+    // 남은 핸들(브라우저 등)이 있어도 확실히 종료되도록 process.exit()로 마무리한다.
+    const PROBE_TIMEOUT_MS = 180000; // 3분 — 정상 probe는 보통 수십 초면 끝남
+    try {
+      await Promise.race([
+        probeOnce(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`probe 전체 타임아웃(${PROBE_TIMEOUT_MS / 1000}초 초과)`)), PROBE_TIMEOUT_MS)
+        ),
+      ]);
+    } catch (err) {
+      console.error(`[probe] 실패 또는 타임아웃: ${err.message}`);
+    }
+    console.log("[probe] 종료");
+    process.exit(0);
   }
   let regions = [];
   let articleRecords = [];
