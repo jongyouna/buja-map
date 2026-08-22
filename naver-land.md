@@ -1,0 +1,147 @@
+# 네이버 부동산 매물 갱신 규칙
+
+네이버 부동산 매물 수집·저장·관리자 탭 노출 기능을 고도화하기 위한 규칙 정의 문서.
+관련 코드: `scripts/fetch-naver-land.js`, `data/naver-land*.json`, `index.html`
+(`#newListingsPanel`, `급매 Now!` 탭). 러너 설정은 `docs/naver-land-runner.md` 참고.
+
+## 데이터 파일 구조
+
+| 파일 | 역할 | 키 단위 |
+|---|---|---|
+| `data/naver-land.json` | 최신 스냅샷 (지역 → 단지×면적×거래유형 행) | `regions[].complexes[]` |
+| `data/naver-land-daily.json` | 날짜별 집계 스냅샷 + 그날의 "신규 단지" 목록. 90일 보관 | 날짜(UTC) 문자열 |
+| `data/naver-land-history.json` | `(complexNo\|전용면적\|거래유형)`별 일별 시계열 `[날짜, 평당호가최저가, 최저호가원본]`. 30일 보관, 3일 간격으로 솎음 | `series["복합키"]` |
+
+## 점검 결과 — Run #39 (2026-08-22)
+
+- **run #39**: `workflow_dispatch`(수동 실행)로 2026-08-21 19:27 UTC(KST 04:27) 시작,
+  2026-08-21 22:54 UTC(KST 07:54) 완료, scope=`seoul`, **성공**.
+- 커밋 `fdaa7c6` "chore: 네이버 부동산 매물 갱신 - seoul" (github-actions[bot])로 정상 push됨.
+- `naver-land.json`(regions 26개, 단지×면적×거래유형 14,403행), `naver-land-daily.json`,
+  `naver-land-history.json`(series 14,344건, 마지막 시점까지 갱신) 세 파일 모두 이 커밋
+  시각에 맞춰 갱신 확인 — **데이터 저장 자체는 정상**.
+- 단, 아래 두 가지 구조적 결함을 실측 데이터로 확인함 (규칙 1/2 품질에 직접 영향).
+
+## 발견된 문제 (우선 수정 권장)
+
+### 문제 1 — 날짜 키가 UTC 기준이라 KST와 어긋남
+
+`fetch-naver-land.js`가 `new Date().toISOString().slice(0,10)`로 "오늘" 날짜를 계산한다.
+이 값은 UTC 자정 기준이라, 매일 새벽 2시(KST) 정기 실행이나 이른 아침 수동 실행은
+UTC로는 여전히 "전날"이 되어 하루 이른 날짜에 데이터가 쌓인다.
+
+- 실측: run #39는 KST 2026-08-22 새벽에 끝났지만, 데이터는 `"2026-08-21"` 키에 저장됐고
+  `naver-land-daily.json`에는 아직 `"2026-08-22"` 키가 없다.
+- 영향: 관리자/급매 Now! 탭에서 브라우저가 "오늘"을 계산할 때도 같은 방식(UTC)을 쓰므로
+  자체 모순은 없지만, **KST 09:00(=UTC 자정)를 넘겨 접속하면 "오늘"이 실제로는 어제
+  KST 새벽 데이터를 가리키게 되어**, 하루 종일 데이터가 밀려 보인다.
+- 규칙 1(일일별 비교)·규칙 2(30일 조회)의 "일자"가 사용자 체감과 어긋나므로,
+  **모든 날짜 계산을 `Asia/Seoul` 기준으로 통일**하는 수정을 권장한다
+  (`fetch-naver-land.js`의 `today`/`todayStr`/`yesterdayStr` 계산부, `index.html`의
+  `loadDailyComparison()`).
+
+### 문제 2 — "신규 단지" 판정 로직 결함
+
+`updateDailySnapshot()`은 오늘 단지 중 **"어제의 newComplexes 목록"에 없는 것**만 신규로
+판정한다(전체 단지 목록과 비교하지 않음). 어제 신규 목록이 비어 있으면(문제 1로 인해
+흔히 발생) 사실상 모든 단지가 신규로 잡히는 구조다.
+
+- 실측: `2026-08-20` newComplexes = **0건** → `2026-08-21` newComplexes = **14,310건**
+  (전체 14,403개 단지의 99.4%) — 사실상 의미 없는 신호.
+- 영향 범위: **"급매 Now!" 탭의 "신규 등록 단지" 섹션**(`loadDailyComparison`/
+  `renderNewComplexes`, `naver-land-daily.json` 기반)에만 해당.
+  **관리자 탭의 실제 `#newListingsPanel`은 이 결함의 영향을 받지 않는다** — 별도로
+  `naver-land-history.json`의 (단지|면적|거래유형)별 최초 관측일을 기준으로 신규를
+  판정하기 때문이다.
+- 수정 방향: "어제 신규 목록"이 아니라 "지금까지 한 번이라도 관측된 전체 단지 집합"과
+  비교하거나, `#newListingsPanel`처럼 history 기반 최초 관측일 방식으로 통일.
+
+### 문제 3 — 자동 스케줄(매일 새벽 2시)이 사실상 멈춰 있음
+
+최근 워크플로 실행 이력(run #30~39)을 전수 조사한 결과, `schedule` 이벤트로 실행된
+것은 **run #32(2026-08-20 17:28 UTC = KST 08-21 02:28)** 단 한 건뿐이며 그마저도
+**실패**했다. 그다음 스케줄이 도는 시각(KST 08-22 02:00경)에도 `schedule` 이벤트 실행
+기록이 없고, 대신 run #33~39가 전부 사람이 직접 실행한 `workflow_dispatch`였다.
+
+- 자기호스팅 러너가 스케줄 시각에 꺼져 있으면 작업이 24시간 대기하다 취소되는 것이
+  기존 동작이므로(`docs/naver-land-runner.md`), 최근 며칠은 자동 수집이 안 되고
+  사람이 수동으로 챙겨야만 데이터가 갱신된 것으로 보인다.
+- 규칙 1·2(일일 연속성, 30일 조회)는 매일 빠짐없이 수집된다는 전제가 깔려 있으므로,
+  **러너가 예약 시각에 켜져 있는지(서비스 등록 여부, 절전 설정) 확인이 필요**하다.
+
+## 규칙
+
+| # | 규칙 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | 저장되는 매물 데이터는 일일별 비교가 가능하도록 저장되어야 함 | 부분 충족 ⚠️ | `naver-land-history.json`(30일 시계열) · `naver-land-daily.json`(날짜별 집계)로 구조는 갖춰짐. **문제 1**(UTC 날짜 키)로 실제 체감 정확도가 떨어짐 |
+| 2 | 관리자 탭의 신규 등록 매물은 과거 30일 조회 가능해야 함 | 설계상 충족, 축적 중 ⚠️ | `#newListingsPanel`의 날짜 셀렉트가 `naver-land-history.json`의 (단지\|면적) 최초 관측일들로 채워짐(`HISTORY_KEEP_DAYS=30`). 이 이력 추적이 2026-08-20 도입돼 아직 30일치가 다 안 쌓임(2026-09-19경 완성 예정) + **문제 1**의 영향도 받음 |
+| 3 | 신규 등록 매물 중 호가가 실거래가 대비 하락율 순으로 조회할 수 있어야 함 | **충족 ✅** | `#newListingsPanel`의 `renderForDate()`가 각 행을 `bargainDiscount()`(호가 vs `realMaxPrice`) 내림차순으로 이미 정렬해서 보여줌 |
+| 4 | 신규 등록 매물을 단지별·평형별 신규 매물 개수 증감 순위로도 조회할 수 있어야 함 | 미구현 — 설계만 | 아래 "설계: 규칙 4" 참고 |
+| 5 | 매물 수집 시 급매 등 키워드를 함께 수집해 JSON에 표시하고, 관리자 탭 신규 등록 매물에서 활용 가능하도록 설계 | 미구현 — 설계만 | 아래 "설계: 규칙 5" 참고. 현재 `boundedArticles` 응답에서 가격·면적·주소·건물정보만 추출하며 텍스트/태그 필드는 저장하지 않음 |
+
+## 설계: 규칙 4 — 단지·평형별 신규 매물 개수 증감 순위
+
+현재 `naver-land.json`의 `complexes[]`는 이미 `(complexNo, tradeType, dong, exclusiveArea)`
+조합 단위로 `count`(그 조합의 매물 건수)를 갖고 있다. 다만
+`naver-land-history.json`의 시계열은 `[date, pyeongAskMin, minPrice]`만 저장하고
+`count`는 저장하지 않아 "건수 증감"을 계산할 수 없다.
+
+**제안 스키마 변경** (`naver-land-history.json`):
+
+```
+series["complexNo|area|tradeType"] = [
+  [date, pyeongAskMin, minPrice, count],   // count 추가
+  ...
+]
+```
+
+이렇게 하면 최근 두 시점의 `count` 차이(delta)를 계산해 단지·평형 단위로 랭킹을 만들 수
+있다. `CLAUDE.md`의 "`data/*.json` 구조를 임의로 바꾸지 않는다" 원칙에 따라 이번 점검에서는
+**스키마 변경을 실제로 적용하지 않고 설계만 남긴다** — 구현 시 `fetch-naver-land.js`의
+`applyWeeklyChange()`(현재 `[today, row.pyeongAskMin, row.minPrice ?? null]`을 미는 부분)와
+`index.html`의 소비 코드를 함께 바꿔야 한다.
+
+## 설계: 규칙 5 — 급매 키워드 수집
+
+- 현재 `/front-api/v1/article/boundedArticles` 응답에서 스크립트가 실제로 읽는 필드는
+  `priceInfo`, `spaceInfo`, `buildingInfo.approvalElapsedYear`, `address.sector`,
+  `complexNumber`/`complexName`뿐이다(`aggregateComplexes()` 참고). 원본 응답에 태그·설명
+  필드(`tagList`, `articleFeatureDescription` 등)가 실제로 오는지는 이번 점검 환경(클라우드/
+  개발 PC IP)에서는 네이버 접속 자체가 차단돼 확인할 수 없었다 — **국내 러너에서
+  `NAVER_SCOPE=probe` 실행으로 원본 응답 스키마를 먼저 확인해야 한다**
+  (`fetch-naver-land.js`의 `probeOnce()`가 이미 이 용도로 존재).
+- **제안 스키마**: 단지×면적 집계 행(`aggregateComplexes()`의 결과)에 아래 필드 추가:
+  ```
+  tags: string[]           // 원본에서 발견된 급매류 키워드 원문
+  hasBargainKeyword: boolean
+  ```
+  집계 단위가 (단지, 면적)이라 매물 여러 건이 한 행으로 뭉쳐지므로, 그 중 하나라도
+  키워드를 포함하면 `hasBargainKeyword=true`로 표시하고 `tags`에 실제 발견된 문구를 모아
+  둔다(중복 제거).
+- 키워드 판정은 정확 매칭보다 유사어 목록(예: "급매", "급급매", "급처") 기반으로 하고,
+  목록은 별도 상수로 분리해 오탐 시 쉽게 조정 가능하게 한다.
+- 관리자 탭 `#newListingsPanel`의 각 행에 급매 배지를 추가하고, 규칙 3의 하락율 정렬과
+  별개로 "급매 키워드만 보기" 필터를 추가한다.
+
+## 제안 규칙 (추가로 고려할 것)
+
+1. **날짜 계산을 KST(Asia/Seoul) 기준으로 통일** — 문제 1의 근본 수정. 스크립트와
+   `index.html` 양쪽의 "오늘"/"어제" 계산을 모두 바꿔야 함.
+2. **신규 단지 판정을 "누적 관측 집합" 기준으로 변경** — 문제 2의 근본 수정. 최소한
+   `#newListingsPanel`이 쓰는 history 기반 방식으로 통일.
+3. 매물 고유 식별자 기준 명확화 — 현재 신규 판정 단위가 `complexNo`+면적(단지 상품
+   단위)이지 개별 매물(`articleNumber`)이 아님을 문서에 명시. 필요하면 개별 매물 단위
+   추적을 별도로 추가할지 결정.
+4. 하락율 계산식·임계치(현재 5%, `bargainPct`는 관리자가 조정 가능)와 `realMaxPrice`
+   갱신 주기(최근 3년 실거래, `DETAIL_DELAY_MS` 간격으로 수집)를 문서에 고정.
+5. `naver-land-daily.json`(90일) / `naver-land-history.json`(30일) 보관 기간이 서로
+   다른 이유(용도가 다름: 전자는 일별 집계 그래프용, 후자는 신규 매물 위젯 + 주간
+   변화율용)를 명문화.
+6. 매물이 내려간(삭제된) 경우를 감지·표시하는 규칙 추가 — 현재는 새로 나타난 매물만
+   추적하고 사라진 매물은 별도 기록이 없음.
+7. 워크플로 실패(예: 이전 run #37/#35/#34 실패) 시 데이터 정합성 체크 — 전일 대비
+   건수가 비정상적으로 급감/급증하면 경고하는 규칙 추가 (이번 점검에서 발견한 문제 2도
+   이런 검증이 있었다면 조기에 잡혔을 것).
+8. **문제 3(자동 스케줄 미작동)의 재발 방지** — 러너가 예약 시각에 꺼져 있어도 조용히
+   24시간 뒤 취소되는 대신, 일정 시간(예: 6시간) 이상 그날 수집이 없으면 알림이 가도록
+   워크플로 자체 헬스체크를 추가.
